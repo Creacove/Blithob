@@ -151,4 +151,73 @@ describe("application routing", () => {
     expect(screen.getByDisplayValue("Portfolio sample")).toBeInTheDocument();
     expect(screen.queryByText(/training track/i)).not.toBeInTheDocument();
   });
+
+  it("shows a structured Job directory and complete brief", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/jobs");
+
+    expect(
+      screen.getByRole("link", { name: "Create job" })
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("link", { name: "Open Launch Social Media Calendar" })
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Launch Social Media Calendar" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Produce a ready-to-schedule campaign plan.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Acceptance criteria" })
+    ).toBeInTheDocument();
+  });
+
+  it("opens eligible Professionals in the Job assignment drawer", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/jobs/job-open-social");
+
+    await user.click(
+      screen.getByRole("button", { name: "Add professionals" })
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Add professionals" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Amara Okafor")).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Approved for Social Media Management/)
+    ).not.toHaveLength(0);
+  });
+
+  it("opens one independent Assignment record", () => {
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/assignments/assignment-approved");
+
+    expect(
+      screen.getByRole("heading", { name: "Campaign Refresh" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("David Mensah")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Submission versions" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Complete assignment" })
+    ).toBeInTheDocument();
+  });
+
+  it("opens a saved Job in the structured editor", () => {
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/jobs/job-open-social/edit");
+
+    expect(
+      screen.getByRole("heading", { name: "Edit job" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue("Launch Social Media Calendar")
+    ).toBeInTheDocument();
+  });
 });

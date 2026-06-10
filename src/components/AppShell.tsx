@@ -78,9 +78,10 @@ export function AppShell({ role }: { role: AccountRole }) {
             : []),
           ...professionalNavTail
         ];
-  const title =
-    items.find((item) => location.pathname.startsWith(item.to))?.label ??
-    (location.pathname.includes("notifications") ? "Updates" : "Workspace");
+  const title = location.pathname.startsWith("/admin/assignments/")
+    ? "Jobs"
+    : (items.find((item) => location.pathname.startsWith(item.to))?.label ??
+      (location.pathname.includes("notifications") ? "Updates" : "Workspace"));
 
   useEffect(() => {
     const close = (event: MouseEvent) => {

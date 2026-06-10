@@ -291,4 +291,149 @@ describe("professional store", () => {
     );
     expect(updatedEnrolment?.requirements[2].completed).toBe(false);
   });
+
+  it("allows an incomplete Job to be saved as a draft", () => {
+    const jobId = useProfessionalStore.getState().createJob({
+      title: "Client research",
+      serviceId: "service-content",
+      clientContext: "",
+      objective: "",
+      description: "",
+      steps: [],
+      deliverables: [],
+      acceptanceCriteria: [],
+      references: [],
+      submissionEvidenceRequired: false,
+      deadline: ""
+    });
+
+    expect(
+      useProfessionalStore
+        .getState()
+        .jobs.find((item) => item.id === jobId)
+    ).toMatchObject({
+      title: "Client research",
+      publicationState: "draft"
+    });
+  });
+
+  it("publishes only a complete Job brief", () => {
+    const jobId = useProfessionalStore.getState().createJob({
+      title: "Client research",
+      serviceId: "service-content",
+      clientContext: "A client needs a sourced market summary.",
+      objective: "Produce a concise decision-ready report.",
+      description: "Research the market and summarize the strongest findings.",
+      steps: [""],
+      deliverables: ["Research report"],
+      acceptanceCriteria: ["Every claim includes a source."],
+      references: [
+        {
+          id: "reference-brief",
+          label: "Client brief",
+          kind: "link"
+        }
+      ],
+      submissionEvidenceRequired: true,
+      deadline: "2026-07-01T17:00:00.000Z"
+    });
+
+    expect(jobId).toBeDefined();
+    expect(
+      useProfessionalStore.getState().publishJob(jobId ?? "")
+    ).toBe(false);
+
+    useProfessionalStore.getState().updateJob(jobId ?? "", {
+      steps: ["Review the brief and source requirements."],
+      references: [
+        {
+          id: "reference-brief",
+          label: "Client brief",
+          kind: "link",
+          url: "https://example.com/client-brief"
+        }
+      ]
+    });
+
+    expect(
+      useProfessionalStore.getState().publishJob(jobId ?? "")
+    ).toBe(true);
+  });
+
+  it("rejects new Assignments after a Job is archived", () => {
+    useProfessionalStore.getState().archiveJob("job-open-social");
+    const before = useProfessionalStore.getState().assignments.length;
+
+    useProfessionalStore.getState().addAssignments("job-open-social", [
+      {
+        professionalId: "professional-amara",
+        agreedPay: 100000,
+        deadline: "2026-07-01T17:00:00.000Z"
+      }
+    ]);
+
+    expect(useProfessionalStore.getState().assignments).toHaveLength(before);
+  });
+
+  it("rejects Assignments until a Job is published", () => {
+    const jobId = useProfessionalStore.getState().createJob({
+      title: "Draft research brief",
+      serviceId: "service-content",
+      clientContext: "",
+      objective: "",
+      description: "",
+      steps: [],
+      deliverables: [],
+      acceptanceCriteria: [],
+      references: [],
+      submissionEvidenceRequired: false,
+      deadline: ""
+    });
+    const before = useProfessionalStore.getState().assignments.length;
+
+    useProfessionalStore.getState().addAssignments(jobId ?? "", [
+      {
+        professionalId: "professional-nneka",
+        agreedPay: 100000,
+        deadline: "2026-07-01T17:00:00.000Z"
+      }
+    ]);
+
+    expect(useProfessionalStore.getState().assignments).toHaveLength(before);
+  });
+
+  it("routes an Assignment directly to Admin when the assignee is the Lead", () => {
+    useProfessionalStore.getState().addAssignments("job-open-social", [
+      {
+        professionalId: "professional-amara",
+        agreedPay: 100000,
+        deadline: "2026-07-01T17:00:00.000Z",
+        leadReviewerId: "professional-amara"
+      }
+    ]);
+
+    expect(
+      useProfessionalStore
+        .getState()
+        .assignments.find(
+          (item) =>
+            item.jobId === "job-open-social" &&
+            item.professionalId === "professional-amara"
+        )
+    ).toMatchObject({ leadReviewerId: undefined });
+  });
+
+  it("rejects Assignments without positive pay and a deadline", () => {
+    const before = useProfessionalStore.getState().assignments.length;
+
+    useProfessionalStore.getState().addAssignments("job-open-social", [
+      {
+        professionalId: "professional-amara",
+        agreedPay: 0,
+        deadline: ""
+      }
+    ]);
+
+    expect(useProfessionalStore.getState().assignments).toHaveLength(before);
+  });
 });

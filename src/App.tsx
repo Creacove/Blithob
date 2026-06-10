@@ -7,6 +7,10 @@ import { NotificationsPage } from "./pages/NotificationsPage";
 import { RouteShell } from "./pages/RouteShell";
 import { PeoplePage } from "./pages/admin/PeoplePage";
 import { ProfessionalDetailPage } from "./pages/admin/ProfessionalDetailPage";
+import { AdminAssignmentPage } from "./pages/admin/AdminAssignmentPage";
+import { JobDetailPage } from "./pages/admin/JobDetailPage";
+import { JobEditorPage } from "./pages/admin/JobEditorPage";
+import { JobsPage } from "./pages/admin/JobsPage";
 import { ServiceDetailPage } from "./pages/admin/ServiceDetailPage";
 import { ServicesPage } from "./pages/admin/ServicesPage";
 import { useProfessionalStore } from "./store/professionalStore";
@@ -77,31 +81,23 @@ export function App() {
           />
           <Route
             path="/admin/jobs"
-            element={route(
-              "Jobs",
-              "Create structured briefs and manage independent Assignments."
-            )}
+            element={<JobsPage />}
           />
           <Route
             path="/admin/jobs/new"
-            element={route(
-              "Create job",
-              "Write a complete brief before assigning Professionals."
-            )}
+            element={<JobEditorPage />}
+          />
+          <Route
+            path="/admin/jobs/:jobId/edit"
+            element={<JobEditorPage />}
           />
           <Route
             path="/admin/jobs/:jobId"
-            element={route(
-              "Job",
-              "Review the full brief, Assignment progress, and activity."
-            )}
+            element={<JobDetailPage />}
           />
           <Route
             path="/admin/assignments/:assignmentId"
-            element={route(
-              "Assignment",
-              "Review one Professional's delivery, decisions, and payment state."
-            )}
+            element={<AdminAssignmentPage />}
           />
           <Route
             path="/admin/reviews"

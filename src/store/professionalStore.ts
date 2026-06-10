@@ -169,15 +169,25 @@ function now() {
 
 function validJobForPublishing(state: DemoState, job: Job) {
   const service = state.services.find((item) => item.id === job.serviceId);
+  const hasContent = (items: string[]) =>
+    items.length > 0 && items.every((item) => item.trim());
+  const referencesAreValid = job.references.every(
+    (reference) =>
+      reference.label.trim() &&
+      (reference.kind === "link"
+        ? Boolean(reference.url?.trim())
+        : Boolean(reference.fileName?.trim()))
+  );
   return Boolean(
     service?.active &&
       job.title.trim() &&
       job.objective.trim() &&
       job.description.trim() &&
-      job.steps.length > 0 &&
-      job.deliverables.length > 0 &&
-      job.acceptanceCriteria.length > 0 &&
-      job.deadline
+      hasContent(job.steps) &&
+      hasContent(job.deliverables) &&
+      hasContent(job.acceptanceCriteria) &&
+      referencesAreValid &&
+      job.deadline.trim()
   );
 }
 

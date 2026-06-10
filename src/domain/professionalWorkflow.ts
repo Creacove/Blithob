@@ -995,7 +995,7 @@ export function addAssignments(
   inputs: NewAssignmentInput[]
 ): DemoState {
   const job = state.jobs.find((item) => item.id === jobId);
-  if (!job || job.publicationState === "archived") return state;
+  if (!job || job.publicationState !== "open") return state;
 
   const createdAt = currentTimestamp();
   const existingProfessionalIds = new Set(
@@ -1012,7 +1012,10 @@ export function addAssignments(
       !professional ||
       professional.accountStatus !== "active" ||
       existingProfessionalIds.has(professional.id) ||
-      !approvedServiceIdsFor(state, professional.id).includes(job.serviceId)
+      !approvedServiceIdsFor(state, professional.id).includes(job.serviceId) ||
+      !Number.isFinite(input.agreedPay) ||
+      input.agreedPay <= 0 ||
+      !input.deadline.trim()
     ) {
       return items;
     }
