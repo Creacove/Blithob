@@ -1,19 +1,24 @@
 import clsx from "clsx";
 import type {
   ButtonHTMLAttributes,
+  ForwardedRef,
   InputHTMLAttributes,
   ReactNode,
   SelectHTMLAttributes,
   TextareaHTMLAttributes
 } from "react";
+import { forwardRef } from "react";
 
-export function Button({
-  variant = "primary",
-  className,
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "quiet" | "danger";
-}) {
+export const Button = forwardRef(function Button(
+  {
+    variant = "primary",
+    className,
+    ...props
+  }: ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: "primary" | "secondary" | "quiet" | "danger";
+  },
+  ref: ForwardedRef<HTMLButtonElement>
+) {
   const styles = {
     primary:
       "bg-[var(--blue)] text-white hover:bg-[var(--blue-hover)]",
@@ -24,6 +29,7 @@ export function Button({
   }[variant];
   return (
     <button
+      ref={ref}
       className={clsx(
         "inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] px-4 text-sm font-semibold transition duration-200 disabled:cursor-not-allowed disabled:opacity-45",
         styles,
@@ -32,7 +38,7 @@ export function Button({
       {...props}
     />
   );
-}
+});
 
 export function Field({
   label,
@@ -134,6 +140,117 @@ export function EmptyState({
         {description}
       </p>
       {action && <div className="mt-5">{action}</div>}
+    </div>
+  );
+}
+
+export function Toolbar({
+  label = "Page controls",
+  children,
+  className
+}: {
+  label?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className={clsx(
+        "flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-white p-3 sm:flex-row sm:items-center",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function RecordList({
+  children,
+  className,
+  label
+}: {
+  children: ReactNode;
+  className?: string;
+  label?: string;
+}) {
+  return (
+    <div
+      role={label ? "region" : undefined}
+      aria-label={label}
+      className={clsx(
+        "divide-y divide-[var(--border)] overflow-hidden rounded-xl border border-[var(--border)] bg-white",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function MetaList({
+  items,
+  className
+}: {
+  items: Array<{ label: string; value: ReactNode }>;
+  className?: string;
+}) {
+  return (
+    <dl className={clsx("grid gap-x-6 gap-y-3 sm:grid-cols-2", className)}>
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className="grid grid-cols-[minmax(7rem,0.45fr)_1fr] gap-3"
+        >
+          <dt className="text-sm font-medium text-[var(--muted)]">
+            {item.label}
+          </dt>
+          <dd className="min-w-0 text-sm font-semibold text-[var(--ink)]">
+            {item.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+export function ProgressBar({
+  value,
+  max = 100,
+  label,
+  showValue = false
+}: {
+  value: number;
+  max?: number;
+  label: string;
+  showValue?: boolean;
+}) {
+  const safeMax = max > 0 ? max : 1;
+  const safeValue = Math.min(Math.max(value, 0), safeMax);
+  const percentage = Math.round((safeValue / safeMax) * 100);
+
+  return (
+    <div>
+      <div
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={safeMax}
+        aria-valuenow={safeValue}
+        className="h-2 overflow-hidden rounded-full bg-slate-200"
+      >
+        <div
+          className="h-full rounded-full bg-[var(--blue)] transition-[width] duration-300"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      {showValue && (
+        <p className="mt-1.5 text-sm text-[var(--muted)]">
+          {safeValue} of {safeMax}
+        </p>
+      )}
     </div>
   );
 }
