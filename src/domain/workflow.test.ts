@@ -15,6 +15,7 @@ describe("Blithob workflow", () => {
     const matches = rankEligibleWorkers(state, "opp-open-1");
 
     expect(matches.map((match) => match.worker.id)).toEqual([
+      "worker-nneka",
       "worker-amara",
       "worker-david"
     ]);
