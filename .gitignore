@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.vite/
+coverage/
+playwright-report/
+test-results/
+output/playwright/
+.worktrees/
+.env
+.env.local
+*.log
+
+# Local Netlify folder
+.netlify
