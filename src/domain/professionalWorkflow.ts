@@ -1,13 +1,19 @@
-import type { DemoState, ReadinessRequirement } from "./model";
+import type {
+  DemoState,
+  Notification,
+  ReadinessRequirement,
+  ReadinessReview,
+  RequirementProgress,
+  ServiceEnrolmentStatus
+} from "./model";
 
 const now = "2026-06-10T09:00:00.000Z";
 
 function requirements(
-  serviceId: string,
-  items: Array<[string, string, boolean]>
+  items: Array<[string, string, string, boolean]>
 ): ReadinessRequirement[] {
-  return items.map(([title, description, requiresEvidence], index) => ({
-    id: `${serviceId}-requirement-${index + 1}`,
+  return items.map(([id, title, description, requiresEvidence], index) => ({
+    id,
     title,
     description,
     requiresEvidence,
@@ -16,22 +22,57 @@ function requirements(
 }
 
 export function createDemoState(): DemoState {
-  const socialRequirements = requirements("service-social", [
-    ["Strategy basics", "Explain campaign goals and audience segmentation.", false],
-    ["Portfolio sample", "Upload a sample social calendar or campaign plan.", true],
-    ["Tool readiness", "Confirm access to scheduling and reporting tools.", true]
+  const socialRequirements = requirements([
+    [
+      "social-orientation",
+      "Strategy basics",
+      "Explain campaign goals and audience segmentation.",
+      false
+    ],
+    [
+      "social-sample",
+      "Portfolio sample",
+      "Upload a sample social calendar or campaign plan.",
+      true
+    ],
+    [
+      "social-feedback",
+      "Tool readiness",
+      "Confirm access to scheduling and reporting tools.",
+      true
+    ]
   ]);
-  const contentRequirements = requirements("service-content", [
-    ["Writing sample", "Submit a short-form and long-form writing sample.", true],
-    ["Editing checklist", "Confirm use of the house editing checklist.", false]
+  const contentRequirements = requirements([
+    [
+      "content-sample",
+      "Writing sample",
+      "Submit a short-form and long-form writing sample.",
+      true
+    ],
+    [
+      "content-editing",
+      "Editing checklist",
+      "Confirm use of the house editing checklist.",
+      false
+    ]
   ]);
-  const virtualAssistanceRequirements = requirements("service-va", [
-    ["Calendar coordination", "Complete the calendar coordination exercise.", false],
-    ["Client comms sample", "Upload a client update sample.", true]
+  const virtualAssistanceRequirements = requirements([
+    [
+      "va-calendar",
+      "Calendar coordination",
+      "Complete the calendar coordination exercise.",
+      false
+    ],
+    ["va-comms", "Client comms sample", "Upload a client update sample.", true]
   ]);
-  const dataEntryRequirements = requirements("service-data", [
-    ["Spreadsheet accuracy", "Complete the spreadsheet accuracy exercise.", true],
-    ["Confidentiality", "Accept the data handling guidelines.", false]
+  const dataEntryRequirements = requirements([
+    [
+      "data-spreadsheet",
+      "Spreadsheet accuracy",
+      "Complete the spreadsheet accuracy exercise.",
+      true
+    ],
+    ["data-confidentiality", "Confidentiality", "Accept the data handling guidelines.", false]
   ]);
 
   return {
@@ -581,5 +622,352 @@ export function createDemoState(): DemoState {
         createdAt: "2026-02-22T12:00:00.000Z"
       }
     ]
+  };
+}
+
+function makeId(prefix: string, count: number) {
+  return `${prefix}-${count + 1}`;
+}
+
+function currentTimestamp() {
+  return new Date().toISOString();
+}
+
+function adminUserId(state: DemoState) {
+  return (
+    state.users.find((user) => user.accountRole === "admin")?.id ??
+    "user-admin"
+  );
+}
+
+function professionalUserId(state: DemoState, professionalId?: string) {
+  if (!professionalId) return undefined;
+  return state.professionals.find((item) => item.id === professionalId)?.userId;
+}
+
+function notification(
+  recipientUserId: string | undefined,
+  title: string,
+  message: string
+): Notification[] {
+  if (!recipientUserId) return [];
+  return [
+    {
+      id: `notification-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      recipientUserId,
+      title,
+      message,
+      createdAt: currentTimestamp(),
+      read: false
+    }
+  ];
+}
+
+function updateEnrolmentStatus(
+  state: DemoState,
+  enrolmentId: string,
+  status: ServiceEnrolmentStatus,
+  extra: Partial<
+    Pick<ServiceEnrolmentStatusFields, "leadCertifiedAt" | "adminApprovedAt">
+  > = {}
+): DemoState {
+  const at = currentTimestamp();
+  return {
+    ...state,
+    serviceEnrolments: state.serviceEnrolments.map((item) =>
+      item.id === enrolmentId
+        ? {
+            ...item,
+            ...extra,
+            status,
+            updatedAt: at
+          }
+        : item
+    )
+  };
+}
+
+interface ServiceEnrolmentStatusFields {
+  leadCertifiedAt?: string;
+  adminApprovedAt?: string;
+}
+
+export function setRequirementProgress(
+  state: DemoState,
+  enrolmentId: string,
+  requirementId: string,
+  input: Pick<
+    RequirementProgress,
+    "completed" | "evidenceLink" | "evidenceFileName"
+  >
+): DemoState {
+  const enrolment = state.serviceEnrolments.find(
+    (item) => item.id === enrolmentId
+  );
+  const service = state.services.find(
+    (item) => item.id === enrolment?.serviceId
+  );
+  const requirement = service?.requirements.find(
+    (item) => item.id === requirementId
+  );
+
+  if (!enrolment || !requirement) return state;
+  if (
+    input.completed &&
+    requirement.requiresEvidence &&
+    !input.evidenceLink?.trim() &&
+    !input.evidenceFileName?.trim()
+  ) {
+    return state;
+  }
+
+  const at = currentTimestamp();
+  return {
+    ...state,
+    serviceEnrolments: state.serviceEnrolments.map((item) =>
+      item.id === enrolmentId
+        ? {
+            ...item,
+            status: "in_progress",
+            updatedAt: at,
+            requirements: item.requirements.map((progress) =>
+              progress.requirementId === requirementId
+                ? {
+                    ...progress,
+                    ...input,
+                    completedAt: input.completed ? at : undefined
+                  }
+                : progress
+            )
+          }
+        : item
+    )
+  };
+}
+
+export function submitServiceEnrolment(
+  state: DemoState,
+  enrolmentId: string
+): DemoState {
+  const enrolment = state.serviceEnrolments.find(
+    (item) => item.id === enrolmentId
+  );
+  const service = state.services.find(
+    (item) => item.id === enrolment?.serviceId
+  );
+  if (!enrolment || !service) return state;
+
+  const complete = service.requirements.every((requirement) => {
+    const progress = enrolment.requirements.find(
+      (item) => item.requirementId === requirement.id
+    );
+    return (
+      progress?.completed &&
+      (!requirement.requiresEvidence ||
+        progress.evidenceLink ||
+        progress.evidenceFileName)
+    );
+  });
+  if (!complete) return state;
+
+  const returnsToAdmin =
+    enrolment.status === "changes_requested_by_admin" ||
+    !enrolment.leadId ||
+    enrolment.leadId === enrolment.professionalId;
+  const next = updateEnrolmentStatus(
+    state,
+    enrolmentId,
+    returnsToAdmin ? "waiting_for_admin" : "waiting_for_lead"
+  );
+
+  const reviewerUserId = returnsToAdmin
+    ? adminUserId(state)
+    : professionalUserId(state, enrolment.leadId);
+
+  return {
+    ...next,
+    notifications: [
+      ...notification(
+        reviewerUserId,
+        "Readiness review needed",
+        `${service.name} readiness is ready for review.`
+      ),
+      ...next.notifications
+    ]
+  };
+}
+
+export interface ServiceEnrolmentReviewCommand {
+  enrolmentId: string;
+  reviewerUserId: string;
+  reviewerType: "lead" | "admin";
+  decision: "changes_requested" | "certified" | "approved";
+  comment: string;
+}
+
+export function reviewServiceEnrolment(
+  state: DemoState,
+  command: ServiceEnrolmentReviewCommand
+): DemoState {
+  if (!command.comment.trim()) return state;
+  const enrolment = state.serviceEnrolments.find(
+    (item) => item.id === command.enrolmentId
+  );
+  if (!enrolment) return state;
+
+  const reviewerProfessional = state.professionals.find(
+    (item) => item.userId === command.reviewerUserId
+  );
+  if (reviewerProfessional?.id === enrolment.professionalId) return state;
+
+  const at = currentTimestamp();
+  let nextStatus: ServiceEnrolmentStatus | undefined;
+  const extra: ServiceEnrolmentStatusFields = {};
+
+  if (command.reviewerType === "lead") {
+    if (
+      enrolment.status !== "waiting_for_lead" ||
+      reviewerProfessional?.id !== enrolment.leadId
+    ) {
+      return state;
+    }
+    if (command.decision === "changes_requested") {
+      nextStatus = "changes_requested_by_lead";
+    } else if (command.decision === "certified") {
+      nextStatus = "waiting_for_admin";
+      extra.leadCertifiedAt = at;
+    } else {
+      return state;
+    }
+  } else {
+    const reviewer = state.users.find(
+      (item) => item.id === command.reviewerUserId
+    );
+    if (
+      reviewer?.accountRole !== "admin" ||
+      enrolment.status !== "waiting_for_admin"
+    ) {
+      return state;
+    }
+    if (command.decision === "changes_requested") {
+      nextStatus = "changes_requested_by_admin";
+    } else if (command.decision === "approved") {
+      nextStatus = "approved";
+      extra.adminApprovedAt = at;
+    } else {
+      return state;
+    }
+  }
+
+  const review: ReadinessReview = {
+    id: makeId("readiness-review", state.readinessReviews.length),
+    enrolmentId: enrolment.id,
+    reviewerUserId: command.reviewerUserId,
+    reviewerType: command.reviewerType,
+    decision: command.decision,
+    comment: command.comment.trim(),
+    createdAt: at
+  };
+
+  const next = updateEnrolmentStatus(state, enrolment.id, nextStatus, extra);
+  const professionalRecipient = professionalUserId(
+    state,
+    enrolment.professionalId
+  );
+  const adminRecipient = adminUserId(state);
+  const notifications =
+    command.reviewerType === "lead" && command.decision === "certified"
+      ? notification(
+          adminRecipient,
+          "Readiness certified",
+          "A Lead certified readiness for final Admin approval."
+        )
+      : notification(
+          professionalRecipient,
+          command.decision === "approved"
+            ? "Readiness approved"
+            : "Readiness changes requested",
+          command.comment.trim()
+        );
+
+  return {
+    ...next,
+    readinessReviews: [review, ...next.readinessReviews],
+    notifications: [...notifications, ...next.notifications],
+    activity: [
+      {
+        id: makeId("activity", state.activity.length),
+        actor:
+          state.users.find((item) => item.id === command.reviewerUserId)
+            ?.name ?? "Reviewer",
+        action:
+          command.decision === "changes_requested"
+            ? "requested readiness changes"
+            : command.decision === "certified"
+              ? "certified readiness"
+              : "approved readiness",
+        subject: enrolment.id,
+        createdAt: at
+      },
+      ...next.activity
+    ]
+  };
+}
+
+export function removeServiceEnrolment(
+  state: DemoState,
+  enrolmentId: string
+): DemoState {
+  const enrolment = state.serviceEnrolments.find(
+    (item) => item.id === enrolmentId
+  );
+  if (!enrolment || enrolment.status === "approved") return state;
+
+  const hasRelatedWork = state.assignments.some((assignment) => {
+    if (assignment.professionalId !== enrolment.professionalId) return false;
+    const job = state.jobs.find((item) => item.id === assignment.jobId);
+    return job?.serviceId === enrolment.serviceId;
+  });
+  if (hasRelatedWork) return state;
+
+  return {
+    ...state,
+    serviceEnrolments: state.serviceEnrolments.filter(
+      (item) => item.id !== enrolmentId
+    ),
+    readinessReviews: state.readinessReviews.filter(
+      (item) => item.enrolmentId !== enrolmentId
+    )
+  };
+}
+
+export function setServiceActive(
+  state: DemoState,
+  serviceId: string,
+  active: boolean
+): DemoState {
+  const service = state.services.find((item) => item.id === serviceId);
+  if (!service || service.active === active) return state;
+
+  if (!active) {
+    const hasBlockingJob = state.jobs.some(
+      (job) =>
+        job.serviceId === serviceId &&
+        ["draft", "open"].includes(job.publicationState)
+    );
+    const hasBlockingEnrolment = state.serviceEnrolments.some(
+      (enrolment) =>
+        enrolment.serviceId === serviceId && enrolment.status !== "approved"
+    );
+    if (hasBlockingJob || hasBlockingEnrolment) return state;
+  }
+
+  return {
+    ...state,
+    services: state.services.map((item) =>
+      item.id === serviceId
+        ? { ...item, active, updatedAt: currentTimestamp() }
+        : item
+    )
   };
 }
