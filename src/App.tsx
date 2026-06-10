@@ -5,6 +5,8 @@ import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { RouteShell } from "./pages/RouteShell";
+import { PeoplePage } from "./pages/admin/PeoplePage";
+import { ProfessionalDetailPage } from "./pages/admin/ProfessionalDetailPage";
 import { useProfessionalStore } from "./store/professionalStore";
 
 function ProtectedAccount({ role }: { role: AccountRole }) {
@@ -57,17 +59,11 @@ export function App() {
           />
           <Route
             path="/admin/people"
-            element={route(
-              "People",
-              "Manage Professional records, readiness, and Lead capability."
-            )}
+            element={<PeoplePage />}
           />
           <Route
             path="/admin/people/:professionalId"
-            element={route(
-              "Professional record",
-              "Review one Professional's services, work, payments, and permissions."
-            )}
+            element={<ProfessionalDetailPage />}
           />
           <Route
             path="/admin/services"

@@ -125,4 +125,61 @@ describe("professional store", () => {
       useProfessionalStore.getState().currentProfessional()?.isLead
     ).toBe(true);
   });
+
+  it("creates a Professional account without forcing an enrolment", () => {
+    const professionalId = useProfessionalStore
+      .getState()
+      .createProfessional({
+        name: "Kemi Adeyemi",
+        email: "kemi@example.com",
+        phone: "+234 800 000 0000",
+        location: "Ibadan"
+      });
+
+    expect(
+      useProfessionalStore
+        .getState()
+        .professionals.find((item) => item.id === professionalId)
+    ).toMatchObject({ name: "Kemi Adeyemi", isLead: false });
+    expect(
+      useProfessionalStore
+        .getState()
+        .serviceEnrolments.some(
+          (item) => item.professionalId === professionalId
+        )
+    ).toBe(false);
+  });
+
+  it("creates one Service enrolment with an optional Lead", () => {
+    const enrolmentId = useProfessionalStore
+      .getState()
+      .createServiceEnrolment(
+        "professional-zainab",
+        "service-va",
+        "professional-nneka"
+      );
+
+    expect(
+      useProfessionalStore
+        .getState()
+        .serviceEnrolments.find((item) => item.id === enrolmentId)
+    ).toMatchObject({
+      professionalId: "professional-zainab",
+      serviceId: "service-va",
+      leadId: "professional-nneka",
+      status: "not_started"
+    });
+  });
+
+  it("rejects a duplicate active Service enrolment", () => {
+    expect(
+      useProfessionalStore
+        .getState()
+        .createServiceEnrolment(
+          "professional-amara",
+          "service-social",
+          "professional-nneka"
+        )
+    ).toBeUndefined();
+  });
 });

@@ -3,13 +3,16 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { App } from "./App";
+import { ToastProvider } from "./components/ToastProvider";
 import { useProfessionalStore } from "./store/professionalStore";
 
 function renderAppAt(path: string) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <App />
-    </MemoryRouter>
+    <ToastProvider>
+      <MemoryRouter initialEntries={[path]}>
+        <App />
+      </MemoryRouter>
+    </ToastProvider>
   );
 }
 
@@ -82,5 +85,52 @@ describe("application routing", () => {
     expect(
       screen.getByRole("heading", { name: "Choose a workspace" })
     ).toBeInTheDocument();
+  });
+
+  it("searches the People directory and opens a Professional record", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/people");
+
+    await user.type(
+      screen.getByPlaceholderText("Search by name, email, or location"),
+      "Nneka"
+    );
+
+    expect(screen.getByText("Nneka Eze")).toBeInTheDocument();
+    expect(screen.queryByText("Amara Okafor")).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("link", { name: "Open Nneka Eze" })
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Nneka Eze" })
+    ).toBeInTheDocument();
+  });
+
+  it("filters People by Lead capability", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/people");
+
+    await user.click(screen.getByRole("button", { name: "Leads" }));
+
+    expect(screen.getByText("Nneka Eze")).toBeInTheDocument();
+    expect(screen.queryByText("Amara Okafor")).not.toBeInTheDocument();
+  });
+
+  it("explains the access granted by Lead capability", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/people/professional-amara");
+
+    await user.click(
+      screen.getByRole("button", { name: "Grant Lead capability" })
+    );
+
+    expect(screen.getByRole("alertdialog")).toHaveTextContent(
+      "Team and Reviews"
+    );
   });
 });
