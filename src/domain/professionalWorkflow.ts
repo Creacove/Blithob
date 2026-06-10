@@ -1,11 +1,21 @@
 import type {
+  Assignment,
+  AssignmentReview,
   DemoState,
   Notification,
+  Payment,
+  PaymentMethod,
   ReadinessRequirement,
   ReadinessReview,
   RequirementProgress,
+  Submission,
   ServiceEnrolmentStatus
 } from "./model";
+import {
+  approvedServiceIdsFor,
+  assignmentReviewDestination,
+  latestSubmissionFor
+} from "./selectors";
 
 const now = "2026-06-10T09:00:00.000Z";
 
@@ -969,5 +979,542 @@ export function setServiceActive(
         ? { ...item, active, updatedAt: currentTimestamp() }
         : item
     )
+  };
+}
+
+export interface NewAssignmentInput {
+  professionalId: string;
+  agreedPay: number;
+  deadline: string;
+  leadReviewerId?: string;
+}
+
+export function addAssignments(
+  state: DemoState,
+  jobId: string,
+  inputs: NewAssignmentInput[]
+): DemoState {
+  const job = state.jobs.find((item) => item.id === jobId);
+  if (!job || job.publicationState === "archived") return state;
+
+  const createdAt = currentTimestamp();
+  const existingProfessionalIds = new Set(
+    state.assignments
+      .filter((assignment) => assignment.jobId === jobId)
+      .map((assignment) => assignment.professionalId)
+  );
+
+  const newAssignments = inputs.reduce<Assignment[]>((items, input) => {
+    const professional = state.professionals.find(
+      (item) => item.id === input.professionalId
+    );
+    if (
+      !professional ||
+      professional.accountStatus !== "active" ||
+      existingProfessionalIds.has(professional.id) ||
+      !approvedServiceIdsFor(state, professional.id).includes(job.serviceId)
+    ) {
+      return items;
+    }
+
+    const leadReviewer = state.professionals.find(
+      (item) => item.id === input.leadReviewerId
+    );
+    const leadReviewerId =
+      leadReviewer?.isLead && leadReviewer.id !== professional.id
+        ? leadReviewer.id
+        : undefined;
+
+    existingProfessionalIds.add(professional.id);
+    items.push({
+      id: `assignment-${jobId}-${professional.id}`,
+      jobId,
+      professionalId: professional.id,
+      leadReviewerId,
+      agreedPay: input.agreedPay,
+      deadline: input.deadline || job.deadline,
+      status: "assigned",
+      createdAt
+    });
+    return items;
+  }, []);
+
+  if (newAssignments.length === 0) return state;
+
+  return {
+    ...state,
+    assignments: [...state.assignments, ...newAssignments],
+    notifications: [
+      ...newAssignments.flatMap((assignment) =>
+        notification(
+          professionalUserId(state, assignment.professionalId),
+          "New assignment",
+          `${job.title} is ready to start.`
+        )
+      ),
+      ...state.notifications
+    ],
+    activity: [
+      {
+        id: makeId("activity", state.activity.length),
+        actor: "Admin",
+        action: "assigned professionals to",
+        subject: job.title,
+        createdAt
+      },
+      ...state.activity
+    ]
+  };
+}
+
+export function startAssignment(
+  state: DemoState,
+  assignmentId: string
+): DemoState {
+  const assignment = state.assignments.find((item) => item.id === assignmentId);
+  if (!assignment || assignment.status !== "assigned") return state;
+
+  const at = currentTimestamp();
+  return {
+    ...state,
+    assignments: state.assignments.map((item) =>
+      item.id === assignmentId
+        ? { ...item, status: "in_progress", startedAt: at }
+        : item
+    )
+  };
+}
+
+export function submitAssignment(
+  state: DemoState,
+  assignmentId: string,
+  input: Pick<Submission, "notes" | "link" | "fileName">
+): DemoState {
+  const assignment = state.assignments.find((item) => item.id === assignmentId);
+  const job = state.jobs.find((item) => item.id === assignment?.jobId);
+  if (!assignment || !job) return state;
+  if (
+    !["in_progress", "changes_requested_by_lead", "changes_requested_by_admin"].includes(
+      assignment.status
+    )
+  ) {
+    return state;
+  }
+  if (!input.notes.trim()) return state;
+  if (
+    job.submissionEvidenceRequired &&
+    !input.link?.trim() &&
+    !input.fileName?.trim()
+  ) {
+    return state;
+  }
+
+  const version =
+    Math.max(
+      0,
+      ...state.submissions
+        .filter((item) => item.assignmentId === assignmentId)
+        .map((item) => item.version)
+    ) + 1;
+  const at = currentTimestamp();
+  const submission: Submission = {
+    id: `submission-${assignmentId}-${version}`,
+    assignmentId,
+    version,
+    notes: input.notes.trim(),
+    link: input.link?.trim() || undefined,
+    fileName: input.fileName?.trim() || undefined,
+    submittedAt: at
+  };
+  const destination = assignmentReviewDestination(state, assignmentId);
+  const reviewerUserId =
+    destination === "lead"
+      ? professionalUserId(state, assignment.leadReviewerId)
+      : adminUserId(state);
+
+  return {
+    ...state,
+    assignments: state.assignments.map((item) =>
+      item.id === assignmentId
+        ? {
+            ...item,
+            status:
+              destination === "lead" ? "waiting_for_lead" : "waiting_for_admin",
+            submittedAt: at
+          }
+        : item
+    ),
+    submissions: [...state.submissions, submission],
+    notifications: [
+      ...notification(
+        reviewerUserId,
+        "Assignment submitted",
+        `${job.title} is ready for review.`
+      ),
+      ...state.notifications
+    ],
+    activity: [
+      {
+        id: makeId("activity", state.activity.length),
+        actor:
+          state.professionals.find(
+            (item) => item.id === assignment.professionalId
+          )?.name ?? "Professional",
+        action: "submitted",
+        subject: job.title,
+        createdAt: at
+      },
+      ...state.activity
+    ]
+  };
+}
+
+export interface AssignmentReviewCommand {
+  assignmentId: string;
+  reviewerUserId: string;
+  reviewerType: "lead" | "admin";
+  decision: "changes_requested" | "certified" | "approved";
+  comment: string;
+}
+
+export function reviewAssignment(
+  state: DemoState,
+  command: AssignmentReviewCommand
+): DemoState {
+  if (!command.comment.trim()) return state;
+  const assignment = state.assignments.find(
+    (item) => item.id === command.assignmentId
+  );
+  const submission = latestSubmissionFor(state, command.assignmentId);
+  if (!assignment || !submission) return state;
+
+  const reviewerProfessional = state.professionals.find(
+    (item) => item.userId === command.reviewerUserId
+  );
+  if (reviewerProfessional?.id === assignment.professionalId) return state;
+
+  const at = currentTimestamp();
+  let nextStatus: Assignment["status"] | undefined;
+  const assignmentTimestamps: Partial<
+    Pick<Assignment, "approvedAt">
+  > = {};
+
+  if (command.reviewerType === "lead") {
+    if (
+      assignment.status !== "waiting_for_lead" ||
+      reviewerProfessional?.id !== assignment.leadReviewerId
+    ) {
+      return state;
+    }
+    if (command.decision === "changes_requested") {
+      nextStatus = "changes_requested_by_lead";
+    } else if (command.decision === "certified") {
+      nextStatus = "waiting_for_admin";
+    } else {
+      return state;
+    }
+  } else {
+    const reviewer = state.users.find(
+      (item) => item.id === command.reviewerUserId
+    );
+    if (
+      reviewer?.accountRole !== "admin" ||
+      assignment.status !== "waiting_for_admin"
+    ) {
+      return state;
+    }
+    if (command.decision === "changes_requested") {
+      nextStatus = "changes_requested_by_admin";
+    } else if (command.decision === "approved") {
+      nextStatus = "approved";
+      assignmentTimestamps.approvedAt = at;
+    } else {
+      return state;
+    }
+  }
+
+  const review: AssignmentReview = {
+    id: makeId("assignment-review", state.assignmentReviews.length),
+    assignmentId: assignment.id,
+    submissionId: submission.id,
+    reviewerUserId: command.reviewerUserId,
+    reviewerType: command.reviewerType,
+    decision: command.decision,
+    comment: command.comment.trim(),
+    createdAt: at
+  };
+  const job = state.jobs.find((item) => item.id === assignment.jobId);
+  const assigneeRecipient = professionalUserId(
+    state,
+    assignment.professionalId
+  );
+  const adminRecipient = adminUserId(state);
+  const notifications =
+    command.reviewerType === "lead" && command.decision === "certified"
+      ? notification(
+          adminRecipient,
+          "Assignment certified",
+          `${job?.title ?? "An assignment"} is waiting for final approval.`
+        )
+      : notification(
+          assigneeRecipient,
+          command.decision === "changes_requested"
+            ? "Assignment changes requested"
+            : "Assignment approved",
+          command.comment.trim()
+        );
+
+  return {
+    ...state,
+    assignments: state.assignments.map((item) =>
+      item.id === assignment.id
+        ? { ...item, ...assignmentTimestamps, status: nextStatus }
+        : item
+    ),
+    assignmentReviews: [...state.assignmentReviews, review],
+    notifications: [...notifications, ...state.notifications],
+    activity: [
+      {
+        id: makeId("activity", state.activity.length),
+        actor:
+          state.users.find((item) => item.id === command.reviewerUserId)
+            ?.name ?? "Reviewer",
+        action:
+          command.decision === "changes_requested"
+            ? "requested assignment changes"
+            : command.decision === "certified"
+              ? "certified assignment"
+              : "approved assignment",
+        subject: job?.title ?? assignment.id,
+        createdAt: at
+      },
+      ...state.activity
+    ]
+  };
+}
+
+export function completeAssignment(
+  state: DemoState,
+  assignmentId: string
+): DemoState {
+  const assignment = state.assignments.find((item) => item.id === assignmentId);
+  if (!assignment || assignment.status !== "approved") return state;
+
+  const existingPayment = state.payments.some(
+    (item) => item.assignmentId === assignmentId
+  );
+  const at = currentTimestamp();
+  const payment: Payment | undefined = existingPayment
+    ? undefined
+    : {
+        id: `payment-${assignmentId}`,
+        assignmentId,
+        professionalId: assignment.professionalId,
+        amount: assignment.agreedPay,
+        dueDate: at,
+        status: "due"
+      };
+  const job = state.jobs.find((item) => item.id === assignment.jobId);
+
+  return {
+    ...state,
+    assignments: state.assignments.map((item) =>
+      item.id === assignmentId
+        ? { ...item, status: "completed", completedAt: at }
+        : item
+    ),
+    professionals: state.professionals.map((item) =>
+      item.id === assignment.professionalId
+        ? {
+            ...item,
+            completedAssignmentCount: item.completedAssignmentCount + 1
+          }
+        : item
+    ),
+    payments: payment ? [...state.payments, payment] : state.payments,
+    notifications: [
+      ...notification(
+        professionalUserId(state, assignment.professionalId),
+        "Assignment completed",
+        `${job?.title ?? "Your assignment"} has moved to payment.`
+      ),
+      ...state.notifications
+    ],
+    activity: [
+      {
+        id: makeId("activity", state.activity.length),
+        actor: "Admin",
+        action: "completed assignment",
+        subject: job?.title ?? assignment.id,
+        createdAt: at
+      },
+      ...state.activity
+    ]
+  };
+}
+
+export function cancelAssignment(
+  state: DemoState,
+  assignmentId: string,
+  reason: string
+): DemoState {
+  const assignment = state.assignments.find((item) => item.id === assignmentId);
+  if (!assignment || assignment.status === "completed" || !reason.trim()) {
+    return state;
+  }
+  const at = currentTimestamp();
+  const job = state.jobs.find((item) => item.id === assignment.jobId);
+
+  return {
+    ...state,
+    assignments: state.assignments.map((item) =>
+      item.id === assignmentId
+        ? {
+            ...item,
+            status: "cancelled",
+            completedAt: undefined,
+            cancelledAt: at,
+            cancellationReason: reason.trim()
+          }
+        : item
+    ),
+    notifications: [
+      ...notification(
+        professionalUserId(state, assignment.professionalId),
+        "Assignment cancelled",
+        reason.trim()
+      ),
+      ...state.notifications
+    ],
+    activity: [
+      {
+        id: makeId("activity", state.activity.length),
+        actor: "Admin",
+        action: "cancelled assignment",
+        subject: `${job?.title ?? assignment.id}: ${reason.trim()}`,
+        createdAt: at
+      },
+      ...state.activity
+    ]
+  };
+}
+
+export interface RecordPaymentInput {
+  status: "scheduled" | "paid" | "issue";
+  paymentDate?: string;
+  method?: PaymentMethod;
+  reference?: string;
+  receiptFileName?: string;
+  internalNote?: string;
+  issueNote?: string;
+}
+
+function isValidPaidPayment(input: RecordPaymentInput) {
+  return Boolean(
+    input.paymentDate?.trim() &&
+      input.method &&
+      (input.method === "cash" || input.reference?.trim())
+  );
+}
+
+export function recordPayment(
+  state: DemoState,
+  paymentId: string,
+  input: RecordPaymentInput
+): DemoState {
+  const payment = state.payments.find((item) => item.id === paymentId);
+  if (!payment || payment.status === "paid") return state;
+  if (input.status === "paid" && !isValidPaidPayment(input)) return state;
+  if (input.status === "issue" && !input.issueNote?.trim()) return state;
+
+  const at = currentTimestamp();
+  return {
+    ...state,
+    payments: state.payments.map((item) =>
+      item.id === paymentId
+        ? {
+            ...item,
+            status: input.status,
+            paymentDate: input.paymentDate,
+            method: input.method,
+            reference: input.reference?.trim() || undefined,
+            receiptFileName: input.receiptFileName?.trim() || undefined,
+            internalNote: input.internalNote?.trim() || undefined,
+            issueNote: input.issueNote?.trim() || undefined
+          }
+        : item
+    ),
+    notifications: [
+      ...notification(
+        professionalUserId(state, payment.professionalId),
+        input.status === "paid" ? "Payment recorded" : "Payment updated",
+        input.status === "issue"
+          ? (input.issueNote?.trim() ?? "A payment issue was recorded.")
+          : `Payment status is now ${input.status}.`
+      ),
+      ...state.notifications
+    ],
+    activity: [
+      {
+        id: makeId("activity", state.activity.length),
+        actor: "Admin",
+        action: "recorded payment",
+        subject: payment.id,
+        createdAt: at
+      },
+      ...state.activity
+    ]
+  };
+}
+
+export function correctPayment(
+  state: DemoState,
+  paymentId: string,
+  input: Required<
+    Pick<RecordPaymentInput, "paymentDate" | "method" | "internalNote">
+  > &
+    Pick<RecordPaymentInput, "reference" | "receiptFileName"> & {
+      correctionNote: string;
+    }
+): DemoState {
+  const payment = state.payments.find((item) => item.id === paymentId);
+  if (!payment || payment.status !== "paid" || !input.correctionNote.trim()) {
+    return state;
+  }
+  if (
+    !input.paymentDate.trim() ||
+    !input.method ||
+    (input.method !== "cash" && !input.reference?.trim())
+  ) {
+    return state;
+  }
+
+  const at = currentTimestamp();
+  return {
+    ...state,
+    payments: state.payments.map((item) =>
+      item.id === paymentId
+        ? {
+            ...item,
+            paymentDate: input.paymentDate,
+            method: input.method,
+            reference: input.reference?.trim() || undefined,
+            receiptFileName: input.receiptFileName?.trim() || undefined,
+            internalNote: input.internalNote.trim(),
+            correctedAt: at,
+            correctionNote: input.correctionNote.trim()
+          }
+        : item
+    ),
+    activity: [
+      {
+        id: makeId("activity", state.activity.length),
+        actor: "Admin",
+        action: "corrected payment",
+        subject: payment.id,
+        createdAt: at
+      },
+      ...state.activity
+    ]
   };
 }

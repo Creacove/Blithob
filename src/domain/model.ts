@@ -146,6 +146,8 @@ export interface Assignment {
   submittedAt?: string;
   approvedAt?: string;
   completedAt?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
   createdAt: string;
 }
 
