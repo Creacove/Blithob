@@ -1,217 +1,629 @@
-import { Check, ExternalLink, FileText, RotateCcw } from "lucide-react";
+import {
+  Check,
+  CheckCircle2,
+  ExternalLink,
+  FileText,
+  RotateCcw
+} from "lucide-react";
 import { useState } from "react";
-import { Modal } from "../../components/Modal";
+import { Link } from "react-router-dom";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { Drawer } from "../../components/Drawer";
 import { PageHeader } from "../../components/PageHeader";
+import { RecordTimeline } from "../../components/RecordTimeline";
 import { StatusBadge } from "../../components/StatusBadge";
-import { Button, EmptyState, Field, Textarea } from "../../components/ui";
+import { useToast } from "../../components/ToastProvider";
+import {
+  Button,
+  EmptyState,
+  Field,
+  RecordList,
+  Section,
+  Textarea
+} from "../../components/ui";
 import { formatDateTime } from "../../lib/format";
-import { useAppStore } from "../../store/appStore";
+import { useProfessionalStore } from "../../store/professionalStore";
+
+type Queue = "work" | "readiness";
 
 export function AdminReviewsPage() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [comment, setComment] = useState("");
-  const opportunities = useAppStore((state) => state.opportunities);
-  const submissions = useAppStore((state) => state.submissions);
-  const reviews = useAppStore((state) => state.reviews);
-  const workers = useAppStore((state) => state.workers);
-  const reviewSubmission = useAppStore((state) => state.reviewSubmission);
-  const completeOpportunity = useAppStore(
-    (state) => state.completeOpportunity
+  const [queue, setQueue] = useState<Queue>("work");
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>();
+  const [selectedEnrolmentId, setSelectedEnrolmentId] = useState<string>();
+  const [completeAssignmentId, setCompleteAssignmentId] = useState<string>();
+  const [feedback, setFeedback] = useState("");
+  const assignments = useProfessionalStore((state) => state.assignments);
+  const jobs = useProfessionalStore((state) => state.jobs);
+  const professionals = useProfessionalStore((state) => state.professionals);
+  const submissions = useProfessionalStore((state) => state.submissions);
+  const assignmentReviews = useProfessionalStore(
+    (state) => state.assignmentReviews
   );
-  const reviewable = opportunities.filter((job) =>
-    ["submitted", "accepted", "needs_revision"].includes(job.status)
+  const enrolments = useProfessionalStore((state) => state.serviceEnrolments);
+  const services = useProfessionalStore((state) => state.services);
+  const readinessReviews = useProfessionalStore(
+    (state) => state.readinessReviews
   );
-  const selected = opportunities.find((job) => job.id === selectedId);
-  const submission = submissions.find(
-    (item) => item.opportunityId === selectedId
+  const users = useProfessionalStore((state) => state.users);
+  const currentUser = useProfessionalStore((state) => state.currentUser());
+  const reviewAssignment = useProfessionalStore(
+    (state) => state.reviewAssignment
   );
-  const worker = workers.find(
-    (item) => item.id === selected?.assignedWorkerId
+  const reviewServiceEnrolment = useProfessionalStore(
+    (state) => state.reviewServiceEnrolment
   );
+  const completeAssignment = useProfessionalStore(
+    (state) => state.completeAssignment
+  );
+  const { success, error } = useToast();
 
-  const decide = (decision: "accepted" | "needs_revision") => {
-    if (!selected || !comment.trim()) return;
-    reviewSubmission(selected.id, decision, comment);
-    setComment("");
-    setSelectedId(null);
+  const workQueue = assignments.filter((assignment) =>
+    [
+      "waiting_for_admin",
+      "approved",
+      "changes_requested_by_admin"
+    ].includes(assignment.status)
+  );
+  const readinessQueue = enrolments.filter((enrolment) =>
+    ["waiting_for_admin", "changes_requested_by_admin"].includes(
+      enrolment.status
+    )
+  );
+  const selectedAssignment = assignments.find(
+    (assignment) => assignment.id === selectedAssignmentId
+  );
+  const selectedJob = jobs.find(
+    (job) => job.id === selectedAssignment?.jobId
+  );
+  const selectedProfessional = professionals.find(
+    (professional) =>
+      professional.id === selectedAssignment?.professionalId
+  );
+  const latestSubmission = submissions
+    .filter(
+      (submission) => submission.assignmentId === selectedAssignment?.id
+    )
+    .sort((left, right) => right.version - left.version)[0];
+  const previousAssignmentReviews = assignmentReviews
+    .filter((review) => review.assignmentId === selectedAssignment?.id)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  const selectedEnrolment = enrolments.find(
+    (enrolment) => enrolment.id === selectedEnrolmentId
+  );
+  const selectedService = services.find(
+    (service) => service.id === selectedEnrolment?.serviceId
+  );
+  const selectedReadinessProfessional = professionals.find(
+    (professional) =>
+      professional.id === selectedEnrolment?.professionalId
+  );
+  const previousReadinessReviews = readinessReviews
+    .filter((review) => review.enrolmentId === selectedEnrolment?.id)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+
+  const decideWork = (decision: "changes_requested" | "approved") => {
+    if (!selectedAssignment || !currentUser || !feedback.trim()) {
+      error("Add clear review feedback");
+      return;
+    }
+    reviewAssignment({
+      assignmentId: selectedAssignment.id,
+      reviewerUserId: currentUser.id,
+      reviewerType: "admin",
+      decision,
+      comment: feedback
+    });
+    setSelectedAssignmentId(undefined);
+    setFeedback("");
+    success(decision === "approved" ? "Assignment approved" : "Changes requested");
+  };
+
+  const decideReadiness = (
+    decision: "changes_requested" | "approved"
+  ) => {
+    if (!selectedEnrolment || !currentUser || !feedback.trim()) {
+      error("Add clear review feedback");
+      return;
+    }
+    reviewServiceEnrolment({
+      enrolmentId: selectedEnrolment.id,
+      reviewerUserId: currentUser.id,
+      reviewerType: "admin",
+      decision,
+      comment: feedback
+    });
+    setSelectedEnrolmentId(undefined);
+    setFeedback("");
+    success(decision === "approved" ? "Readiness approved" : "Changes requested");
+  };
+
+  const confirmComplete = () => {
+    if (!completeAssignmentId) return;
+    completeAssignment(completeAssignmentId);
+    setCompleteAssignmentId(undefined);
+    success("Assignment completed and payment created");
   };
 
   return (
     <div>
       <PageHeader
-        eyebrow={`${reviewable.length} item${reviewable.length === 1 ? "" : "s"} in the queue`}
+        eyebrow={`${workQueue.length + readinessQueue.length} records need Admin attention`}
         title="Reviews"
-        description="Inspect delivery evidence, leave clear feedback, and complete approved work."
+        description="Resolve each Professional's work or Service readiness as an independent decision."
       />
 
-      <div className="mt-7 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_55px_rgba(16,42,67,0.05)]">
-        {reviewable.length === 0 ? (
-          <div className="p-5">
-            <EmptyState
-              title="Review queue is clear"
-              description="Submitted work will appear here for a quality decision."
-            />
-          </div>
+      <div
+        className="mt-6 inline-flex rounded-xl border border-[var(--border)] bg-white p-1"
+        role="tablist"
+        aria-label="Review queues"
+      >
+        <QueueTab
+          active={queue === "work"}
+          label={`Work ${workQueue.length}`}
+          onClick={() => setQueue("work")}
+        />
+        <QueueTab
+          active={queue === "readiness"}
+          label={`Readiness ${readinessQueue.length}`}
+          onClick={() => setQueue("readiness")}
+        />
+      </div>
+
+      <div className="mt-4">
+        {queue === "work" ? (
+          <WorkQueue
+            assignments={workQueue}
+            jobs={jobs}
+            professionals={professionals}
+            submissions={submissions}
+            reviews={assignmentReviews}
+            users={users}
+            onReview={setSelectedAssignmentId}
+            onComplete={setCompleteAssignmentId}
+          />
         ) : (
-          <div className="divide-y divide-slate-100">
-            {reviewable.map((job) => {
-              const assigned = workers.find(
-                (item) => item.id === job.assignedWorkerId
-              );
-              const jobSubmission = submissions.find(
-                (item) => item.opportunityId === job.id
-              );
-              return (
-                <article
-                  key={job.id}
-                  className="grid gap-4 p-5 lg:grid-cols-[1fr_0.55fr_0.55fr_auto] lg:items-center"
-                >
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-sm font-bold text-[#102A43]">
-                        {job.title}
-                      </h2>
-                      <StatusBadge status={job.status} />
-                    </div>
-                    <p className="mt-1.5 text-xs leading-5 text-slate-500">
-                      {jobSubmission?.notes ??
-                        "Work is awaiting worker resubmission."}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
-                      Worker
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-[#102A43]">
-                      {assigned?.name}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
-                      Last submission
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-[#102A43]">
-                      {jobSubmission
-                        ? formatDateTime(jobSubmission.submittedAt)
-                        : "Pending"}
-                    </p>
-                  </div>
-                  {job.status === "accepted" ? (
-                    <Button
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            "Complete this opportunity and create its pending payout?"
-                          )
-                        ) {
-                          completeOpportunity(job.id);
-                        }
-                      }}
-                      className="text-xs"
-                    >
-                      <Check size={16} /> Complete work
-                    </Button>
-                  ) : job.status === "submitted" ? (
-                    <Button
-                      variant="secondary"
-                      onClick={() => setSelectedId(job.id)}
-                      className="text-xs"
-                    >
-                      Review submission
-                    </Button>
-                  ) : (
-                    <span className="inline-flex items-center gap-2 text-xs font-bold text-orange-700">
-                      <RotateCcw size={15} /> Waiting for changes
-                    </span>
-                  )}
-                </article>
-              );
-            })}
-          </div>
+          <ReadinessQueue
+            enrolments={readinessQueue}
+            services={services}
+            professionals={professionals}
+            reviews={readinessReviews}
+            users={users}
+            onReview={setSelectedEnrolmentId}
+          />
         )}
       </div>
 
-      <Modal
-        open={Boolean(selected)}
-        onClose={() => setSelectedId(null)}
-        title={selected?.title ?? "Submission"}
-        description={`Submitted by ${worker?.name ?? "worker"}`}
-        wide
+      <Drawer
+        open={Boolean(selectedAssignment)}
+        onClose={() => {
+          setSelectedAssignmentId(undefined);
+          setFeedback("");
+        }}
+        title={selectedJob?.title ?? "Review work"}
+        description={`Submission from ${selectedProfessional?.name ?? "Professional"}`}
+        width="wide"
       >
-        {selected && submission && (
+        {selectedAssignment && selectedJob && latestSubmission && (
           <div className="space-y-6">
-            <div className="rounded-2xl bg-[#F7F8FA] p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
-                Submission notes
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                {submission.notes}
+            <Section title={`Submission version ${latestSubmission.version}`}>
+              <p className="text-base leading-7 text-[var(--muted)]">
+                {latestSubmission.notes}
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
-                {submission.fileName && (
-                  <span className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-[#102A43] shadow-sm">
-                    <FileText size={15} /> {submission.fileName}
-                  </span>
-                )}
-                {submission.link && (
+                {latestSubmission.link && (
                   <a
-                    href={submission.link}
+                    href={latestSubmission.link}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-[#2563EB] shadow-sm"
+                    className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-blue-50 px-3 text-sm font-semibold text-blue-700"
                   >
-                    <ExternalLink size={15} /> Open submitted link
+                    <ExternalLink size={15} aria-hidden />
+                    Open submitted link
                   </a>
                 )}
+                {latestSubmission.fileName && (
+                  <span className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[var(--surface-subtle)] px-3 text-sm font-semibold text-[var(--ink)]">
+                    <FileText size={15} aria-hidden />
+                    {latestSubmission.fileName}
+                  </span>
+                )}
               </div>
-            </div>
-            <Field
-              label="Review feedback"
-              hint="Required for both approval and revision requests."
-            >
+            </Section>
+            <Section title="Acceptance criteria">
+              <ol className="space-y-2">
+                {selectedJob.acceptanceCriteria.map((criterion, index) => (
+                  <li key={criterion} className="flex gap-3 text-base leading-6 text-[var(--muted)]">
+                    <span className="font-semibold text-[var(--ink)]">
+                      {index + 1}.
+                    </span>
+                    {criterion}
+                  </li>
+                ))}
+              </ol>
+            </Section>
+            {previousAssignmentReviews.length > 0 && (
+              <Section title="Previous reviews">
+                <RecordTimeline
+                  items={previousAssignmentReviews.map((review) => ({
+                    id: review.id,
+                    title:
+                      review.decision === "changes_requested"
+                        ? "Changes requested"
+                        : review.decision === "certified"
+                          ? "Certified by Lead"
+                          : "Approved",
+                    description: review.comment,
+                    actor:
+                      users.find((user) => user.id === review.reviewerUserId)
+                        ?.name ?? "Reviewer",
+                    timestamp: review.createdAt,
+                    tone:
+                      review.decision === "changes_requested"
+                        ? "attention"
+                        : "positive"
+                  }))}
+                />
+              </Section>
+            )}
+            <Field label="Admin feedback">
               <Textarea
-                value={comment}
-                onChange={(event) => setComment(event.target.value)}
-                placeholder="Explain what is strong or what must change."
+                value={feedback}
+                onChange={(event) => setFeedback(event.target.value)}
+                placeholder="Explain exactly why this is approved or what must change."
               />
             </Field>
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <div className="flex flex-wrap justify-end gap-3">
               <Button
                 variant="secondary"
-                disabled={!comment.trim()}
-                onClick={() => decide("needs_revision")}
+                disabled={!feedback.trim()}
+                onClick={() => decideWork("changes_requested")}
               >
-                <RotateCcw size={16} /> Request changes
+                <RotateCcw size={16} aria-hidden />
+                Request changes
               </Button>
               <Button
-                disabled={!comment.trim()}
-                onClick={() => decide("accepted")}
+                disabled={!feedback.trim()}
+                onClick={() => decideWork("approved")}
               >
-                <Check size={16} /> Approve work
+                <Check size={16} aria-hidden />
+                Approve
               </Button>
             </div>
           </div>
         )}
-        {selected && (
-          <div className="mt-6 border-t border-slate-100 pt-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
-              Review history
-            </p>
-            <div className="mt-3 space-y-3">
-              {reviews
-                .filter((item) => item.opportunityId === selected.id)
-                .map((review) => (
-                  <div key={review.id} className="rounded-xl bg-slate-50 p-3">
-                    <StatusBadge status={review.decision} />
-                    <p className="mt-2 text-xs leading-5 text-slate-600">
-                      {review.comment}
-                    </p>
-                  </div>
-                ))}
+      </Drawer>
+
+      <Drawer
+        open={Boolean(selectedEnrolment)}
+        onClose={() => {
+          setSelectedEnrolmentId(undefined);
+          setFeedback("");
+        }}
+        title={`${selectedService?.name ?? "Service"} readiness`}
+        description={`Evidence from ${selectedReadinessProfessional?.name ?? "Professional"}`}
+        width="wide"
+      >
+        {selectedEnrolment && selectedService && (
+          <div className="space-y-6">
+            <Section title="Requirement evidence">
+              <div className="space-y-3">
+                {selectedService.requirements.map((requirement, index) => {
+                  const progress = selectedEnrolment.requirements.find(
+                    (item) => item.requirementId === requirement.id
+                  );
+                  return (
+                    <div
+                      key={requirement.id}
+                      className="rounded-xl border border-[var(--border)] p-4"
+                    >
+                      <p className="font-semibold text-[var(--ink)]">
+                        {index + 1}. {requirement.title}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                        {requirement.description}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold text-[var(--blue)]">
+                        {progress?.evidenceLink && (
+                          <a
+                            href={progress.evidenceLink}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Open evidence
+                          </a>
+                        )}
+                        {progress?.evidenceFileName && (
+                          <span>{progress.evidenceFileName}</span>
+                        )}
+                        {!progress?.evidenceLink &&
+                          !progress?.evidenceFileName && (
+                            <span className="text-[var(--muted)]">
+                              Completed without attached evidence
+                            </span>
+                          )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Section>
+            {selectedEnrolment.leadCertifiedAt && (
+              <Section title="Lead certification">
+                <p className="text-base text-[var(--muted)]">
+                  Certified {formatDateTime(selectedEnrolment.leadCertifiedAt)}
+                </p>
+              </Section>
+            )}
+            {previousReadinessReviews.length > 0 && (
+              <Section title="Previous decisions">
+                <RecordTimeline
+                  items={previousReadinessReviews.map((review) => ({
+                    id: review.id,
+                    title:
+                      review.decision === "changes_requested"
+                        ? "Changes requested"
+                        : review.decision === "certified"
+                          ? "Certified by Lead"
+                          : "Approved",
+                    description: review.comment,
+                    actor:
+                      users.find((user) => user.id === review.reviewerUserId)
+                        ?.name ?? "Reviewer",
+                    timestamp: review.createdAt,
+                    tone:
+                      review.decision === "changes_requested"
+                        ? "attention"
+                        : "positive"
+                  }))}
+                />
+              </Section>
+            )}
+            <Field label="Admin feedback">
+              <Textarea
+                value={feedback}
+                onChange={(event) => setFeedback(event.target.value)}
+                placeholder="Explain the readiness decision clearly."
+              />
+            </Field>
+            <div className="flex flex-wrap justify-end gap-3">
+              <Button
+                variant="secondary"
+                disabled={!feedback.trim()}
+                onClick={() => decideReadiness("changes_requested")}
+              >
+                <RotateCcw size={16} aria-hidden />
+                Request changes
+              </Button>
+              <Button
+                disabled={!feedback.trim()}
+                onClick={() => decideReadiness("approved")}
+              >
+                <CheckCircle2 size={16} aria-hidden />
+                Approve readiness
+              </Button>
             </div>
           </div>
         )}
-      </Modal>
+      </Drawer>
+
+      <ConfirmDialog
+        open={Boolean(completeAssignmentId)}
+        onClose={() => setCompleteAssignmentId(undefined)}
+        onConfirm={confirmComplete}
+        title="Complete Assignment?"
+        description="This completes only this Professional's Assignment and creates one due Payment."
+        confirmLabel="Complete assignment"
+      />
     </div>
+  );
+}
+
+function QueueTab({
+  active,
+  label,
+  onClick
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`min-h-10 rounded-lg px-4 text-sm font-semibold ${
+        active
+          ? "bg-[var(--ink)] text-white"
+          : "text-[var(--muted)] hover:bg-[var(--surface-subtle)]"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function WorkQueue({
+  assignments,
+  jobs,
+  professionals,
+  submissions,
+  reviews,
+  users,
+  onReview,
+  onComplete
+}: {
+  assignments: ReturnType<typeof useProfessionalStore.getState>["assignments"];
+  jobs: ReturnType<typeof useProfessionalStore.getState>["jobs"];
+  professionals: ReturnType<
+    typeof useProfessionalStore.getState
+  >["professionals"];
+  submissions: ReturnType<
+    typeof useProfessionalStore.getState
+  >["submissions"];
+  reviews: ReturnType<
+    typeof useProfessionalStore.getState
+  >["assignmentReviews"];
+  users: ReturnType<typeof useProfessionalStore.getState>["users"];
+  onReview: (id: string) => void;
+  onComplete: (id: string) => void;
+}) {
+  if (assignments.length === 0) {
+    return (
+      <EmptyState
+        title="Work queue is clear"
+        description="Admin review and completion decisions will appear here."
+      />
+    );
+  }
+  return (
+    <RecordList label="Work review queue">
+      {assignments.map((assignment) => {
+        const job = jobs.find((item) => item.id === assignment.jobId);
+        const professional = professionals.find(
+          (item) => item.id === assignment.professionalId
+        );
+        const latestSubmission = submissions
+          .filter((item) => item.assignmentId === assignment.id)
+          .sort((left, right) => right.version - left.version)[0];
+        const previousReview = reviews
+          .filter((item) => item.assignmentId === assignment.id)
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0];
+        const previousReviewer = users.find(
+          (user) => user.id === previousReview?.reviewerUserId
+        );
+        return (
+          <div
+            key={assignment.id}
+            className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(15rem,1.2fr)_minmax(9rem,0.65fr)_minmax(10rem,0.7fr)_auto] lg:items-center"
+          >
+            <div>
+              <Link
+                to={`/admin/assignments/${assignment.id}`}
+                className="font-semibold text-[var(--ink)] hover:text-[var(--blue)]"
+              >
+                {job?.title ?? "Unknown Job"}
+              </Link>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                {professional?.name ?? "Unknown Professional"}
+              </p>
+            </div>
+            <div>
+              <StatusBadge status={assignment.status} />
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                {previousReviewer
+                  ? `Previous: ${previousReviewer.name}`
+                  : assignment.leadReviewerId
+                    ? "Lead review route"
+                    : "Direct Admin route"}
+              </p>
+            </div>
+            <p className="text-sm text-[var(--muted)]">
+              {latestSubmission
+                ? `Evidence ${formatDateTime(latestSubmission.submittedAt)}`
+                : "Awaiting resubmission"}
+            </p>
+            {assignment.status === "waiting_for_admin" ? (
+              <Button variant="secondary" onClick={() => onReview(assignment.id)}>
+                Review submission
+              </Button>
+            ) : assignment.status === "approved" ? (
+              <Button onClick={() => onComplete(assignment.id)}>
+                Complete assignment
+              </Button>
+            ) : (
+              <span className="text-sm font-semibold text-orange-700">
+                Waiting for resubmission
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </RecordList>
+  );
+}
+
+function ReadinessQueue({
+  enrolments,
+  services,
+  professionals,
+  reviews,
+  users,
+  onReview
+}: {
+  enrolments: ReturnType<
+    typeof useProfessionalStore.getState
+  >["serviceEnrolments"];
+  services: ReturnType<typeof useProfessionalStore.getState>["services"];
+  professionals: ReturnType<
+    typeof useProfessionalStore.getState
+  >["professionals"];
+  reviews: ReturnType<
+    typeof useProfessionalStore.getState
+  >["readinessReviews"];
+  users: ReturnType<typeof useProfessionalStore.getState>["users"];
+  onReview: (id: string) => void;
+}) {
+  if (enrolments.length === 0) {
+    return (
+      <EmptyState
+        title="Readiness queue is clear"
+        description="Certified Service readiness will appear here for Admin approval."
+      />
+    );
+  }
+  return (
+    <RecordList label="Readiness review queue">
+      {enrolments.map((enrolment) => {
+        const service = services.find((item) => item.id === enrolment.serviceId);
+        const professional = professionals.find(
+          (item) => item.id === enrolment.professionalId
+        );
+        const previousReview = reviews
+          .filter((item) => item.enrolmentId === enrolment.id)
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0];
+        const previousReviewer = users.find(
+          (user) => user.id === previousReview?.reviewerUserId
+        );
+        return (
+          <div
+            key={enrolment.id}
+            className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(15rem,1.2fr)_minmax(9rem,0.65fr)_minmax(10rem,0.7fr)_auto] lg:items-center"
+          >
+            <div>
+              <p className="font-semibold text-[var(--ink)]">
+                {service?.name ?? "Unknown Service"}
+              </p>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                {professional?.name ?? "Unknown Professional"}
+              </p>
+            </div>
+            <div>
+              <StatusBadge status={enrolment.status} />
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                {previousReviewer
+                  ? `Previous: ${previousReviewer.name}`
+                  : enrolment.leadCertifiedAt
+                    ? "Certified by Lead"
+                    : "Direct Admin route"}
+              </p>
+            </div>
+            <p className="text-sm text-[var(--muted)]">
+              Evidence updated {formatDateTime(enrolment.updatedAt)}
+            </p>
+            {enrolment.status === "waiting_for_admin" ? (
+              <Button variant="secondary" onClick={() => onReview(enrolment.id)}>
+                Review readiness
+              </Button>
+            ) : (
+              <span className="text-sm font-semibold text-orange-700">
+                Waiting for resubmission
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </RecordList>
   );
 }

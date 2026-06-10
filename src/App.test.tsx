@@ -1,4 +1,10 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -219,5 +225,98 @@ describe("application routing", () => {
     expect(
       screen.getByDisplayValue("Launch Social Media Calendar")
     ).toBeInTheDocument();
+  });
+
+  it("switches between independent Work and readiness review queues", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.setState((state) => ({
+      assignments: state.assignments.map((assignment) =>
+        assignment.id === "assignment-waiting-lead"
+          ? { ...assignment, status: "waiting_for_admin" }
+          : assignment
+      )
+    }));
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/reviews");
+
+    expect(screen.getByRole("tab", { name: /Work/ })).toBeInTheDocument();
+    expect(screen.getAllByText("David Mensah")).not.toHaveLength(0);
+
+    await user.click(screen.getByRole("tab", { name: /Readiness/ }));
+
+    expect(screen.getByText("Zainab Bello")).toBeInTheDocument();
+    expect(screen.getByText("Content Writing")).toBeInTheDocument();
+  });
+
+  it("records a Cash payment without requiring a reference", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/payments");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Record payment for payment-due-cash"
+      })
+    );
+    fireEvent.change(screen.getByLabelText("Payment date"), {
+      target: { value: "2026-06-16T10:00" }
+    });
+    await user.click(screen.getByRole("button", { name: "Save payment" }));
+
+    expect(
+      useProfessionalStore
+        .getState()
+        .payments.find((payment) => payment.id === "payment-due-cash")
+        ?.status
+    ).toBe("paid");
+  });
+
+  it("requires a reference for a bank transfer", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/payments");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Record payment for payment-due-transfer"
+      })
+    );
+    expect(screen.getByLabelText("Payment state")).toHaveValue("paid");
+    expect(screen.getByLabelText("Method")).toHaveValue("bank_transfer");
+    const referenceInput = screen.getByLabelText(/^Payment reference/);
+    fireEvent.change(screen.getByLabelText("Payment date"), {
+      target: { value: "2026-06-21T10:00" }
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Save payment" })
+    ).toBeDisabled();
+    await user.type(referenceInput, "TRF-1048");
+    expect(
+      screen.getByRole("button", { name: "Save payment" })
+    ).toBeEnabled();
+  });
+
+  it("completes one Assignment into one due Payment", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/assignments/assignment-approved");
+
+    await user.click(
+      screen.getByRole("button", { name: "Complete assignment" })
+    );
+    const dialog = screen.getByRole("alertdialog");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Complete assignment" })
+    );
+
+    expect(screen.getByText("Payment due")).toBeInTheDocument();
+    expect(
+      useProfessionalStore
+        .getState()
+        .payments.filter(
+          (payment) => payment.assignmentId === "assignment-approved"
+        )
+    ).toHaveLength(1);
   });
 });

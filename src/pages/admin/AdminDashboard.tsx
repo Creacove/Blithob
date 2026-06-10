@@ -1,134 +1,205 @@
-import { ArrowRight, Clock3, Plus, UserPlus } from "lucide-react";
+import { ArrowRight, Clock3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SummaryBand } from "../../components/SummaryBand";
-import { Section } from "../../components/ui";
+import { EmptyState, RecordList, Section } from "../../components/ui";
 import { formatDate, formatDateTime } from "../../lib/format";
-import { useAppStore } from "../../store/appStore";
+import { useProfessionalStore } from "../../store/professionalStore";
 
 export function AdminDashboard() {
-  const workers = useAppStore((state) => state.workers);
-  const opportunities = useAppStore((state) => state.opportunities);
-  const payouts = useAppStore((state) => state.payouts);
-  const activity = useAppStore((state) => state.activity);
-  const services = useAppStore((state) => state.services);
+  const assignments = useProfessionalStore((state) => state.assignments);
+  const jobs = useProfessionalStore((state) => state.jobs);
+  const professionals = useProfessionalStore((state) => state.professionals);
+  const enrolments = useProfessionalStore((state) => state.serviceEnrolments);
+  const services = useProfessionalStore((state) => state.services);
+  const payments = useProfessionalStore((state) => state.payments);
+  const activity = useProfessionalStore((state) => state.activity);
 
-  const attention = opportunities
-    .filter((job) =>
-      ["submitted", "accepted", "needs_revision"].includes(job.status)
+  const workReviews = assignments.filter((assignment) =>
+    ["waiting_for_admin", "approved"].includes(assignment.status)
+  );
+  const readinessApprovals = enrolments.filter(
+    (enrolment) => enrolment.status === "waiting_for_admin"
+  );
+  const activeDeadlines = assignments
+    .filter(
+      (assignment) =>
+        !["completed", "cancelled"].includes(assignment.status)
     )
-    .sort((a, b) => a.deadline.localeCompare(b.deadline));
+    .sort((left, right) => left.deadline.localeCompare(right.deadline));
+  const paymentIssues = payments.filter(
+    (payment) => payment.status === "issue"
+  );
+  const nearestAction =
+    workReviews.find((assignment) => assignment.status === "waiting_for_admin") ??
+    workReviews[0];
 
   return (
     <div>
       <PageHeader
-        eyebrow={`${attention.length} item${attention.length === 1 ? "" : "s"} need a decision`}
+        eyebrow={`${workReviews.length + readinessApprovals.length + paymentIssues.length} Admin decisions need attention`}
         title="Today"
-        description="A focused view of workforce readiness, delivery, review, and payment work."
-        actions={
-          <>
-            <Link
-              to="/admin/workers"
-              className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
-            >
-              <UserPlus size={16} />
-              Add worker
-            </Link>
-            <Link
-              to="/admin/opportunities"
-              className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--blue)] px-4 text-sm font-semibold text-white hover:bg-[var(--blue-hover)]"
-            >
-              <Plus size={16} />
-              Create job
-            </Link>
-          </>
-        }
+        description="Start with the nearest operational decision, then clear reviews, deadlines, and payment issues."
       />
 
       <SummaryBand
         className="mt-6"
         items={[
           {
-            value: workers.filter((worker) => worker.status === "training").length,
-            label: "Workers in training"
+            label: "Work reviews",
+            value: workReviews.length,
+            tone: workReviews.length ? "attention" : "default"
           },
           {
-            value: workers.filter((worker) => worker.status === "ready").length,
-            label: "Workers ready for jobs",
-            tone: "positive"
+            label: "Readiness approvals",
+            value: readinessApprovals.length,
+            tone: readinessApprovals.length ? "attention" : "default"
           },
           {
-            value: opportunities.filter((job) =>
-              ["assigned", "in_progress", "needs_revision"].includes(job.status)
-            ).length,
-            label: "Active jobs"
+            label: "Active deadlines",
+            value: activeDeadlines.length
           },
           {
-            value: opportunities.filter((job) => job.status === "submitted")
-              .length,
-            label: "Jobs awaiting review",
-            tone: "attention"
-          },
-          {
-            value: payouts.filter((payout) => payout.status === "pending").length,
-            label: "Payments due",
-            tone: "attention"
+            label: "Payment issues",
+            value: paymentIssues.length,
+            tone: paymentIssues.length ? "attention" : "default"
           }
         ]}
       />
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-        <Section
-          title="Review and resolve"
-          description="Items are ordered by deadline so the next decision is clear."
-          action={
-            <Link
-              to="/admin/reviews"
-              className="inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-[var(--blue)]"
-            >
-              Open reviews <ArrowRight size={15} />
-            </Link>
-          }
-        >
-          <div className="divide-y divide-[var(--border)]">
-            {attention.map((job) => (
-              <article
-                key={job.id}
-                className="grid gap-3 py-4 first:pt-0 last:pb-0 sm:grid-cols-[1fr_auto] sm:items-center"
+      <div className="mt-6 grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
+        <div className="grid gap-5">
+          <Section
+            title="Nearest Admin action"
+            description="The next record that can move forward with an Admin decision."
+          >
+            {nearestAction ? (
+              <AssignmentAction
+                assignment={nearestAction}
+                job={jobs.find((job) => job.id === nearestAction.jobId)}
+                professional={professionals.find(
+                  (professional) =>
+                    professional.id === nearestAction.professionalId
+                )}
+              />
+            ) : readinessApprovals[0] ? (
+              <Link
+                to="/admin/reviews"
+                className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] p-4 hover:bg-[var(--surface-subtle)]"
               >
                 <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-semibold text-[var(--ink)]">
-                      {job.title}
-                    </h3>
-                    <StatusBadge status={job.status} />
-                  </div>
+                  <p className="font-semibold text-[var(--ink)]">
+                    {
+                      services.find(
+                        (service) =>
+                          service.id === readinessApprovals[0].serviceId
+                      )?.name
+                    }{" "}
+                    readiness
+                  </p>
                   <p className="mt-1 text-sm text-[var(--muted)]">
                     {
-                      services.find((service) => service.id === job.serviceId)
-                        ?.shortName
-                    }{" "}
-                    · Due {formatDate(job.deadline)}
+                      professionals.find(
+                        (professional) =>
+                          professional.id ===
+                          readinessApprovals[0].professionalId
+                      )?.name
+                    }
                   </p>
                 </div>
-                <Link
-                  to="/admin/reviews"
-                  className="inline-flex min-h-10 items-center gap-1.5 text-sm font-semibold text-[var(--blue)]"
-                >
-                  Review job <ArrowRight size={15} />
-                </Link>
-              </article>
-            ))}
-          </div>
-        </Section>
+                <ArrowRight size={18} aria-hidden />
+              </Link>
+            ) : (
+              <EmptyState
+                title="No Admin decision is waiting"
+                description="New work and readiness submissions will appear here."
+              />
+            )}
+          </Section>
 
-        <Section title="Recent activity" description="Latest changes across the team.">
+          <Section
+            title="Assignment deadlines"
+            description="Nearest active deadlines across individual Assignments."
+            action={
+              <Link
+                to="/admin/jobs"
+                className="text-sm font-semibold text-[var(--blue)]"
+              >
+                Open Jobs
+              </Link>
+            }
+          >
+            {activeDeadlines.length === 0 ? (
+              <p className="text-base text-[var(--muted)]">
+                No active Assignment deadlines.
+              </p>
+            ) : (
+              <RecordList>
+                {activeDeadlines.slice(0, 5).map((assignment) => {
+                  const job = jobs.find((item) => item.id === assignment.jobId);
+                  const professional = professionals.find(
+                    (item) => item.id === assignment.professionalId
+                  );
+                  return (
+                    <Link
+                      key={assignment.id}
+                      to={`/admin/assignments/${assignment.id}`}
+                      className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 hover:bg-[var(--surface-subtle)]"
+                    >
+                      <div>
+                        <p className="font-semibold text-[var(--ink)]">
+                          {job?.title}
+                        </p>
+                        <p className="mt-1 text-sm text-[var(--muted)]">
+                          {professional?.name} - Due{" "}
+                          {formatDate(assignment.deadline)}
+                        </p>
+                      </div>
+                      <StatusBadge status={assignment.status} />
+                    </Link>
+                  );
+                })}
+              </RecordList>
+            )}
+          </Section>
+
+          {paymentIssues.length > 0 && (
+            <Section title="Payment issues">
+              <RecordList>
+                {paymentIssues.map((payment) => {
+                  const professional = professionals.find(
+                    (item) => item.id === payment.professionalId
+                  );
+                  return (
+                    <Link
+                      key={payment.id}
+                      to={`/admin/payments/${payment.id}`}
+                      className="flex items-center justify-between gap-4 px-4 py-4 hover:bg-[var(--surface-subtle)]"
+                    >
+                      <div>
+                        <p className="font-semibold text-[var(--ink)]">
+                          {professional?.name}
+                        </p>
+                        <p className="mt-1 text-sm text-red-700">
+                          {payment.issueNote}
+                        </p>
+                      </div>
+                      <ArrowRight size={18} aria-hidden />
+                    </Link>
+                  );
+                })}
+              </RecordList>
+            </Section>
+          )}
+        </div>
+
+        <Section title="Recent activity" description="Latest operational changes.">
           <div className="divide-y divide-[var(--border)]">
-            {activity.slice(0, 5).map((item) => (
+            {activity.slice(0, 6).map((item) => (
               <div key={item.id} className="flex gap-3 py-3 first:pt-0 last:pb-0">
                 <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--surface-subtle)] text-[var(--muted)]">
-                  <Clock3 size={14} />
+                  <Clock3 size={14} aria-hidden />
                 </span>
                 <div>
                   <p className="text-sm leading-5 text-[var(--muted)]">
@@ -150,5 +221,41 @@ export function AdminDashboard() {
         </Section>
       </div>
     </div>
+  );
+}
+
+function AssignmentAction({
+  assignment,
+  job,
+  professional
+}: {
+  assignment: ReturnType<
+    typeof useProfessionalStore.getState
+  >["assignments"][number];
+  job?: ReturnType<typeof useProfessionalStore.getState>["jobs"][number];
+  professional?: ReturnType<
+    typeof useProfessionalStore.getState
+  >["professionals"][number];
+}) {
+  return (
+    <Link
+      to={
+        assignment.status === "waiting_for_admin"
+          ? "/admin/reviews"
+          : `/admin/assignments/${assignment.id}`
+      }
+      className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[var(--border)] p-4 hover:bg-[var(--surface-subtle)]"
+    >
+      <div>
+        <p className="font-semibold text-[var(--ink)]">{job?.title}</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          {professional?.name} - Due {formatDate(assignment.deadline)}
+        </p>
+      </div>
+      <div className="flex items-center gap-3">
+        <StatusBadge status={assignment.status} />
+        <ArrowRight size={18} aria-hidden />
+      </div>
+    </Link>
   );
 }

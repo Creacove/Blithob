@@ -8,6 +8,10 @@ import { RouteShell } from "./pages/RouteShell";
 import { PeoplePage } from "./pages/admin/PeoplePage";
 import { ProfessionalDetailPage } from "./pages/admin/ProfessionalDetailPage";
 import { AdminAssignmentPage } from "./pages/admin/AdminAssignmentPage";
+import { AdminDashboard } from "./pages/admin/AdminDashboard";
+import { AdminPaymentPage } from "./pages/admin/AdminPaymentPage";
+import { AdminPaymentsPage } from "./pages/admin/AdminPaymentsPage";
+import { AdminReviewsPage } from "./pages/admin/AdminReviewsPage";
 import { JobDetailPage } from "./pages/admin/JobDetailPage";
 import { JobEditorPage } from "./pages/admin/JobEditorPage";
 import { JobsPage } from "./pages/admin/JobsPage";
@@ -58,10 +62,7 @@ export function App() {
         <Route element={<AppShell role="admin" />}>
           <Route
             path="/admin/today"
-            element={route(
-              "Today",
-              "Review the operational decisions that need Admin attention."
-            )}
+            element={<AdminDashboard />}
           />
           <Route
             path="/admin/people"
@@ -101,24 +102,15 @@ export function App() {
           />
           <Route
             path="/admin/reviews"
-            element={route(
-              "Reviews",
-              "Resolve work submissions and readiness approvals."
-            )}
+            element={<AdminReviewsPage />}
           />
           <Route
             path="/admin/payments"
-            element={route(
-              "Payments",
-              "Record manual payments, receipts, and payment issues."
-            )}
+            element={<AdminPaymentsPage />}
           />
           <Route
             path="/admin/payments/:paymentId"
-            element={route(
-              "Payment record",
-              "Review payment evidence and correction history."
-            )}
+            element={<AdminPaymentPage />}
           />
           <Route
             path="/admin/notifications"
