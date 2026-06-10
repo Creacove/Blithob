@@ -133,4 +133,22 @@ describe("application routing", () => {
       "Team and Reviews"
     );
   });
+
+  it("opens one Service and its ordered readiness requirements", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/services");
+
+    await user.click(
+      screen.getByRole("link", {
+        name: "Open Social Media Management"
+      })
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Social Media Management" })
+    ).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Portfolio sample")).toBeInTheDocument();
+    expect(screen.queryByText(/training track/i)).not.toBeInTheDocument();
+  });
 });

@@ -182,4 +182,113 @@ describe("professional store", () => {
         )
     ).toBeUndefined();
   });
+
+  it("creates one Service with an ordered readiness checklist", () => {
+    const id = useProfessionalStore.getState().createService({
+      name: "Research support",
+      shortName: "Research",
+      description: "Structured desk research and summaries.",
+      requirements: [
+        {
+          title: "Review research standards",
+          description: "Understand citation and source requirements.",
+          requiresEvidence: false
+        },
+        {
+          title: "Submit a sample brief",
+          description: "Produce one sourced sample report.",
+          requiresEvidence: true
+        }
+      ]
+    });
+    const service = useProfessionalStore
+      .getState()
+      .services.find((item) => item.id === id);
+
+    expect(service?.requirements.map((item) => item.order)).toEqual([0, 1]);
+  });
+
+  it("prevents inactive Services from receiving enrolments or Jobs", () => {
+    useProfessionalStore.setState((state) => ({
+      services: state.services.map((service) =>
+        service.id === "service-va" ? { ...service, active: false } : service
+      )
+    }));
+
+    expect(
+      useProfessionalStore
+        .getState()
+        .createServiceEnrolment("professional-zainab", "service-va")
+    ).toBeUndefined();
+    expect(
+      useProfessionalStore.getState().createJob({
+        title: "Inactive service draft",
+        serviceId: "service-va",
+        clientContext: "",
+        objective: "",
+        description: "",
+        steps: [],
+        deliverables: [],
+        acceptanceCriteria: [],
+        references: [],
+        submissionEvidenceRequired: false,
+        deadline: ""
+      })
+    ).toBeUndefined();
+  });
+
+  it("keeps enrolment progress aligned when Service requirements change", () => {
+    const state = useProfessionalStore.getState();
+    const enrolment = state.serviceEnrolments.find(
+      (item) => item.serviceId === "service-social"
+    );
+    const service = state.services.find(
+      (item) => item.id === "service-social"
+    );
+    expect(enrolment).toBeDefined();
+    expect(service).toBeDefined();
+
+    const completedRequirement = enrolment?.requirements.find(
+      (item) => item.completed
+    );
+    expect(completedRequirement).toBeDefined();
+
+    state.replaceServiceRequirements("service-social", [
+      {
+        id: service?.requirements[1].id,
+        title: service?.requirements[1].title ?? "",
+        description: service?.requirements[1].description ?? "",
+        requiresEvidence: service?.requirements[1].requiresEvidence ?? false
+      },
+      {
+        id: completedRequirement?.requirementId,
+        title:
+          service?.requirements.find(
+            (item) => item.id === completedRequirement?.requirementId
+          )?.title ?? "",
+        description:
+          service?.requirements.find(
+            (item) => item.id === completedRequirement?.requirementId
+          )?.description ?? "",
+        requiresEvidence: true
+      },
+      {
+        title: "Complete a final quality check",
+        description: "Review the work against the delivery checklist.",
+        requiresEvidence: false
+      }
+    ]);
+
+    const updatedEnrolment = useProfessionalStore
+      .getState()
+      .serviceEnrolments.find((item) => item.id === enrolment?.id);
+    expect(updatedEnrolment?.requirements).toHaveLength(3);
+    expect(updatedEnrolment?.requirements[1]).toEqual(
+      expect.objectContaining({
+        requirementId: completedRequirement?.requirementId,
+        completed: true
+      })
+    );
+    expect(updatedEnrolment?.requirements[2].completed).toBe(false);
+  });
 });

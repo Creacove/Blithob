@@ -6,7 +6,6 @@ import type {
   DemoState,
   Job,
   Professional,
-  ReadinessRequirement,
   RequirementProgress,
   Service
 } from "../domain/model";
@@ -50,16 +49,18 @@ export interface CreateProfessionalInput {
   adminNotes?: string;
 }
 
+export interface ServiceRequirementInput {
+  id?: string;
+  title: string;
+  description: string;
+  requiresEvidence: boolean;
+}
+
 export interface CreateServiceInput {
   name: string;
   shortName: string;
   description: string;
-  requirements: Array<
-    Pick<
-      ReadinessRequirement,
-      "title" | "description" | "requiresEvidence"
-    >
-  >;
+  requirements: ServiceRequirementInput[];
 }
 
 export type JobDraftInput = Omit<
@@ -97,7 +98,7 @@ interface ProfessionalActions {
   ) => void;
   replaceServiceRequirements: (
     serviceId: string,
-    requirements: CreateServiceInput["requirements"]
+    requirements: ServiceRequirementInput[]
   ) => void;
   setServiceActive: (serviceId: string, active: boolean) => boolean;
 
@@ -380,7 +381,7 @@ export const useProfessionalStore = create<ProfessionalStore>()(
               description: input.description.trim(),
               active: true,
               requirements: input.requirements.map((requirement, order) => ({
-                id: makeId("requirement"),
+                id: requirement.id ?? makeId("requirement"),
                 title: requirement.title.trim(),
                 description: requirement.description.trim(),
                 requiresEvidence: requirement.requiresEvidence,
@@ -411,23 +412,44 @@ export const useProfessionalStore = create<ProfessionalStore>()(
         })),
 
       replaceServiceRequirements: (serviceId, requirements) =>
-        set((state) => ({
-          services: state.services.map((item) =>
-            item.id === serviceId
-              ? {
-                  ...item,
-                  requirements: requirements.map((requirement, order) => ({
-                    id: item.requirements[order]?.id ?? makeId("requirement"),
-                    title: requirement.title.trim(),
-                    description: requirement.description.trim(),
-                    requiresEvidence: requirement.requiresEvidence,
-                    order
-                  })),
-                  updatedAt: now()
-                }
-              : item
-          )
-        })),
+        set((state) => {
+          const nextRequirements = requirements.map((requirement, order) => ({
+            id: requirement.id ?? makeId("requirement"),
+            title: requirement.title.trim(),
+            description: requirement.description.trim(),
+            requiresEvidence: requirement.requiresEvidence,
+            order
+          }));
+          return {
+            services: state.services.map((item) =>
+              item.id === serviceId
+                ? {
+                    ...item,
+                    requirements: nextRequirements,
+                    updatedAt: now()
+                  }
+                : item
+            ),
+            serviceEnrolments: state.serviceEnrolments.map((enrolment) =>
+              enrolment.serviceId === serviceId
+                ? {
+                    ...enrolment,
+                    requirements: nextRequirements.map(
+                      (requirement) =>
+                        enrolment.requirements.find(
+                          (progress) =>
+                            progress.requirementId === requirement.id
+                        ) ?? {
+                          requirementId: requirement.id,
+                          completed: false
+                        }
+                    ),
+                    updatedAt: now()
+                  }
+                : enrolment
+            )
+          };
+        }),
 
       setServiceActive: (serviceId, active) => {
         const state = get();

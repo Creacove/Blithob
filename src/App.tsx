@@ -7,6 +7,8 @@ import { NotificationsPage } from "./pages/NotificationsPage";
 import { RouteShell } from "./pages/RouteShell";
 import { PeoplePage } from "./pages/admin/PeoplePage";
 import { ProfessionalDetailPage } from "./pages/admin/ProfessionalDetailPage";
+import { ServiceDetailPage } from "./pages/admin/ServiceDetailPage";
+import { ServicesPage } from "./pages/admin/ServicesPage";
 import { useProfessionalStore } from "./store/professionalStore";
 
 function ProtectedAccount({ role }: { role: AccountRole }) {
@@ -67,17 +69,11 @@ export function App() {
           />
           <Route
             path="/admin/services"
-            element={route(
-              "Services",
-              "Define service categories and the readiness required for each one."
-            )}
+            element={<ServicesPage />}
           />
           <Route
             path="/admin/services/:serviceId"
-            element={route(
-              "Service",
-              "Edit readiness requirements and review enrolled Professionals."
-            )}
+            element={<ServiceDetailPage />}
           />
           <Route
             path="/admin/jobs"
