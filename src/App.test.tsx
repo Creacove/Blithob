@@ -3,56 +3,84 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { App } from "./App";
-import { useAppStore } from "./store/appStore";
+import { useProfessionalStore } from "./store/professionalStore";
+
+function renderAppAt(path: string) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <App />
+    </MemoryRouter>
+  );
+}
 
 describe("application routing", () => {
   afterEach(() => cleanup());
 
   beforeEach(() => {
-    useAppStore.getState().signOut();
+    useProfessionalStore.getState().resetDemo();
+    useProfessionalStore.getState().signOut();
   });
 
-  it("lets a visitor enter the prototype and choose a role", async () => {
+  it("lets a visitor enter the prototype and choose a persona", async () => {
     const user = userEvent.setup();
-    render(
-      <MemoryRouter initialEntries={["/"]}>
-        <App />
-      </MemoryRouter>
-    );
+    renderAppAt("/");
 
     await user.click(
-      screen.getByRole("link", { name: /explore the workspace/i })
+      screen.getByRole("link", { name: "Explore the workspace" })
     );
 
     expect(
-      screen.getByRole("heading", { name: /choose a workspace/i })
+      screen.getByRole("heading", { name: "Choose a workspace" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /continue as admin/i })
+      screen.getByRole("button", { name: "Continue as Admin" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Continue as Lead" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Continue as Professional" })
     ).toBeInTheDocument();
   });
 
-  it("signs in as admin and opens the task-first workspace", async () => {
-    const user = userEvent.setup();
-    render(
-      <MemoryRouter initialEntries={["/login"]}>
-        <App />
-      </MemoryRouter>
-    );
-
-    await user.click(
-      screen.getByRole("button", { name: /continue as admin/i })
-    );
+  it("shows Services as a first-class Admin destination", () => {
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/today");
 
     expect(
-      screen.getByRole("heading", { name: /^today$/i })
+      screen.getByRole("link", { name: "Services" })
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^people$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^jobs$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^reviews$/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^payments$/i })).toBeInTheDocument();
+  });
+
+  it("keeps Lead users inside the Professional workspace", () => {
+    useProfessionalStore.getState().signIn("lead");
+    renderAppAt("/professional/today");
+
+    expect(screen.getByRole("link", { name: "Work" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Team" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Reviews" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Training" })).toBeInTheDocument();
+  });
+
+  it("does not expose Lead destinations to a regular Professional", () => {
+    useProfessionalStore.getState().signIn("professional");
+    renderAppAt("/professional/today");
+
+    expect(screen.queryByRole("link", { name: "Team" })).not.toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: /review and resolve/i })
+      screen.queryByRole("link", { name: "Reviews" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("recovers from a persisted session whose user no longer exists", () => {
+    useProfessionalStore.setState({
+      session: { persona: "lead", userId: "missing-user" }
+    });
+
+    renderAppAt("/professional/today");
+
+    expect(
+      screen.getByRole("heading", { name: "Choose a workspace" })
     ).toBeInTheDocument();
   });
 });

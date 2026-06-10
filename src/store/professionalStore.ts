@@ -158,12 +158,6 @@ interface ProfessionalActions {
 
 export type ProfessionalStore = DemoState & ProfessionalActions;
 
-const personaUser: Record<DemoPersona, string> = {
-  admin: "user-admin",
-  professional: "user-amara",
-  lead: "user-nneka"
-};
-
 function makeId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -186,6 +180,37 @@ function validJobForPublishing(state: DemoState, job: Job) {
   );
 }
 
+function userForPersona(state: DemoState, persona: DemoPersona) {
+  if (persona === "admin") {
+    return (
+      state.users.find((user) => user.id === "user-admin") ??
+      state.users.find((user) => user.accountRole === "admin")
+    );
+  }
+
+  const professionals = state.professionals.filter(
+    (professional) =>
+      professional.accountStatus === "active" &&
+      (persona === "lead" ? professional.isLead : !professional.isLead)
+  );
+  const preferredUserId =
+    persona === "lead" ? "user-nneka" : "user-amara";
+  return (
+    state.users.find(
+      (user) =>
+        user.id === preferredUserId &&
+        professionals.some(
+          (professional) => professional.id === user.professionalId
+        )
+    ) ??
+    state.users.find((user) =>
+      professionals.some(
+        (professional) => professional.id === user.professionalId
+      )
+    )
+  );
+}
+
 export const useProfessionalStore = create<ProfessionalStore>()(
   persist(
     (set, get) => ({
@@ -193,7 +218,12 @@ export const useProfessionalStore = create<ProfessionalStore>()(
       session: null,
 
       signIn: (persona) =>
-        set({ session: { persona, userId: personaUser[persona] } }),
+        set((state) => {
+          const user = userForPersona(state, persona);
+          return {
+            session: user ? { persona, userId: user.id } : null
+          };
+        }),
       signOut: () => set({ session: null }),
       currentUser: () => {
         const session = get().session;

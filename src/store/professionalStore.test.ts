@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { migrateLegacyState } from "../domain/migrate";
 import { useProfessionalStore } from "./professionalStore";
 
 describe("professional store", () => {
@@ -82,5 +83,46 @@ describe("professional store", () => {
       leadId: undefined,
       status: "waiting_for_admin"
     });
+  });
+
+  it("resolves demo personas from migrated legacy user IDs", () => {
+    const migrated = migrateLegacyState({
+      users: [
+        {
+          id: "user-trainer",
+          name: "Legacy Lead",
+          email: "lead@example.com",
+          role: "trainer",
+          workerId: "worker-lead"
+        }
+      ],
+      workers: [
+        {
+          id: "worker-lead",
+          userId: "user-trainer",
+          name: "Legacy Lead",
+          email: "lead@example.com",
+          phone: "0800",
+          location: "Lagos",
+          status: "active",
+          approvedServiceIds: [],
+          training: [],
+          completedCount: 1,
+          notes: "",
+          joinedAt: "2025-01-01",
+          isLead: true
+        }
+      ]
+    });
+    useProfessionalStore.setState({ ...migrated, session: null });
+
+    useProfessionalStore.getState().signIn("lead");
+
+    expect(useProfessionalStore.getState().currentUser()?.id).toBe(
+      "user-trainer"
+    );
+    expect(
+      useProfessionalStore.getState().currentProfessional()?.isLead
+    ).toBe(true);
   });
 });

@@ -1,33 +1,44 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
-import type { Role } from "./domain/types";
+import type { AccountRole } from "./domain/model";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
-import { AdminDashboard } from "./pages/admin/AdminDashboard";
-import { AdminReviewsPage } from "./pages/admin/AdminReviewsPage";
-import { AdminTrainingPage } from "./pages/admin/AdminTrainingPage";
-import { OpportunitiesPage } from "./pages/admin/OpportunitiesPage";
-import { PayoutsPage } from "./pages/admin/PayoutsPage";
-import { WorkersPage } from "./pages/admin/WorkersPage";
-import { MyWorkPage } from "./pages/shared/MyWorkPage";
-import { TraineesPage } from "./pages/trainer/TraineesPage";
-import { TrainerDashboard } from "./pages/trainer/TrainerDashboard";
-import { TrainerReviewsPage } from "./pages/trainer/TrainerReviewsPage";
-import { ProfilePage } from "./pages/worker/ProfilePage";
-import { WorkerDashboard } from "./pages/worker/WorkerDashboard";
-import { WorkerPayoutsPage } from "./pages/worker/WorkerPayoutsPage";
-import { WorkerTrainingPage } from "./pages/worker/WorkerTrainingPage";
-import { useAppStore } from "./store/appStore";
+import { RouteShell } from "./pages/RouteShell";
+import { useProfessionalStore } from "./store/professionalStore";
 
-function ProtectedRole({ role }: { role: Role }) {
-  const session = useAppStore((state) => state.session);
-  if (!session) return <Navigate to="/login" replace />;
-  if (session.role !== role) {
-    return <Navigate to={`/${session.role}/dashboard`} replace />;
+function ProtectedAccount({ role }: { role: AccountRole }) {
+  const user = useProfessionalStore((state) => state.currentUser());
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.accountRole !== role) {
+    return (
+      <Navigate
+        to={
+          user.accountRole === "admin"
+            ? "/admin/today"
+            : "/professional/today"
+        }
+        replace
+      />
+    );
   }
   return <Outlet />;
 }
+
+function LeadOnly() {
+  const professional = useProfessionalStore((state) =>
+    state.currentProfessional()
+  );
+  return professional?.isLead ? (
+    <Outlet />
+  ) : (
+    <Navigate to="/professional/today" replace />
+  );
+}
+
+const route = (title: string, description: string) => (
+  <RouteShell title={title} description={description} />
+);
 
 export function App() {
   return (
@@ -35,68 +46,267 @@ export function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
 
-      <Route element={<ProtectedRole role="admin" />}>
+      <Route element={<ProtectedAccount role="admin" />}>
         <Route element={<AppShell role="admin" />}>
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/workers" element={<WorkersPage />} />
-          <Route path="/admin/opportunities" element={<OpportunitiesPage />} />
-          <Route path="/admin/training" element={<AdminTrainingPage />} />
-          <Route path="/admin/reviews" element={<AdminReviewsPage />} />
-          <Route path="/admin/payouts" element={<PayoutsPage />} />
+          <Route
+            path="/admin/today"
+            element={route(
+              "Today",
+              "Review the operational decisions that need Admin attention."
+            )}
+          />
+          <Route
+            path="/admin/people"
+            element={route(
+              "People",
+              "Manage Professional records, readiness, and Lead capability."
+            )}
+          />
+          <Route
+            path="/admin/people/:professionalId"
+            element={route(
+              "Professional record",
+              "Review one Professional's services, work, payments, and permissions."
+            )}
+          />
+          <Route
+            path="/admin/services"
+            element={route(
+              "Services",
+              "Define service categories and the readiness required for each one."
+            )}
+          />
+          <Route
+            path="/admin/services/:serviceId"
+            element={route(
+              "Service",
+              "Edit readiness requirements and review enrolled Professionals."
+            )}
+          />
+          <Route
+            path="/admin/jobs"
+            element={route(
+              "Jobs",
+              "Create structured briefs and manage independent Assignments."
+            )}
+          />
+          <Route
+            path="/admin/jobs/new"
+            element={route(
+              "Create job",
+              "Write a complete brief before assigning Professionals."
+            )}
+          />
+          <Route
+            path="/admin/jobs/:jobId"
+            element={route(
+              "Job",
+              "Review the full brief, Assignment progress, and activity."
+            )}
+          />
+          <Route
+            path="/admin/assignments/:assignmentId"
+            element={route(
+              "Assignment",
+              "Review one Professional's delivery, decisions, and payment state."
+            )}
+          />
+          <Route
+            path="/admin/reviews"
+            element={route(
+              "Reviews",
+              "Resolve work submissions and readiness approvals."
+            )}
+          />
+          <Route
+            path="/admin/payments"
+            element={route(
+              "Payments",
+              "Record manual payments, receipts, and payment issues."
+            )}
+          />
+          <Route
+            path="/admin/payments/:paymentId"
+            element={route(
+              "Payment record",
+              "Review payment evidence and correction history."
+            )}
+          />
           <Route
             path="/admin/notifications"
-            element={<NotificationsPage role="admin" />}
+            element={<NotificationsPage />}
           />
           <Route
             path="/admin"
-            element={<Navigate to="/admin/dashboard" replace />}
+            element={<Navigate to="/admin/today" replace />}
           />
         </Route>
       </Route>
 
-      <Route element={<ProtectedRole role="trainer" />}>
-        <Route element={<AppShell role="trainer" />}>
-          <Route path="/trainer/dashboard" element={<TrainerDashboard />} />
-          <Route path="/trainer/trainees" element={<TraineesPage />} />
-          <Route path="/trainer/reviews" element={<TrainerReviewsPage />} />
+      <Route element={<ProtectedAccount role="professional" />}>
+        <Route element={<AppShell role="professional" />}>
           <Route
-            path="/trainer/jobs"
-            element={
-              <MyWorkPage
-                eyebrow="Trainer delivery"
-                description="Your personal assignments are separate from the submissions you review."
-              />
-            }
+            path="/professional/today"
+            element={route(
+              "Today",
+              "Start with the most important delivery or readiness action."
+            )}
           />
           <Route
-            path="/trainer/notifications"
-            element={<NotificationsPage role="trainer" />}
+            path="/professional/work"
+            element={route(
+              "Work",
+              "Review Assignments, deadlines, feedback, and submissions."
+            )}
           />
           <Route
-            path="/trainer"
-            element={<Navigate to="/trainer/dashboard" replace />}
+            path="/professional/work/:assignmentId"
+            element={route(
+              "Assignment",
+              "Use the full brief, checklist, and review history to deliver the work."
+            )}
+          />
+          <Route
+            path="/professional/training"
+            element={route(
+              "Training",
+              "Complete the readiness requirements for each Service."
+            )}
+          />
+          <Route
+            path="/professional/training/:enrolmentId"
+            element={route(
+              "Service readiness",
+              "Complete evidence and follow Lead or Admin feedback."
+            )}
+          />
+          <Route element={<LeadOnly />}>
+            <Route
+              path="/professional/team"
+              element={route(
+                "Team",
+                "Track the Service readiness of Professionals assigned to you."
+              )}
+            />
+            <Route
+              path="/professional/team/:enrolmentId"
+              element={route(
+                "Training review",
+                "Review readiness evidence and send a clear decision."
+              )}
+            />
+            <Route
+              path="/professional/reviews"
+              element={route(
+                "Reviews",
+                "Review submitted Assignments before they move to Admin."
+              )}
+            />
+          </Route>
+          <Route
+            path="/professional/payments"
+            element={route(
+              "Payments",
+              "Track due, scheduled, paid, and issue records."
+            )}
+          />
+          <Route
+            path="/professional/payments/:paymentId"
+            element={route(
+              "Payment record",
+              "Review the payment method, reference, and receipt record."
+            )}
+          />
+          <Route
+            path="/professional/profile"
+            element={route(
+              "Profile",
+              "Keep your contact details and service eligibility current."
+            )}
+          />
+          <Route
+            path="/professional/notifications"
+            element={<NotificationsPage />}
+          />
+          <Route
+            path="/professional"
+            element={<Navigate to="/professional/today" replace />}
           />
         </Route>
       </Route>
 
-      <Route element={<ProtectedRole role="worker" />}>
-        <Route element={<AppShell role="worker" />}>
-          <Route path="/worker/dashboard" element={<WorkerDashboard />} />
-          <Route path="/worker/training" element={<WorkerTrainingPage />} />
-          <Route path="/worker/jobs" element={<MyWorkPage />} />
-          <Route path="/worker/payouts" element={<WorkerPayoutsPage />} />
-          <Route path="/worker/profile" element={<ProfilePage />} />
-          <Route
-            path="/worker/notifications"
-            element={<NotificationsPage role="worker" />}
-          />
-          <Route
-            path="/worker"
-            element={<Navigate to="/worker/dashboard" replace />}
-          />
-        </Route>
-      </Route>
-
+      <Route
+        path="/admin/dashboard"
+        element={<Navigate to="/admin/today" replace />}
+      />
+      <Route
+        path="/admin/workers"
+        element={<Navigate to="/admin/people" replace />}
+      />
+      <Route
+        path="/admin/training"
+        element={<Navigate to="/admin/services" replace />}
+      />
+      <Route
+        path="/admin/opportunities"
+        element={<Navigate to="/admin/jobs" replace />}
+      />
+      <Route
+        path="/admin/payouts"
+        element={<Navigate to="/admin/payments" replace />}
+      />
+      <Route
+        path="/worker/dashboard"
+        element={<Navigate to="/professional/today" replace />}
+      />
+      <Route
+        path="/worker/training"
+        element={<Navigate to="/professional/training" replace />}
+      />
+      <Route
+        path="/worker/jobs"
+        element={<Navigate to="/professional/work" replace />}
+      />
+      <Route
+        path="/worker/payouts"
+        element={<Navigate to="/professional/payments" replace />}
+      />
+      <Route
+        path="/worker/profile"
+        element={<Navigate to="/professional/profile" replace />}
+      />
+      <Route
+        path="/worker/notifications"
+        element={<Navigate to="/professional/notifications" replace />}
+      />
+      <Route
+        path="/trainer/dashboard"
+        element={<Navigate to="/professional/today" replace />}
+      />
+      <Route
+        path="/trainer/trainees"
+        element={<Navigate to="/professional/team" replace />}
+      />
+      <Route
+        path="/trainer/reviews"
+        element={<Navigate to="/professional/reviews" replace />}
+      />
+      <Route
+        path="/trainer/jobs"
+        element={<Navigate to="/professional/work" replace />}
+      />
+      <Route
+        path="/trainer/notifications"
+        element={<Navigate to="/professional/notifications" replace />}
+      />
+      <Route
+        path="/worker/*"
+        element={<Navigate to="/professional/today" replace />}
+      />
+      <Route
+        path="/trainer/*"
+        element={<Navigate to="/professional/today" replace />}
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
