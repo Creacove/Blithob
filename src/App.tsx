@@ -17,6 +17,14 @@ import { JobEditorPage } from "./pages/admin/JobEditorPage";
 import { JobsPage } from "./pages/admin/JobsPage";
 import { ServiceDetailPage } from "./pages/admin/ServiceDetailPage";
 import { ServicesPage } from "./pages/admin/ServicesPage";
+import { AssignmentPage } from "./pages/professional/AssignmentPage";
+import { PaymentDetailPage } from "./pages/professional/PaymentDetailPage";
+import { PaymentsPage } from "./pages/professional/PaymentsPage";
+import { ProfilePage } from "./pages/professional/ProfilePage";
+import { TodayPage } from "./pages/professional/TodayPage";
+import { TrainingDetailPage } from "./pages/professional/TrainingDetailPage";
+import { TrainingPage } from "./pages/professional/TrainingPage";
+import { WorkPage } from "./pages/professional/WorkPage";
 import { useProfessionalStore } from "./store/professionalStore";
 
 function ProtectedAccount({ role }: { role: AccountRole }) {
@@ -127,38 +135,23 @@ export function App() {
         <Route element={<AppShell role="professional" />}>
           <Route
             path="/professional/today"
-            element={route(
-              "Today",
-              "Start with the most important delivery or readiness action."
-            )}
+            element={<TodayPage />}
           />
           <Route
             path="/professional/work"
-            element={route(
-              "Work",
-              "Review Assignments, deadlines, feedback, and submissions."
-            )}
+            element={<WorkPage />}
           />
           <Route
             path="/professional/work/:assignmentId"
-            element={route(
-              "Assignment",
-              "Use the full brief, checklist, and review history to deliver the work."
-            )}
+            element={<AssignmentPage />}
           />
           <Route
             path="/professional/training"
-            element={route(
-              "Training",
-              "Complete the readiness requirements for each Service."
-            )}
+            element={<TrainingPage />}
           />
           <Route
             path="/professional/training/:enrolmentId"
-            element={route(
-              "Service readiness",
-              "Complete evidence and follow Lead or Admin feedback."
-            )}
+            element={<TrainingDetailPage />}
           />
           <Route element={<LeadOnly />}>
             <Route
@@ -185,24 +178,15 @@ export function App() {
           </Route>
           <Route
             path="/professional/payments"
-            element={route(
-              "Payments",
-              "Track due, scheduled, paid, and issue records."
-            )}
+            element={<PaymentsPage />}
           />
           <Route
             path="/professional/payments/:paymentId"
-            element={route(
-              "Payment record",
-              "Review the payment method, reference, and receipt record."
-            )}
+            element={<PaymentDetailPage />}
           />
           <Route
             path="/professional/profile"
-            element={route(
-              "Profile",
-              "Keep your contact details and service eligibility current."
-            )}
+            element={<ProfilePage />}
           />
           <Route
             path="/professional/notifications"

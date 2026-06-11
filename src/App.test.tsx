@@ -98,9 +98,9 @@ describe("application routing", () => {
     useProfessionalStore.getState().signIn("admin");
     renderAppAt("/admin/people");
 
-    await user.type(
+    fireEvent.change(
       screen.getByPlaceholderText("Search by name, email, or location"),
-      "Nneka"
+      { target: { value: "Nneka" } }
     );
 
     expect(screen.getByText("Nneka Eze")).toBeInTheDocument();
