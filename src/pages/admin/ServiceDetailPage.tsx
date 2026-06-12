@@ -126,7 +126,7 @@ export function ServiceDetailPage() {
         actions={
           <Link
             to="/admin/services"
-            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
+            className="mobile-header-back inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
           >
             <ArrowLeft size={16} aria-hidden="true" />
             Back to Services
@@ -138,6 +138,7 @@ export function ServiceDetailPage() {
         <Section
           title="Overview"
           description="The Service name and purpose shown across readiness and Jobs."
+          mobileDisclosure="collapsed"
           action={
             <Button
               variant={service.active ? "secondary" : "primary"}
@@ -191,6 +192,7 @@ export function ServiceDetailPage() {
         <Section
           title="Readiness requirements"
           description="One ordered checklist used by every Professional enrolled in this Service."
+          mobileDisclosure="expanded"
           action={
             <Button
               variant="secondary"
@@ -305,6 +307,7 @@ export function ServiceDetailPage() {
         <Section
           title="Enrolled Professionals"
           description="Everyone with an active readiness record for this Service."
+          mobileDisclosure="collapsed"
         >
           {serviceEnrolments.length === 0 ? (
             <EmptyState
@@ -343,6 +346,7 @@ export function ServiceDetailPage() {
         <Section
           title="Approved Professionals"
           description="Professionals eligible for future Jobs in this Service."
+          mobileDisclosure="collapsed"
         >
           {approved.length === 0 ? (
             <EmptyState
@@ -368,7 +372,11 @@ export function ServiceDetailPage() {
           )}
         </Section>
 
-        <Section title="Jobs" description="Jobs that use this Service.">
+        <Section
+          title="Jobs"
+          description="Jobs that use this Service."
+          mobileDisclosure="collapsed"
+        >
           {serviceJobs.length === 0 ? (
             <EmptyState
               title="No Jobs"

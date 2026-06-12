@@ -7,7 +7,8 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes
 } from "react";
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 export const Button = forwardRef(function Button(
   {
@@ -95,32 +96,184 @@ export function Section({
   description,
   action,
   children,
-  className
+  className,
+  mobileDisclosure = "static"
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  mobileDisclosure?: "static" | "expanded" | "collapsed";
 }) {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window === "undefined" || typeof window.matchMedia !== "function"
+      ? false
+      : window.matchMedia("(max-width: 767px)").matches
+  );
+  const [open, setOpen] = useState(mobileDisclosure !== "collapsed");
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener?.("change", update);
+    return () => media.removeEventListener?.("change", update);
+  }, []);
+
+  const disclosure = mobileDisclosure !== "static" && isMobile;
+  const contentVisible = !disclosure || open;
+
   return (
     <section
       className={clsx(
-        "rounded-2xl border border-[var(--border)] bg-white p-5 sm:p-6",
+        "mobile-section rounded-2xl border border-[var(--border)] bg-white p-4 sm:p-6",
         className
       )}
     >
-      <div className="mb-4 flex items-start justify-between gap-4">
+      <div
+        className={clsx(
+          "flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4",
+          contentVisible && "mb-4"
+        )}
+      >
         <div className="max-w-[66ch]">
           <h2 className="text-xl font-semibold text-[var(--ink)]">{title}</h2>
           {description && (
-            <p className="mt-1 text-sm leading-5 text-[var(--muted)]">{description}</p>
+            <p className="mobile-supporting-copy mt-1 text-sm leading-5 text-[var(--muted)]">
+              {description}
+            </p>
           )}
         </div>
-        {action}
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto md:shrink-0 md:flex-nowrap">
+          {(!disclosure || contentVisible) && action}
+          {disclosure && (
+            <button
+              type="button"
+              onClick={() => setOpen((current) => !current)}
+              className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[var(--blue)] hover:bg-blue-50"
+              aria-expanded={open}
+            >
+              {open ? `Hide ${title}` : `Show ${title}`}
+            </button>
+          )}
+        </div>
       </div>
-      {children}
+      {contentVisible && children}
     </section>
+  );
+}
+
+export function ResponsiveRecord({
+  title,
+  subtitle,
+  status,
+  facts = [],
+  details,
+  action,
+  className,
+  to,
+  ariaLabel
+}: {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  status?: ReactNode;
+  facts?: Array<{ label: string; value: ReactNode }>;
+  details?: ReactNode;
+  action?: ReactNode;
+  className?: string;
+  to?: string;
+  ariaLabel?: string;
+}) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  const content = (
+    <>
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+        <div className="min-w-0">
+          <h3 className="min-w-0 overflow-hidden text-ellipsis text-base font-semibold leading-6 text-[var(--ink)]">
+            {title}
+          </h3>
+          {subtitle && (
+            <p className="mt-0.5 truncate text-sm text-[var(--muted)]">
+              {subtitle}
+            </p>
+          )}
+        </div>
+        {status}
+      </div>
+      {facts.length > 0 && (
+        <dl className="mt-4 grid min-w-0 grid-cols-2 gap-x-4 gap-y-3">
+          {facts.slice(0, 2).map((fact) => (
+            <div key={fact.label} className="min-w-0">
+              <dt className="text-xs font-medium text-[var(--muted)]">
+                {fact.label}
+              </dt>
+              <dd className="mt-0.5 truncate text-sm font-semibold text-[var(--ink)]">
+                {fact.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {(details || action) && (
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-3">
+          {details ? (
+            <button
+              type="button"
+              onClick={() => setDetailsOpen((current) => !current)}
+              className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--blue)]"
+              aria-expanded={detailsOpen}
+            >
+              {detailsOpen ? "Hide details" : "Show details"}
+            </button>
+          ) : (
+            <span />
+          )}
+          {action}
+        </div>
+      )}
+      {detailsOpen && (
+        <div className="mt-3 border-t border-[var(--border)] pt-3 text-sm leading-6 text-[var(--muted)]">
+          {details}
+        </div>
+      )}
+    </>
+  );
+
+  const recordClassName = clsx(
+    "responsive-record block min-w-0 max-w-full overflow-hidden rounded-xl border border-[var(--border)] bg-white p-4 text-left transition hover:border-blue-200 hover:bg-blue-50/30",
+    className
+  );
+
+  return to && !details && !action ? (
+    <Link to={to} aria-label={ariaLabel} className={recordClassName}>
+      {content}
+    </Link>
+  ) : (
+    <article className={recordClassName}>{content}</article>
+  );
+}
+
+export function StickyActionBar({
+  children,
+  className
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Page actions"
+      className={clsx(
+        "sticky-action-bar sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 mt-6 flex items-center justify-end gap-3 border-t border-[var(--border)] bg-white/95 px-4 py-3 backdrop-blur md:bottom-0 md:mx-0 md:rounded-xl md:border md:px-4",
+        className
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -134,7 +287,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-subtle)] px-6 py-10 text-center">
+    <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-subtle)] px-5 py-8 text-center sm:px-6 sm:py-10">
       <h3 className="text-base font-semibold text-[var(--ink)]">{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-base leading-6 text-[var(--muted)]">
         {description}
@@ -158,7 +311,7 @@ export function Toolbar({
       role="group"
       aria-label={label}
       className={clsx(
-        "flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-white p-3 sm:flex-row sm:items-center",
+        "mobile-toolbar flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-white p-3 sm:flex-row sm:items-center",
         className
       )}
     >
@@ -198,7 +351,7 @@ export function MetaList({
   className?: string;
 }) {
   return (
-    <dl className={clsx("grid gap-x-6 gap-y-3 sm:grid-cols-2", className)}>
+    <dl className={clsx("meta-list grid gap-x-6 gap-y-3 sm:grid-cols-2", className)}>
       {items.map((item) => (
         <div
           key={item.label}

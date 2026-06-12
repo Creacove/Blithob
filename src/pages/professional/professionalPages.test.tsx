@@ -158,11 +158,110 @@ describe("professional workspace", () => {
     expect(screen.getAllByDisplayValue("amara@example.com")).toHaveLength(1);
   });
 
+  it("provides Professional mobile account actions from Profile", async () => {
+    const user = userEvent.setup();
+    renderAppAt("/professional/profile");
+
+    expect(
+      screen.getByRole("button", { name: "Reset demo data" })
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Sign out" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Choose a workspace" })
+    ).toBeInTheDocument();
+  });
+
   it("rejects a Payment belonging to another Professional", () => {
     renderAppAt("/professional/payments/payment-due-cash");
 
     expect(
       screen.getByRole("heading", { name: "Payment not found" })
     ).toBeInTheDocument();
+  });
+
+  it("shows a Lead the Service enrolments assigned to their Team", () => {
+    useProfessionalStore.getState().signIn("lead");
+
+    renderAppAt("/professional/team");
+
+    expect(screen.getByRole("heading", { name: "Team" })).toBeInTheDocument();
+    expect(screen.getAllByText("Zainab Bello")).not.toHaveLength(0);
+    expect(
+      screen.getAllByText("Social Media Management")
+    ).not.toHaveLength(0);
+    expect(
+      document.querySelector(
+        'a[href="/professional/team/enrolment-nneka-data"]'
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it("lets a Lead certify an assigned readiness record", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.setState((state) => ({
+      serviceEnrolments: state.serviceEnrolments.map((enrolment) =>
+        enrolment.id === "enrolment-zainab-social"
+          ? { ...enrolment, status: "waiting_for_lead" }
+          : enrolment
+      )
+    }));
+    useProfessionalStore.getState().signIn("lead");
+
+    renderAppAt("/professional/team/enrolment-zainab-social");
+
+    expect(
+      screen.getByRole("heading", { name: "Social Media Management" })
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Lead feedback"), {
+      target: { value: "Evidence meets the Service standard." }
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Certify readiness" })
+    );
+
+    expect(
+      useProfessionalStore
+        .getState()
+        .serviceEnrolments.find(
+          (enrolment) => enrolment.id === "enrolment-zainab-social"
+        )?.status
+    ).toBe("waiting_for_admin");
+  });
+
+  it("lets a Lead review only Assignments routed to them", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("lead");
+
+    renderAppAt("/professional/reviews");
+
+    expect(
+      screen.getByRole("heading", { name: "Reviews" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("David Mensah")).toBeInTheDocument();
+    expect(screen.getByText("Campaign Refresh")).toBeInTheDocument();
+    expect(screen.queryByText("Lead Newsletter Draft")).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Review assignment assignment-waiting-lead"
+      })
+    );
+    fireEvent.change(screen.getByLabelText("Lead feedback"), {
+      target: { value: "The submission meets the brief." }
+    });
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Certify for Admin"
+      })
+    );
+
+    expect(
+      useProfessionalStore
+        .getState()
+        .assignments.find(
+          (assignment) => assignment.id === "assignment-waiting-lead"
+        )?.status
+    ).toBe("waiting_for_admin");
   });
 });

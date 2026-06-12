@@ -1,8 +1,15 @@
-import { ArrowLeft, CheckCircle2, FileText, XCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  FileText,
+  MoreHorizontal,
+  XCircle
+} from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { Drawer } from "../../components/Drawer";
+import { FilterSheet } from "../../components/FilterSheet";
 import { PageHeader } from "../../components/PageHeader";
 import { RecordTimeline } from "../../components/RecordTimeline";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -59,6 +66,7 @@ export function AdminAssignmentPage() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [decision, setDecision] = useState<"approved" | "changes_requested">(
     "approved"
   );
@@ -124,7 +132,7 @@ export function AdminAssignmentPage() {
         actions={
           <Link
             to={`/admin/jobs/${job.id}`}
-            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
+            className="mobile-header-back inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
           >
             <ArrowLeft size={16} aria-hidden />
             Back to Job
@@ -149,6 +157,7 @@ export function AdminAssignmentPage() {
                 </Button>
               )}
               <Button
+                className="hidden md:inline-flex"
                 variant="secondary"
                 disabled={["completed", "cancelled"].includes(assignment.status)}
                 onClick={() => setCancelOpen(true)}
@@ -156,6 +165,16 @@ export function AdminAssignmentPage() {
                 <XCircle size={16} aria-hidden />
                 Cancel assignment
               </Button>
+              {!["completed", "cancelled"].includes(assignment.status) && (
+                <Button
+                  className="md:hidden"
+                  variant="secondary"
+                  onClick={() => setMobileActionsOpen(true)}
+                >
+                  <MoreHorizontal size={17} aria-hidden />
+                  More
+                </Button>
+              )}
             </div>
           }
         >
@@ -183,7 +202,7 @@ export function AdminAssignmentPage() {
           />
         </Section>
 
-        <Section title="Inherited Job brief">
+        <Section title="Inherited Job brief" mobileDisclosure="collapsed">
           <div className="grid gap-5">
             <BriefBlock label="Objective" value={job.objective} />
             {job.clientContext && (
@@ -237,7 +256,7 @@ export function AdminAssignmentPage() {
           )}
         </Section>
 
-        <Section title="Review decisions">
+        <Section title="Review decisions" mobileDisclosure="collapsed">
           {assignmentReviews.length === 0 ? (
             <p className="text-base text-[var(--muted)]">
               No review decisions have been recorded.
@@ -289,7 +308,7 @@ export function AdminAssignmentPage() {
           )}
         </Section>
 
-        <Section title="Activity">
+        <Section title="Activity" mobileDisclosure="collapsed">
           <RecordTimeline
             items={activity
               .filter((item) => item.subject.includes(job.title))
@@ -308,6 +327,14 @@ export function AdminAssignmentPage() {
         onClose={() => setReviewOpen(false)}
         title="Review submission"
         description="Approve this Professional's latest version or return it with specific changes."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setReviewOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={submitReview}>Record decision</Button>
+          </>
+        }
       >
         <div className="space-y-4">
           <Field label="Decision">
@@ -330,12 +357,6 @@ export function AdminAssignmentPage() {
               placeholder="Explain the decision clearly."
             />
           </Field>
-          <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setReviewOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={submitReview}>Record decision</Button>
-          </div>
         </div>
       </Drawer>
 
@@ -365,6 +386,24 @@ export function AdminAssignmentPage() {
           />
         </Field>
       </ConfirmDialog>
+
+      <FilterSheet
+        open={mobileActionsOpen}
+        title="Assignment actions"
+        onClose={() => setMobileActionsOpen(false)}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            setMobileActionsOpen(false);
+            setCancelOpen(true);
+          }}
+          className="inline-flex min-h-12 w-full items-center gap-3 rounded-[10px] px-3 text-left font-semibold text-red-700 hover:bg-red-50"
+        >
+          <XCircle size={17} aria-hidden />
+          Cancel assignment
+        </button>
+      </FilterSheet>
     </div>
   );
 }

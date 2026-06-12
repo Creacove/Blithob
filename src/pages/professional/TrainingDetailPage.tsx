@@ -126,7 +126,7 @@ export function TrainingDetailPage() {
           <>
             <Link
               to="/professional/training"
-              className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
+              className="mobile-header-back inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
             >
               <ArrowLeft size={16} aria-hidden />
               Back to Training
@@ -295,7 +295,7 @@ export function TrainingDetailPage() {
         </Section>
 
         <div className="space-y-5">
-          <Section title="Review route">
+          <Section title="Review route" mobileDisclosure="collapsed">
             <p className="text-sm font-medium text-[var(--muted)]">
               Assigned reviewer
             </p>
@@ -309,7 +309,7 @@ export function TrainingDetailPage() {
             </p>
           </Section>
 
-          <Section title="Feedback timeline">
+          <Section title="Feedback timeline" mobileDisclosure="collapsed">
             {reviews.length === 0 ? (
               <EmptyState
                 title="No review feedback yet"

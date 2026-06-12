@@ -21,6 +21,7 @@ export function NotificationsPage() {
       <PageHeader
         title="Updates"
         description="Workflow notices for this account, ordered from newest to oldest."
+        mobileDescription="hide"
       />
       <div className="mt-6">
         {notifications.length === 0 ? (
@@ -58,7 +59,7 @@ export function NotificationsPage() {
                       />
                     )}
                   </span>
-                  <span className="mt-1 block max-w-[66ch] text-base leading-6 text-[var(--muted)]">
+                  <span className="mobile-supporting-copy mt-1 block max-w-[66ch] text-sm leading-5 text-[var(--muted)] sm:text-base sm:leading-6">
                     {item.message}
                   </span>
                   <span className="mt-2 block text-sm text-[var(--muted)]">

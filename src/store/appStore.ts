@@ -4,7 +4,6 @@ import type {
   DemoState,
   Notification,
   Opportunity,
-  Review,
   Role,
   ServiceCategory,
   User,

@@ -4,13 +4,12 @@ import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { containDialogFocus } from "../lib/focus";
 
-export function Modal({
+export function FilterSheet({
   open,
   title,
   description,
   onClose,
   children,
-  wide = false,
   footer
 }: {
   open: boolean;
@@ -18,7 +17,6 @@ export function Modal({
   description?: string;
   onClose: () => void;
   children: ReactNode;
-  wide?: boolean;
   footer?: ReactNode;
 }) {
   const titleId = useId();
@@ -52,45 +50,46 @@ export function Modal({
   if (!open) return null;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] flex items-end justify-center bg-slate-950/45 p-0 backdrop-blur-sm sm:items-center sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-      onMouseDown={(event) => {
-        if (event.currentTarget === event.target) onClose();
-      }}
-    >
+    <div className="fixed inset-0 z-[120] flex items-end justify-center md:items-center md:p-6">
+      <button
+        type="button"
+        className="drawer-backdrop absolute inset-0 cursor-default bg-slate-950/35"
+        aria-label={`Close ${title}`}
+        onClick={onClose}
+      />
       <section
         ref={dialogRef}
-        className={`page-enter flex max-h-[100dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-h-[92vh] sm:rounded-2xl ${
-          wide ? "max-w-3xl" : "max-w-xl"
-        }`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="sheet-enter relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl md:max-w-lg md:rounded-2xl"
       >
-        <header className="sticky top-0 z-10 flex items-start justify-between border-b border-[var(--border)] bg-white/95 px-6 py-5 backdrop-blur">
+        <header className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
           <div>
             <h2 id={titleId} className="text-xl font-semibold text-[var(--ink)]">
               {title}
             </h2>
             {description && (
-              <p className="mt-1 text-base leading-6 text-[var(--muted)]">{description}</p>
+              <p className="mt-1 text-sm leading-5 text-[var(--muted)]">
+                {description}
+              </p>
             )}
           </div>
           <button
             ref={closeRef}
             type="button"
             onClick={onClose}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-            aria-label="Close dialog"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] text-[var(--muted)] hover:bg-[var(--surface-subtle)]"
+            aria-label="Close"
           >
-            <X size={20} />
+            <X size={20} aria-hidden />
           </button>
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
           {children}
         </div>
         {footer && (
-          <footer className="flex items-center justify-end gap-3 border-t border-[var(--border)] bg-white px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:px-6">
+          <footer className="flex items-center justify-end gap-3 border-t border-[var(--border)] bg-white px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
             {footer}
           </footer>
         )}

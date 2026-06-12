@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
+import { containDialogFocus } from "../lib/focus";
 
 export function Drawer({
   open,
@@ -9,7 +10,8 @@ export function Drawer({
   description,
   onClose,
   children,
-  width = "default"
+  width = "default",
+  footer
 }: {
   open: boolean;
   title: string;
@@ -17,9 +19,11 @@ export function Drawer({
   onClose: () => void;
   children: ReactNode;
   width?: "default" | "wide";
+  footer?: ReactNode;
 }) {
   const titleId = useId();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
 
@@ -37,6 +41,7 @@ export function Drawer({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onCloseRef.current();
+      containDialogFocus(event, dialogRef.current);
     };
     document.addEventListener("keydown", onKeyDown);
 
@@ -62,6 +67,7 @@ export function Drawer({
         onClick={onClose}
       />
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -93,6 +99,11 @@ export function Drawer({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-6">
           {children}
         </div>
+        {footer && (
+          <footer className="flex items-center justify-end gap-3 border-t border-[var(--border)] bg-white px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:px-6">
+            {footer}
+          </footer>
+        )}
       </section>
     </div>,
     document.body

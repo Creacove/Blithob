@@ -84,7 +84,7 @@ export function PaymentDetailPage() {
             ]}
           />
         </Section>
-        <Section title="Payment evidence">
+        <Section title="Payment evidence" mobileDisclosure="collapsed">
           <MetaList
             items={[
               {

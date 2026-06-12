@@ -35,7 +35,7 @@ describe("application routing", () => {
     renderAppAt("/");
 
     await user.click(
-      screen.getByRole("link", { name: "Explore the workspace" })
+      screen.getByRole("link", { name: "Apply as a remote professional" })
     );
 
     expect(
@@ -79,6 +79,69 @@ describe("application routing", () => {
     expect(
       screen.queryByRole("link", { name: "Reviews" })
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps Admin phone navigation to four destinations plus More", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/today");
+
+    const mobileNavigation = screen.getByRole("navigation", {
+      name: "Admin mobile navigation"
+    });
+    expect(
+      within(mobileNavigation).getAllByRole("link")
+    ).toHaveLength(4);
+    expect(
+      within(mobileNavigation).getByRole("button", { name: "More" })
+    ).toBeInTheDocument();
+
+    await user.click(
+      within(mobileNavigation).getByRole("button", { name: "More" })
+    );
+
+    const moreSheet = screen.getByRole("dialog", {
+      name: "More"
+    });
+    expect(
+      within(moreSheet).getByRole("link", { name: "Services" })
+    ).toBeInTheDocument();
+    expect(
+      within(moreSheet).getByRole("link", { name: "Payments" })
+    ).toBeInTheDocument();
+    expect(
+      within(moreSheet).getByRole("link", { name: "Updates" })
+    ).toBeInTheDocument();
+  });
+
+  it("keeps Lead phone navigation to four destinations plus More", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("lead");
+    renderAppAt("/professional/today");
+
+    const mobileNavigation = screen.getByRole("navigation", {
+      name: "Lead mobile navigation"
+    });
+    expect(
+      within(mobileNavigation).getAllByRole("link")
+    ).toHaveLength(4);
+
+    await user.click(
+      within(mobileNavigation).getByRole("button", { name: "More" })
+    );
+
+    const moreSheet = screen.getByRole("dialog", {
+      name: "More"
+    });
+    expect(
+      within(moreSheet).getByRole("link", { name: "Training" })
+    ).toBeInTheDocument();
+    expect(
+      within(moreSheet).getByRole("link", { name: "Payments" })
+    ).toBeInTheDocument();
+    expect(
+      within(moreSheet).getByRole("link", { name: "Profile" })
+    ).toBeInTheDocument();
   });
 
   it("recovers from a persisted session whose user no longer exists", () => {

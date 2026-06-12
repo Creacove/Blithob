@@ -9,9 +9,11 @@ import {
   Field,
   Input,
   RecordList,
+  ResponsiveRecord,
   Textarea,
   Toolbar
 } from "../../components/ui";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useProfessionalStore } from "../../store/professionalStore";
 
 const emptyRequirement = () => ({
@@ -34,6 +36,7 @@ export function ServicesPage() {
     (state) => state.serviceEnrolments
   );
   const jobs = useProfessionalStore((state) => state.jobs);
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const createService = useProfessionalStore((state) => state.createService);
 
   const filtered = services.filter((service) =>
@@ -88,6 +91,47 @@ export function ServicesPage() {
         </Button>
       </Toolbar>
 
+      {isMobile ? (
+      <div className="mt-4 grid gap-3" aria-label="Service directory mobile">
+        {filtered.map((service) => {
+          const serviceEnrolments = enrolments.filter(
+            (item) => item.serviceId === service.id
+          );
+          const approved = serviceEnrolments.filter(
+            (item) => item.status === "approved"
+          ).length;
+          const activeJobs = jobs.filter(
+            (job) =>
+              job.serviceId === service.id &&
+              job.publicationState !== "archived"
+          ).length;
+          return (
+            <ResponsiveRecord
+              key={service.id}
+              to={`/admin/services/${service.id}`}
+              ariaLabel={`Open ${service.name} mobile`}
+              title={service.name}
+              subtitle={service.description}
+              status={
+                <span
+                  className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                    service.active
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {service.active ? "Active" : "Inactive"}
+                </span>
+              }
+              facts={[
+                { label: "Approved", value: approved },
+                { label: "Active Jobs", value: activeJobs }
+              ]}
+            />
+          );
+        })}
+      </div>
+      ) : (
       <RecordList className="mt-4" label="Service directory">
         {filtered.map((service) => {
           const serviceEnrolments = enrolments.filter(
@@ -146,6 +190,7 @@ export function ServicesPage() {
           );
         })}
       </RecordList>
+      )}
 
       <Drawer
         open={drawerOpen}
@@ -153,8 +198,26 @@ export function ServicesPage() {
         title="New service"
         description="Create one Service and its ordered readiness checklist."
         width="wide"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setDrawerOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form="create-service-form">
+              Create service
+            </Button>
+          </>
+        }
       >
-        <form className="space-y-6" onSubmit={submit}>
+        <form
+          id="create-service-form"
+          className="space-y-6"
+          onSubmit={submit}
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Service name">
               <Input value={name} onChange={(event) => setName(event.target.value)} />
@@ -272,16 +335,6 @@ export function ServicesPage() {
                 </div>
               ))}
             </div>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setDrawerOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">Create service</Button>
           </div>
         </form>
       </Drawer>

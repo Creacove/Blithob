@@ -1,71 +1,86 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-async function openWorkspaceLink(page: import("@playwright/test").Page, name: string) {
-  const link = page.getByRole("link", { name, exact: true });
-  if (!(await link.isVisible())) {
-    await page.getByRole("button", { name: "Open navigation menu" }).click();
-  }
-  await link.click();
-}
+type Persona = "Admin" | "Lead" | "Professional";
 
-test.beforeEach(async ({ page }) => {
-  await page.goto("/");
+async function signIn(page: Page, persona: Persona) {
+  await page.goto("/login");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
+  await page.getByRole("button", { name: `Continue as ${persona}` }).click();
+  await expect(page).toHaveURL(
+    persona === "Admin" ? /\/admin\/today$/ : /\/professional\/today$/
+  );
+}
+
+test("Admin records a cash payment from the task sheet", async ({ page }) => {
+  await signIn(page, "Admin");
+  await page.goto("/admin/payments");
+
+  await page
+    .getByRole("button", { name: "Record payment for payment-due-cash" })
+    .click();
+  const sheet = page.getByRole("dialog", { name: "Record payment" });
+  await sheet.getByLabel("Payment date").fill("2026-06-16T10:00");
+  await sheet.getByRole("button", { name: "Save payment" }).click();
+
+  await expect(sheet).toBeHidden();
+  await expect(page.getByText("Payment record saved")).toBeVisible();
 });
 
-test("admin can complete accepted work and record its payout", async ({
+test("Professional submits independent work with evidence", async ({ page }) => {
+  await signIn(page, "Professional");
+  await page.goto("/professional/work/assignment-amara-campaign");
+
+  await page.getByRole("button", { name: "Submit work" }).click();
+  const sheet = page.getByRole("dialog", { name: "Submit work" });
+  await sheet
+    .getByLabel("Submission notes")
+    .fill("Campaign plan, captions, and publishing calendar are ready.");
+  await sheet
+    .getByLabel("Submission link")
+    .fill("https://example.com/final-campaign");
+  await sheet.getByRole("button", { name: "Submit work" }).click();
+
+  await expect(sheet).toBeHidden();
+  await expect(page.getByText("Waiting for Lead").first()).toBeVisible();
+});
+
+test("Lead certifies only work routed to their review queue", async ({
   page
 }) => {
-  await page.getByRole("link", { name: "Explore the workspace" }).click();
-  await page.getByRole("button", { name: "Continue as Admin" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Today" })
-  ).toBeVisible();
+  await signIn(page, "Lead");
+  await page.goto("/professional/reviews");
 
-  await openWorkspaceLink(page, "Reviews");
-  page.once("dialog", (dialog) => dialog.accept());
+  await expect(page.getByText("Campaign Refresh").first()).toBeVisible();
+  await expect(page.getByText("Lead Newsletter Draft")).toHaveCount(0);
   await page
-    .getByRole("article")
-    .filter({ hasText: "Customer inbox reset" })
-    .getByRole("button", { name: "Complete work" })
+    .getByRole("button", {
+      name: "Review assignment assignment-waiting-lead"
+    })
     .click();
+  const sheet = page.getByRole("dialog", { name: "Campaign Refresh" });
+  await sheet
+    .getByLabel("Lead feedback")
+    .fill("The submission meets the brief and evidence standard.");
+  await sheet.getByRole("button", { name: "Certify for Admin" }).click();
 
-  await openWorkspaceLink(page, "Payments");
-  const payoutRow = page
-    .getByRole("article")
-    .filter({ hasText: "Customer inbox reset" });
-  await expect(payoutRow.getByText("Payment due")).toBeVisible();
-  await payoutRow.getByRole("button", { name: "Record payment" }).click();
-  await page
-    .getByLabel("Payment reference")
-    .fill("TRF-E2E-001");
-  await page.getByRole("button", { name: "Confirm paid" }).click();
-  await expect(payoutRow.getByText("Paid")).toBeVisible();
-  await expect(payoutRow.getByText("TRF-E2E-001")).toBeVisible();
+  await expect(sheet).toBeHidden();
+  await expect(page.getByText("Waiting for Admin").first()).toBeVisible();
 });
 
-test("worker can start and submit assigned work on mobile", async ({ page }) => {
-  await page.getByRole("link", { name: "Explore the workspace" }).click();
-  await page.getByRole("button", { name: "Continue as Worker" }).click();
-  await expect(page.getByRole("heading", { name: "Hello, Amara" })).toBeVisible();
-
-  await page.getByRole("link", { name: "Work" }).last().click();
-  const assignment = page
-    .getByRole("article")
-    .filter({ hasText: "Founder launch campaign" });
-  await assignment.getByRole("button", { name: "Submit work" }).click();
-  await page.getByLabel("Submission notes").fill(
-    "Campaign plan, captions, and publishing calendar are ready."
-  );
-  await page.getByLabel("Work link").fill("https://example.com/final-campaign");
-  await page.getByRole("button", { name: "Send for review" }).click();
-  await expect(assignment.getByText("Waiting for review")).toBeVisible();
+test("role guard keeps Professionals out of Admin routes", async ({ page }) => {
+  await signIn(page, "Professional");
+  await page.goto("/admin/today");
+  await expect(page).toHaveURL(/\/professional\/today$/);
 });
 
-test("role guard redirects worker away from admin routes", async ({ page }) => {
-  await page.getByRole("link", { name: "Explore the workspace" }).click();
-  await page.getByRole("button", { name: "Continue as Worker" }).click();
-  await page.goto("/admin/dashboard");
-  await expect(page).toHaveURL(/\/worker\/dashboard$/);
+test("Professional can sign out from mobile Profile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, "Professional");
+  await page.goto("/professional/profile");
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(
+    page.getByRole("heading", { name: "Choose a workspace" })
+  ).toBeVisible();
 });

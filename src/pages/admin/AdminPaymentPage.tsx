@@ -136,7 +136,7 @@ export function AdminPaymentPage() {
             ]}
           />
         </Section>
-        <Section title="Payment evidence">
+        <Section title="Payment evidence" mobileDisclosure="collapsed">
           <MetaList
             items={[
               {
@@ -178,7 +178,10 @@ export function AdminPaymentPage() {
           )}
         </Section>
         {(payment.issueNote || payment.correctionNote) && (
-          <Section title="Issue and correction history">
+          <Section
+            title="Issue and correction history"
+            mobileDisclosure="collapsed"
+          >
             {payment.issueNote && (
               <div>
                 <p className="font-semibold text-red-700">Payment issue</p>

@@ -116,7 +116,7 @@ export function AssignmentPage() {
           <>
             <Link
               to="/professional/work"
-              className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
+              className="mobile-header-back inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
             >
               <ArrowLeft size={16} aria-hidden />
               Back to Work
@@ -171,7 +171,7 @@ export function AssignmentPage() {
             />
           </Section>
 
-          <Section title="Objective and context">
+          <Section title="Objective and context" mobileDisclosure="expanded">
             <div className="space-y-5">
               <div>
                 <h3 className="font-semibold text-[var(--ink)]">Objective</h3>
@@ -262,7 +262,7 @@ export function AssignmentPage() {
             </div>
           </Section>
 
-          <Section title="References">
+          <Section title="References" mobileDisclosure="collapsed">
             {job.references.length === 0 ? (
               <EmptyState
                 title="No reference files"
@@ -306,6 +306,7 @@ export function AssignmentPage() {
         <Section
           title="Submission timeline"
           description="Every version and review stays attached to this Assignment."
+          mobileDisclosure="collapsed"
         >
           {submissions.length === 0 ? (
             <EmptyState
@@ -374,6 +375,17 @@ export function AssignmentPage() {
             ? `Latest feedback: ${latestReview.comment}`
             : "Submit one version with clear notes and the required evidence."
         }
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setDrawerOpen(false)}>
+              Cancel
+            </Button>
+            <Button disabled={!canSubmit} onClick={submit}>
+              <CheckCircle2 size={16} aria-hidden />
+              {submitLabel}
+            </Button>
+          </>
+        }
       >
         <div className="space-y-5">
           <Field label="Submission notes">
@@ -407,15 +419,6 @@ export function AssignmentPage() {
               placeholder="deliverable.pdf"
             />
           </Field>
-          <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setDrawerOpen(false)}>
-              Cancel
-            </Button>
-            <Button disabled={!canSubmit} onClick={submit}>
-              <CheckCircle2 size={16} aria-hidden />
-              {submitLabel}
-            </Button>
-          </div>
         </div>
       </Drawer>
     </div>

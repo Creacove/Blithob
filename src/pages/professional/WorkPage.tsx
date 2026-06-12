@@ -4,7 +4,13 @@ import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SummaryBand } from "../../components/SummaryBand";
-import { EmptyState, RecordList } from "../../components/ui";
+import {
+  EmptyState,
+  RecordList,
+  ResponsiveRecord,
+  Select
+} from "../../components/ui";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import type { AssignmentStatus } from "../../domain/model";
 import { formatCurrency, formatDate } from "../../lib/format";
 import { useProfessionalStore } from "../../store/professionalStore";
@@ -27,6 +33,7 @@ export function WorkPage() {
   const jobs = useProfessionalStore((state) => state.jobs);
   const services = useProfessionalStore((state) => state.services);
   const professionals = useProfessionalStore((state) => state.professionals);
+  const isMobile = useMediaQuery("(max-width: 767px)");
 
   const ownAssignments = useMemo(
     () =>
@@ -54,14 +61,36 @@ export function WorkPage() {
           value: ownAssignments.filter((assignment) =>
             statusesFor(item.id).includes(assignment.status)
           ).length,
-          tone: item.id === "needs_action" ? "attention" : "default"
+          tone: item.id === "needs_action" ? "attention" : "default",
+          mobilePriority:
+            item.id === "needs_action" || item.id === "in_progress"
+              ? "primary"
+              : "secondary"
         }))}
       />
 
+      <div className="mt-5 md:hidden">
+        <label>
+          <span className="mb-2 block text-sm font-medium text-[var(--ink)]">
+            Show assignments
+          </span>
+          <Select
+            aria-label="Work filter"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value as WorkFilter)}
+          >
+            {filters.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </Select>
+        </label>
+      </div>
       <div
         role="tablist"
         aria-label="Work filters"
-        className="mt-6 flex gap-1 overflow-x-auto rounded-xl border border-[var(--border)] bg-white p-1"
+        className="mt-6 hidden gap-1 rounded-xl border border-[var(--border)] bg-white p-1 md:flex"
       >
         {filters.map((item) => (
           <button
@@ -91,7 +120,37 @@ export function WorkPage() {
           />
         </div>
       ) : (
-        <RecordList className="mt-4" label="Assignment inbox">
+        isMobile ? (
+          <div className="mt-4 grid gap-3" aria-label="Assignment inbox mobile">
+            {visible.map((assignment) => {
+              const job = jobs.find((item) => item.id === assignment.jobId);
+              const service = services.find(
+                (item) => item.id === job?.serviceId
+              );
+              return (
+                <ResponsiveRecord
+                  key={assignment.id}
+                  to={`/professional/work/${assignment.id}`}
+                  ariaLabel={`Open ${job?.title ?? "Assignment"} mobile`}
+                  title={job?.title ?? "Assignment"}
+                  subtitle={service?.name ?? "Service"}
+                  status={<StatusBadge status={assignment.status} />}
+                  facts={[
+                    {
+                      label: "Pay",
+                      value: formatCurrency(assignment.agreedPay)
+                    },
+                    {
+                      label: "Deadline",
+                      value: formatDate(assignment.deadline)
+                    }
+                  ]}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <RecordList className="mt-4" label="Assignment inbox">
           {visible.map((assignment) => {
             const job = jobs.find((item) => item.id === assignment.jobId);
             const service = services.find(
@@ -132,7 +191,8 @@ export function WorkPage() {
               </Link>
             );
           })}
-        </RecordList>
+          </RecordList>
+        )
       )}
     </div>
   );

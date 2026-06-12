@@ -3,7 +3,13 @@ import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SummaryBand } from "../../components/SummaryBand";
-import { EmptyState, ProgressBar, RecordList } from "../../components/ui";
+import {
+  EmptyState,
+  ProgressBar,
+  RecordList,
+  ResponsiveRecord
+} from "../../components/ui";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useProfessionalStore } from "../../store/professionalStore";
 
 export function TrainingPage() {
@@ -13,6 +19,7 @@ export function TrainingPage() {
   const enrolments = useProfessionalStore((state) => state.serviceEnrolments);
   const services = useProfessionalStore((state) => state.services);
   const professionals = useProfessionalStore((state) => state.professionals);
+  const isMobile = useMediaQuery("(max-width: 767px)");
 
   const ownEnrolments = professional
     ? enrolments.filter((item) => item.professionalId === professional.id)
@@ -61,7 +68,42 @@ export function TrainingPage() {
           />
         </div>
       ) : (
-        <RecordList className="mt-6" label="Service training">
+        isMobile ? (
+          <div className="mt-6 grid gap-3" aria-label="Service training mobile">
+            {ownEnrolments.map((enrolment) => {
+              const service = services.find(
+                (item) => item.id === enrolment.serviceId
+              );
+              const complete = enrolment.requirements.filter(
+                (item) => item.completed
+              ).length;
+              return (
+                <ResponsiveRecord
+                  key={enrolment.id}
+                  to={`/professional/training/${enrolment.id}`}
+                  ariaLabel={`Open ${service?.name ?? "Service"} training mobile`}
+                  title={service?.name ?? "Service"}
+                  subtitle={service?.description}
+                  status={<StatusBadge status={enrolment.status} />}
+                  facts={[
+                    {
+                      label: "Progress",
+                      value: `${complete} of ${enrolment.requirements.length}`
+                    },
+                    {
+                      label: "Review route",
+                      value:
+                        professionals.find(
+                          (item) => item.id === enrolment.leadId
+                        )?.name ?? "Direct to Admin"
+                    }
+                  ]}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <RecordList className="mt-6" label="Service training">
           {ownEnrolments.map((enrolment) => {
             const service = services.find(
               (item) => item.id === enrolment.serviceId
@@ -104,7 +146,8 @@ export function TrainingPage() {
               </Link>
             );
           })}
-        </RecordList>
+          </RecordList>
+        )
       )}
     </div>
   );

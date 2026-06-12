@@ -1,15 +1,19 @@
-import { ChevronRight, Plus, Search } from "lucide-react";
+import { ChevronRight, Plus, Search, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { FilterSheet } from "../../components/FilterSheet";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import {
+  Button,
   EmptyState,
   Input,
   RecordList,
+  ResponsiveRecord,
   Select,
   Toolbar
 } from "../../components/ui";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import type { JobOperationalStatus } from "../../domain/model";
 import { formatDate } from "../../lib/format";
 import { useProfessionalStore } from "../../store/professionalStore";
@@ -18,9 +22,11 @@ export function JobsPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [serviceFilter, setServiceFilter] = useState("all");
+  const [filterOpen, setFilterOpen] = useState(false);
   const jobs = useProfessionalStore((state) => state.jobs);
   const services = useProfessionalStore((state) => state.services);
   const assignments = useProfessionalStore((state) => state.assignments);
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const getJobStatus = useProfessionalStore(
     (state) => state.jobOperationalStatus
   );
@@ -68,7 +74,8 @@ export function JobsPage() {
             className="pl-10"
           />
         </label>
-        <Select
+        <div className="hidden md:contents">
+          <Select
           aria-label="Filter by status"
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value)}
@@ -82,8 +89,8 @@ export function JobsPage() {
               </option>
             )
           )}
-        </Select>
-        <Select
+          </Select>
+          <Select
           aria-label="Filter by Service"
           value={serviceFilter}
           onChange={(event) => setServiceFilter(event.target.value)}
@@ -95,7 +102,17 @@ export function JobsPage() {
               {service.name}
             </option>
           ))}
-        </Select>
+          </Select>
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          className="md:hidden"
+          onClick={() => setFilterOpen(true)}
+        >
+          <SlidersHorizontal size={16} aria-hidden />
+          Filters
+        </Button>
       </Toolbar>
 
       {filtered.length === 0 ? (
@@ -106,7 +123,44 @@ export function JobsPage() {
           />
         </div>
       ) : (
-        <RecordList className="mt-4" label="Job directory">
+        isMobile ? (
+          <div className="mt-4 grid gap-3" aria-label="Job directory mobile">
+            {filtered.map((job) => {
+              const jobAssignments = assignments.filter(
+                (assignment) => assignment.jobId === job.id
+              );
+              const actionCount = jobAssignments.filter((assignment) =>
+                ["waiting_for_admin", "approved"].includes(assignment.status)
+              ).length;
+              const service = services.find(
+                (item) => item.id === job.serviceId
+              );
+              return (
+                <ResponsiveRecord
+                  key={job.id}
+                  to={`/admin/jobs/${job.id}`}
+                  ariaLabel={`Open ${job.title || "Untitled Job"} mobile`}
+                  title={job.title || "Untitled Job"}
+                  subtitle={service?.name ?? "Unknown Service"}
+                  status={<StatusBadge status={getJobStatus(job.id)} />}
+                  facts={[
+                    {
+                      label: "Deadline",
+                      value: job.deadline
+                        ? formatDate(job.deadline)
+                        : "Not set"
+                    },
+                    {
+                      label: "Needs action",
+                      value: actionCount
+                    }
+                  ]}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <RecordList className="mt-4" label="Job directory">
           {filtered.map((job) => {
             const jobAssignments = assignments.filter(
               (assignment) => assignment.jobId === job.id
@@ -133,8 +187,59 @@ export function JobsPage() {
               />
             );
           })}
-        </RecordList>
+          </RecordList>
+        )
       )}
+
+      <FilterSheet
+        open={filterOpen}
+        title="Filter jobs"
+        onClose={() => setFilterOpen(false)}
+        footer={
+          <Button onClick={() => setFilterOpen(false)}>
+            Show {filtered.length} Jobs
+          </Button>
+        }
+      >
+        <div className="grid gap-5">
+          <label>
+            <span className="mb-2 block text-sm font-medium text-[var(--ink)]">
+              Status
+            </span>
+            <Select
+              aria-label="Mobile filter by status"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              <option value="all">All statuses</option>
+              {(["draft", "open", "active", "complete", "archived"] as const).map(
+                (status) => (
+                  <option key={status} value={status}>
+                    {status[0].toUpperCase() + status.slice(1)}
+                  </option>
+                )
+              )}
+            </Select>
+          </label>
+          <label>
+            <span className="mb-2 block text-sm font-medium text-[var(--ink)]">
+              Service
+            </span>
+            <Select
+              aria-label="Mobile filter by Service"
+              value={serviceFilter}
+              onChange={(event) => setServiceFilter(event.target.value)}
+            >
+              <option value="all">All Services</option>
+              {services.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.name}
+                </option>
+              ))}
+            </Select>
+          </label>
+        </div>
+      </FilterSheet>
     </div>
   );
 }

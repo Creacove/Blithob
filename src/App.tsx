@@ -4,7 +4,6 @@ import type { AccountRole } from "./domain/model";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
-import { RouteShell } from "./pages/RouteShell";
 import { PeoplePage } from "./pages/admin/PeoplePage";
 import { ProfessionalDetailPage } from "./pages/admin/ProfessionalDetailPage";
 import { AdminAssignmentPage } from "./pages/admin/AdminAssignmentPage";
@@ -18,9 +17,12 @@ import { JobsPage } from "./pages/admin/JobsPage";
 import { ServiceDetailPage } from "./pages/admin/ServiceDetailPage";
 import { ServicesPage } from "./pages/admin/ServicesPage";
 import { AssignmentPage } from "./pages/professional/AssignmentPage";
+import { LeadReviewsPage } from "./pages/professional/LeadReviewsPage";
 import { PaymentDetailPage } from "./pages/professional/PaymentDetailPage";
 import { PaymentsPage } from "./pages/professional/PaymentsPage";
 import { ProfilePage } from "./pages/professional/ProfilePage";
+import { TeamDetailPage } from "./pages/professional/TeamDetailPage";
+import { TeamPage } from "./pages/professional/TeamPage";
 import { TodayPage } from "./pages/professional/TodayPage";
 import { TrainingDetailPage } from "./pages/professional/TrainingDetailPage";
 import { TrainingPage } from "./pages/professional/TrainingPage";
@@ -55,10 +57,6 @@ function LeadOnly() {
     <Navigate to="/professional/today" replace />
   );
 }
-
-const route = (title: string, description: string) => (
-  <RouteShell title={title} description={description} />
-);
 
 export function App() {
   return (
@@ -156,24 +154,15 @@ export function App() {
           <Route element={<LeadOnly />}>
             <Route
               path="/professional/team"
-              element={route(
-                "Team",
-                "Track the Service readiness of Professionals assigned to you."
-              )}
+              element={<TeamPage />}
             />
             <Route
               path="/professional/team/:enrolmentId"
-              element={route(
-                "Training review",
-                "Review readiness evidence and send a clear decision."
-              )}
+              element={<TeamDetailPage />}
             />
             <Route
               path="/professional/reviews"
-              element={route(
-                "Reviews",
-                "Review submitted Assignments before they move to Admin."
-              )}
+              element={<LeadReviewsPage />}
             />
           </Route>
           <Route

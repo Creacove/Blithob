@@ -1,8 +1,16 @@
-import { ArrowLeft, Archive, Pencil, Plus, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Archive,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Users
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { Drawer } from "../../components/Drawer";
+import { FilterSheet } from "../../components/FilterSheet";
 import { PageHeader } from "../../components/PageHeader";
 import { RecordTimeline } from "../../components/RecordTimeline";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -50,6 +58,7 @@ export function JobDetailPage() {
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, AssignmentDraft>>({});
   const { success, error } = useToast();
 
@@ -125,7 +134,7 @@ export function JobDetailPage() {
           <div className="flex flex-wrap gap-2">
             <Link
               to="/admin/jobs"
-              className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
+              className="mobile-header-back inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
             >
               <ArrowLeft size={16} aria-hidden />
               Back to Jobs
@@ -133,16 +142,30 @@ export function JobDetailPage() {
             {job.publicationState !== "archived" && (
               <Link
                 to={`/admin/jobs/${job.id}/edit`}
-                className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
+                className="hidden min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)] md:inline-flex"
               >
                 <Pencil size={16} aria-hidden />
                 Edit brief
               </Link>
             )}
             {job.publicationState !== "archived" && (
-              <Button variant="secondary" onClick={() => setArchiveOpen(true)}>
+              <Button
+                className="hidden md:inline-flex"
+                variant="secondary"
+                onClick={() => setArchiveOpen(true)}
+              >
                 <Archive size={16} aria-hidden />
                 Archive
+              </Button>
+            )}
+            {job.publicationState !== "archived" && (
+              <Button
+                className="md:hidden"
+                variant="secondary"
+                onClick={() => setMobileActionsOpen(true)}
+              >
+                <MoreHorizontal size={17} aria-hidden />
+                More
               </Button>
             )}
           </div>
@@ -179,14 +202,14 @@ export function JobDetailPage() {
         </Section>
 
         {job.clientContext && (
-          <Section title="Client context">
+          <Section title="Client context" mobileDisclosure="collapsed">
             <p className="max-w-[72ch] whitespace-pre-wrap text-base leading-7 text-[var(--muted)]">
               {job.clientContext}
             </p>
           </Section>
         )}
 
-        <Section title="Full description">
+        <Section title="Full description" mobileDisclosure="collapsed">
           <p className="max-w-[72ch] whitespace-pre-wrap text-base leading-7 text-[var(--muted)]">
             {job.description || "No description added yet."}
           </p>
@@ -198,7 +221,7 @@ export function JobDetailPage() {
           <OrderedList title="Acceptance criteria" items={job.acceptanceCriteria} />
         </div>
 
-        <Section title="References">
+        <Section title="References" mobileDisclosure="collapsed">
           {job.references.length === 0 ? (
             <p className="text-base text-[var(--muted)]">
               No reference material was attached.
@@ -296,7 +319,7 @@ export function JobDetailPage() {
           )}
         </Section>
 
-        <Section title="Activity">
+        <Section title="Activity" mobileDisclosure="collapsed">
           <RecordTimeline
             items={activity
               .filter((item) => item.subject.includes(job.title))
@@ -316,6 +339,18 @@ export function JobDetailPage() {
         title="Add professionals"
         description="Choose eligible people, then set each Assignment independently."
         width="wide"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setDrawerOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={submitAssignments} disabled={selectedCount === 0}>
+              <Users size={16} aria-hidden />
+              Create {selectedCount || ""} Assignment
+              {selectedCount === 1 ? "" : "s"}
+            </Button>
+          </>
+        }
       >
         {eligible.length === 0 ? (
           <EmptyState
@@ -436,16 +471,6 @@ export function JobDetailPage() {
                 </div>
               );
             })}
-            <div className="sticky bottom-0 flex justify-end gap-3 border-t border-[var(--border)] bg-white pt-4">
-              <Button variant="secondary" onClick={() => setDrawerOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={submitAssignments} disabled={selectedCount === 0}>
-                <Users size={16} aria-hidden />
-                Create {selectedCount || ""} Assignment
-                {selectedCount === 1 ? "" : "s"}
-              </Button>
-            </div>
           </div>
         )}
       </Drawer>
@@ -459,6 +484,34 @@ export function JobDetailPage() {
         confirmLabel="Archive Job"
         tone="danger"
       />
+
+      <FilterSheet
+        open={mobileActionsOpen}
+        title="Job actions"
+        onClose={() => setMobileActionsOpen(false)}
+      >
+        <div className="grid gap-2">
+          <Link
+            to={`/admin/jobs/${job.id}/edit`}
+            onClick={() => setMobileActionsOpen(false)}
+            className="inline-flex min-h-12 items-center gap-3 rounded-[10px] px-3 font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
+          >
+            <Pencil size={17} aria-hidden />
+            Edit brief
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              setMobileActionsOpen(false);
+              setArchiveOpen(true);
+            }}
+            className="inline-flex min-h-12 items-center gap-3 rounded-[10px] px-3 text-left font-semibold text-red-700 hover:bg-red-50"
+          >
+            <Archive size={17} aria-hidden />
+            Archive Job
+          </button>
+        </div>
+      </FilterSheet>
     </div>
   );
 }

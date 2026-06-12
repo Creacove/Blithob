@@ -12,10 +12,12 @@ import {
   Field,
   Input,
   RecordList,
+  ResponsiveRecord,
   Select,
   Textarea,
   Toolbar
 } from "../../components/ui";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import type {
   PaymentMethod,
   PaymentStatus
@@ -46,6 +48,7 @@ export function AdminPaymentsPage() {
   const jobs = useProfessionalStore((state) => state.jobs);
   const professionals = useProfessionalStore((state) => state.professionals);
   const recordPayment = useProfessionalStore((state) => state.recordPayment);
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const { success } = useToast();
   const selected = payments.find((payment) => payment.id === selectedId);
   const filtered =
@@ -117,7 +120,8 @@ export function AdminPaymentsPage() {
                 .filter((payment) => payment.status === "due")
                 .reduce((sum, payment) => sum + payment.amount, 0)
             ),
-            tone: "attention"
+            tone: "attention",
+            mobilePriority: "primary"
           },
           {
             label: "Scheduled",
@@ -132,7 +136,8 @@ export function AdminPaymentsPage() {
           {
             label: "Issues",
             value: payments.filter((payment) => payment.status === "issue").length,
-            tone: "attention"
+            tone: "attention",
+            mobilePriority: "primary"
           }
         ]}
       />
@@ -160,7 +165,60 @@ export function AdminPaymentsPage() {
           />
         </div>
       ) : (
-        <RecordList className="mt-4" label="Payment records">
+        isMobile ? (
+          <div className="mt-4 grid gap-3" aria-label="Payment records mobile">
+            {filtered.map((payment) => {
+              const assignment = assignments.find(
+                (item) => item.id === payment.assignmentId
+              );
+              const job = jobs.find((item) => item.id === assignment?.jobId);
+              const professional = professionals.find(
+                (item) => item.id === payment.professionalId
+              );
+              return (
+                <ResponsiveRecord
+                  key={payment.id}
+                  title={
+                    <Link
+                      to={`/admin/payments/${payment.id}`}
+                      className="hover:text-[var(--blue)]"
+                    >
+                      {job?.title ?? "Assignment payment"}
+                    </Link>
+                  }
+                  subtitle={professional?.name ?? "Unknown Professional"}
+                  status={<StatusBadge status={payment.status} />}
+                  facts={[
+                    { label: "Amount", value: formatCurrency(payment.amount) },
+                    {
+                      label: "Due",
+                      value: formatDate(payment.dueDate)
+                    }
+                  ]}
+                  action={
+                    payment.status === "paid" ? (
+                      <Link
+                        to={`/admin/payments/${payment.id}`}
+                        className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--blue)]"
+                      >
+                        View
+                      </Link>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        aria-label={`Record payment for ${payment.id}`}
+                        onClick={() => openRecord(payment.id)}
+                      >
+                        Record
+                      </Button>
+                    )
+                  }
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <RecordList className="mt-4" label="Payment records">
           {filtered.map((payment) => {
             const assignment = assignments.find(
               (item) => item.id === payment.assignmentId
@@ -223,7 +281,8 @@ export function AdminPaymentsPage() {
               </div>
             );
           })}
-        </RecordList>
+          </RecordList>
+        )
       )}
 
       <Drawer
@@ -234,6 +293,21 @@ export function AdminPaymentsPage() {
           selected
             ? `${formatCurrency(selected.amount)} - no money is moved by this prototype.`
             : undefined
+        }
+        footer={
+          selected ? (
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => setSelectedId(undefined)}
+              >
+                Cancel
+              </Button>
+              <Button disabled={!canSave} onClick={save}>
+                Save payment
+              </Button>
+            </>
+          ) : undefined
         }
       >
         {selected && (
@@ -349,14 +423,6 @@ export function AdminPaymentsPage() {
                 }
               />
             </Field>
-            <div className="flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => setSelectedId(undefined)}>
-                Cancel
-              </Button>
-              <Button disabled={!canSave} onClick={save}>
-                Save payment
-              </Button>
-            </div>
           </div>
         )}
       </Drawer>

@@ -3,7 +3,12 @@ import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SummaryBand } from "../../components/SummaryBand";
-import { EmptyState, RecordList, Section } from "../../components/ui";
+import {
+  EmptyState,
+  RecordList,
+  Section
+} from "../../components/ui";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { formatDate, formatDateTime } from "../../lib/format";
 import { useProfessionalStore } from "../../store/professionalStore";
 
@@ -15,6 +20,7 @@ export function AdminDashboard() {
   const services = useProfessionalStore((state) => state.services);
   const payments = useProfessionalStore((state) => state.payments);
   const activity = useProfessionalStore((state) => state.activity);
+  const isMobile = useMediaQuery("(max-width: 767px)");
 
   const workReviews = assignments.filter((assignment) =>
     ["waiting_for_admin", "approved"].includes(assignment.status)
@@ -34,6 +40,53 @@ export function AdminDashboard() {
   const nearestAction =
     workReviews.find((assignment) => assignment.status === "waiting_for_admin") ??
     workReviews[0];
+  const nearestActionSection = (
+    <Section
+      title="Nearest Admin action"
+      description="The next record that can move forward with an Admin decision."
+    >
+      {nearestAction ? (
+        <AssignmentAction
+          assignment={nearestAction}
+          job={jobs.find((job) => job.id === nearestAction.jobId)}
+          professional={professionals.find(
+            (professional) =>
+              professional.id === nearestAction.professionalId
+          )}
+        />
+      ) : readinessApprovals[0] ? (
+        <Link
+          to="/admin/reviews"
+          className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] p-4 hover:bg-[var(--surface-subtle)]"
+        >
+          <div>
+            <p className="font-semibold text-[var(--ink)]">
+              {
+                services.find(
+                  (service) => service.id === readinessApprovals[0].serviceId
+                )?.name
+              }{" "}
+              readiness
+            </p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {
+                professionals.find(
+                  (professional) =>
+                    professional.id === readinessApprovals[0].professionalId
+                )?.name
+              }
+            </p>
+          </div>
+          <ArrowRight size={18} aria-hidden />
+        </Link>
+      ) : (
+        <EmptyState
+          title="No Admin decision is waiting"
+          description="New work and readiness submissions will appear here."
+        />
+      )}
+    </Section>
+  );
 
   return (
     <div>
@@ -43,84 +96,45 @@ export function AdminDashboard() {
         description="Start with the nearest operational decision, then clear reviews, deadlines, and payment issues."
       />
 
+      {isMobile && <div className="mt-6">{nearestActionSection}</div>}
+
       <SummaryBand
         className="mt-6"
         items={[
           {
             label: "Work reviews",
             value: workReviews.length,
-            tone: workReviews.length ? "attention" : "default"
+            tone: workReviews.length ? "attention" : "default",
+            mobilePriority: "primary"
           },
           {
             label: "Readiness approvals",
             value: readinessApprovals.length,
-            tone: readinessApprovals.length ? "attention" : "default"
+            tone: readinessApprovals.length ? "attention" : "default",
+            mobilePriority: "primary"
           },
           {
             label: "Active deadlines",
-            value: activeDeadlines.length
+            value: activeDeadlines.length,
+            mobilePriority: "secondary"
           },
           {
             label: "Payment issues",
             value: paymentIssues.length,
-            tone: paymentIssues.length ? "attention" : "default"
+            tone: paymentIssues.length ? "attention" : "default",
+            mobilePriority: "secondary"
           }
         ]}
       />
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
         <div className="grid gap-5">
-          <Section
-            title="Nearest Admin action"
-            description="The next record that can move forward with an Admin decision."
-          >
-            {nearestAction ? (
-              <AssignmentAction
-                assignment={nearestAction}
-                job={jobs.find((job) => job.id === nearestAction.jobId)}
-                professional={professionals.find(
-                  (professional) =>
-                    professional.id === nearestAction.professionalId
-                )}
-              />
-            ) : readinessApprovals[0] ? (
-              <Link
-                to="/admin/reviews"
-                className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] p-4 hover:bg-[var(--surface-subtle)]"
-              >
-                <div>
-                  <p className="font-semibold text-[var(--ink)]">
-                    {
-                      services.find(
-                        (service) =>
-                          service.id === readinessApprovals[0].serviceId
-                      )?.name
-                    }{" "}
-                    readiness
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    {
-                      professionals.find(
-                        (professional) =>
-                          professional.id ===
-                          readinessApprovals[0].professionalId
-                      )?.name
-                    }
-                  </p>
-                </div>
-                <ArrowRight size={18} aria-hidden />
-              </Link>
-            ) : (
-              <EmptyState
-                title="No Admin decision is waiting"
-                description="New work and readiness submissions will appear here."
-              />
-            )}
-          </Section>
+          {!isMobile && nearestActionSection}
 
           <Section
             title="Assignment deadlines"
             description="Nearest active deadlines across individual Assignments."
+            mobileDisclosure="expanded"
             action={
               <Link
                 to="/admin/jobs"
@@ -194,7 +208,11 @@ export function AdminDashboard() {
           )}
         </div>
 
-        <Section title="Recent activity" description="Latest operational changes.">
+        <Section
+          title="Recent activity"
+          description="Latest operational changes."
+          mobileDisclosure="collapsed"
+        >
           <div className="divide-y divide-[var(--border)]">
             {activity.slice(0, 6).map((item) => (
               <div key={item.id} className="flex gap-3 py-3 first:pt-0 last:pb-0">

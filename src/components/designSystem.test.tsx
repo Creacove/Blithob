@@ -1,12 +1,18 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Drawer } from "./Drawer";
+import { FilterSheet } from "./FilterSheet";
 import { StatusBadge } from "./StatusBadge";
 import { SummaryBand } from "./SummaryBand";
 import { ToastProvider, useToast } from "./ToastProvider";
-import { ProgressBar } from "./ui";
+import {
+  ProgressBar,
+  ResponsiveRecord,
+  Section,
+  StickyActionBar
+} from "./ui";
 
 function DrawerHarness() {
   const [open, setOpen] = useState(false);
@@ -32,7 +38,29 @@ function ToastHarness() {
 }
 
 describe("design system", () => {
-  afterEach(() => cleanup());
+  beforeEach(() => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: (query: string) => ({
+        matches: query === "(max-width: 767px)",
+        media: query,
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        dispatchEvent: () => true
+      })
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: undefined
+    });
+  });
 
   it("uses contextual language for submitted work", () => {
     render(<StatusBadge status="submitted" />);
@@ -63,6 +91,25 @@ describe("design system", () => {
       screen.getByRole("region", { name: "Workspace summary" })
     ).toBeInTheDocument();
     expect(screen.getByText("Jobs awaiting review")).toBeInTheDocument();
+  });
+
+  it("progressively discloses secondary mobile metrics", async () => {
+    const user = userEvent.setup();
+    render(
+      <SummaryBand
+        items={[
+          { label: "Needs review", value: 2, mobilePriority: "primary" },
+          { label: "Amount due", value: "N130,000", mobilePriority: "primary" },
+          { label: "Scheduled", value: 0, mobilePriority: "secondary" },
+          { label: "Issues", value: 0, mobilePriority: "secondary" }
+        ]}
+      />
+    );
+
+    expect(screen.queryByText("Scheduled")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show all metrics" }));
+    expect(screen.getByText("Scheduled")).toBeInTheDocument();
+    expect(screen.getByText("Issues")).toBeInTheDocument();
   });
 
   it("renders action drawers through the document body", () => {
@@ -121,5 +168,75 @@ describe("design system", () => {
     expect(
       screen.getByRole("progressbar", { name: "Training progress" })
     ).toHaveAttribute("aria-valuenow", "3");
+  });
+
+  it("supports collapsed mobile disclosure sections", async () => {
+    const user = userEvent.setup();
+    render(
+      <Section
+        title="Decision history"
+        mobileDisclosure="collapsed"
+      >
+        <p>Approved by Admin</p>
+      </Section>
+    );
+
+    expect(screen.queryByText("Approved by Admin")).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Show Decision history" })
+    );
+    expect(screen.getByText("Approved by Admin")).toBeInTheDocument();
+  });
+
+  it("renders a compact record with primary and disclosed details", async () => {
+    const user = userEvent.setup();
+    render(
+      <ResponsiveRecord
+        title="Campaign Refresh"
+        subtitle="David Mensah"
+        status={<StatusBadge status="waiting_for_lead" />}
+        facts={[
+          { label: "Due", value: "21 Jun 2026" },
+          { label: "Version", value: "1" }
+        ]}
+        details={<p>Lead review route</p>}
+      />
+    );
+
+    expect(screen.getByText("Campaign Refresh")).toBeInTheDocument();
+    expect(screen.queryByText("Lead review route")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show details" }));
+    expect(screen.getByText("Lead review route")).toBeInTheDocument();
+  });
+
+  it("labels sticky mobile actions and filter sheets", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <StickyActionBar>
+          <button type="button">Publish job</button>
+        </StickyActionBar>
+        <FilterSheet
+          open
+          title="Filter jobs"
+          onClose={() => undefined}
+        >
+          <label>
+            Status
+            <select aria-label="Status">
+              <option>All statuses</option>
+            </select>
+          </label>
+        </FilterSheet>
+      </>
+    );
+
+    expect(
+      screen.getByRole("group", { name: "Page actions" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "Filter jobs" })
+    ).toBeInTheDocument();
+    await user.keyboard("{Escape}");
   });
 });

@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 import {
   type Control,
   useFieldArray,
@@ -16,8 +17,10 @@ import {
   Input,
   Section,
   Select,
+  StickyActionBar,
   Textarea
 } from "../../components/ui";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useProfessionalStore } from "../../store/professionalStore";
 
 const rowSchema = z.object({ value: z.string() });
@@ -56,6 +59,13 @@ const emptyValues: JobFormValues = {
   submissionEvidenceRequired: false,
   deadline: ""
 };
+
+const mobileStages = [
+  "Basics",
+  "Brief",
+  "Delivery standards",
+  "References & scheduling"
+] as const;
 
 export function JobEditorPage() {
   const { jobId } = useParams();
@@ -116,6 +126,8 @@ export function JobEditorPage() {
   const deliverables = useFieldArray({ control, name: "deliverables" });
   const criteria = useFieldArray({ control, name: "acceptanceCriteria" });
   const references = useFieldArray({ control, name: "references" });
+  const isMobile = useMediaQuery("(max-width: 767px)");
+  const [mobileStep, setMobileStep] = useState(0);
 
   const save = (publish: boolean) => {
     clearErrors();
@@ -261,7 +273,7 @@ export function JobEditorPage() {
         actions={
           <Link
             to="/admin/jobs"
-            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
+            className="mobile-header-back inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
           >
             <ArrowLeft size={16} aria-hidden />
             Back to Jobs
@@ -269,7 +281,36 @@ export function JobEditorPage() {
         }
       />
 
+      {isMobile && (
+        <nav
+          className="mt-6 rounded-2xl border border-[var(--border)] bg-white p-3"
+          aria-label="Job editor stages"
+        >
+          <p className="px-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
+            Step {mobileStep + 1} of {mobileStages.length}
+          </p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {mobileStages.map((stage, index) => (
+              <button
+                key={stage}
+                type="button"
+                aria-current={mobileStep === index ? "step" : undefined}
+                onClick={() => setMobileStep(index)}
+                className={`min-h-11 rounded-[10px] px-3 text-left text-sm font-semibold transition ${
+                  mobileStep === index
+                    ? "bg-[var(--ink)] text-white"
+                    : "bg-[var(--surface-subtle)] text-[var(--muted)]"
+                }`}
+              >
+                {stage}
+              </button>
+            ))}
+          </div>
+        </nav>
+      )}
+
       <div className="mt-6 grid gap-5">
+        {(!isMobile || mobileStep === 0) && (
         <Section title="Basics" description="Name the work and connect it to one Service.">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Job title" error={errors.title?.message}>
@@ -295,7 +336,9 @@ export function JobEditorPage() {
             </Field>
           </div>
         </Section>
+        )}
 
+        {(!isMobile || mobileStep === 1) && (
         <Section title="Brief" description="State the result and explain the work in full.">
           <div className="grid gap-4">
             <Field label="Objective" error={errors.objective?.message}>
@@ -309,7 +352,10 @@ export function JobEditorPage() {
             </Field>
           </div>
         </Section>
+        )}
 
+        {(!isMobile || mobileStep === 2) && (
+        <>
         <ListEditor
           title="Execution steps"
           description="Put the work in the order it should be completed."
@@ -343,7 +389,11 @@ export function JobEditorPage() {
           remove={criteria.remove}
           error={errors.acceptanceCriteria?.message}
         />
+        </>
+        )}
 
+        {(!isMobile || mobileStep === 3) && (
+        <>
         <Section
           title="References"
           description="Add links or file-name metadata for material the Professional needs."
@@ -425,7 +475,50 @@ export function JobEditorPage() {
             </label>
           </div>
         </Section>
+        </>
+        )}
 
+        {isMobile ? (
+          <StickyActionBar className="gap-2">
+            {mobileStep > 0 && (
+              <Button
+                type="button"
+                variant="quiet"
+                className="w-11 shrink-0 px-0"
+                aria-label="Previous editor stage"
+                onClick={() => setMobileStep((current) => current - 1)}
+              >
+                <ArrowLeft size={17} aria-hidden />
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="secondary"
+              className="min-w-0 flex-1 px-3"
+              onClick={() => save(false)}
+            >
+              {existingJob ? "Save changes" : "Save draft"}
+            </Button>
+            {mobileStep < mobileStages.length - 1 ? (
+              <Button
+                type="button"
+                className="min-w-0 flex-1 px-3"
+                onClick={() => setMobileStep((current) => current + 1)}
+              >
+                Continue
+                <ArrowRight size={16} aria-hidden />
+              </Button>
+            ) : existingJob?.publicationState !== "open" ? (
+              <Button
+                type="button"
+                className="min-w-0 flex-1 px-3"
+                onClick={() => save(true)}
+              >
+                Publish
+              </Button>
+            ) : null}
+          </StickyActionBar>
+        ) : (
         <div className="sticky bottom-4 z-20 flex flex-wrap justify-end gap-3 rounded-xl border border-[var(--border)] bg-white/95 p-3 shadow-lg backdrop-blur">
           <Button
             type="button"
@@ -440,6 +533,7 @@ export function JobEditorPage() {
             </Button>
           )}
         </div>
+        )}
       </div>
     </div>
   );

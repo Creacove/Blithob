@@ -163,7 +163,7 @@ export function ProfessionalDetailPage() {
         actions={
           <Link
             to="/admin/people"
-            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
+            className="mobile-header-back inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
           >
             <ArrowLeft size={16} aria-hidden="true" />
             Back to People
@@ -250,6 +250,7 @@ export function ProfessionalDetailPage() {
         <Section
           title="Services and training"
           description="Each Service has one readiness record and one review route."
+          mobileDisclosure="expanded"
           action={
             <Button onClick={() => setEnrolDrawerOpen(true)}>
               <Plus size={16} aria-hidden="true" />
@@ -321,6 +322,7 @@ export function ProfessionalDetailPage() {
         <Section
           title="Work history"
           description="Independent Assignment records for this Professional."
+          mobileDisclosure="collapsed"
         >
           {professionalAssignments.length === 0 ? (
             <EmptyState
@@ -365,6 +367,7 @@ export function ProfessionalDetailPage() {
         <Section
           title="Payments"
           description="Payment records created from completed Assignments."
+          mobileDisclosure="collapsed"
         >
           {professionalPayments.length === 0 ? (
             <EmptyState
@@ -414,6 +417,7 @@ export function ProfessionalDetailPage() {
         <Section
           title="Internal notes"
           description="Visible to Admin only."
+          mobileDisclosure="collapsed"
         >
           <Textarea
             value={adminNotes}
@@ -427,6 +431,7 @@ export function ProfessionalDetailPage() {
         <Section
           title="Permissions"
           description="Lead is a capability added to a Professional account."
+          mobileDisclosure="collapsed"
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -462,8 +467,30 @@ export function ProfessionalDetailPage() {
         onClose={() => setEnrolDrawerOpen(false)}
         title="Enrol in service"
         description="Assign one active Service and optionally route readiness review through a Lead."
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEnrolDrawerOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="assign-readiness-form"
+              disabled={!serviceId}
+            >
+              Assign readiness
+            </Button>
+          </>
+        }
       >
-        <form className="space-y-5" onSubmit={enrol}>
+        <form
+          id="assign-readiness-form"
+          className="space-y-5"
+          onSubmit={enrol}
+        >
           <Field label="Service">
             <Select
               value={serviceId}
@@ -490,18 +517,6 @@ export function ProfessionalDetailPage() {
               ))}
             </Select>
           </Field>
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setEnrolDrawerOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!serviceId}>
-              Assign readiness
-            </Button>
-          </div>
         </form>
       </Drawer>
 

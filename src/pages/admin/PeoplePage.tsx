@@ -10,8 +10,10 @@ import {
   Field,
   Input,
   RecordList,
+  ResponsiveRecord,
   Toolbar
 } from "../../components/ui";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { initials } from "../../lib/format";
 import { useProfessionalStore } from "../../store/professionalStore";
 
@@ -36,6 +38,7 @@ export function PeoplePage() {
     (state) => state.serviceEnrolments
   );
   const assignments = useProfessionalStore((state) => state.assignments);
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const createProfessional = useProfessionalStore(
     (state) => state.createProfessional
   );
@@ -130,7 +133,46 @@ export function PeoplePage() {
             description="Change the search or capability filter to see more people."
           />
         ) : (
-          <RecordList label="Professional directory">
+          isMobile ? (
+            <div className="grid gap-3" aria-label="Professional directory mobile">
+              {filtered.map((professional) => {
+                const professionalEnrolments = enrolments.filter(
+                  (item) => item.professionalId === professional.id
+                );
+                const activeAssignments = assignments.filter(
+                  (item) =>
+                    item.professionalId === professional.id &&
+                    !["completed", "cancelled"].includes(item.status)
+                ).length;
+                const approvedServices = professionalEnrolments.filter(
+                  (item) => item.status === "approved"
+                ).length;
+
+                return (
+                  <ResponsiveRecord
+                    key={professional.id}
+                    to={`/admin/people/${professional.id}`}
+                    ariaLabel={`Open ${professional.name} mobile`}
+                    title={professional.name}
+                    subtitle={`${professional.location} · ${professional.email}`}
+                    status={
+                      professional.isLead ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+                          <UserRoundCheck size={12} aria-hidden />
+                          Lead
+                        </span>
+                      ) : undefined
+                    }
+                    facts={[
+                      { label: "Approved Services", value: approvedServices },
+                      { label: "Active work", value: activeAssignments }
+                    ]}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <RecordList label="Professional directory">
             {filtered.map((professional) => {
               const professionalEnrolments = enrolments.filter(
                 (item) => item.professionalId === professional.id
@@ -190,7 +232,8 @@ export function PeoplePage() {
                 </Link>
               );
             })}
-          </RecordList>
+            </RecordList>
+          )
         )}
       </div>
 
@@ -199,8 +242,26 @@ export function PeoplePage() {
         onClose={() => setDrawerOpen(false)}
         title="Add professional"
         description="Create the account first. Service readiness can be assigned from the Professional record."
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setDrawerOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form="create-professional-form">
+              Create professional
+            </Button>
+          </>
+        }
       >
-        <form className="space-y-5" onSubmit={submit}>
+        <form
+          id="create-professional-form"
+          className="space-y-5"
+          onSubmit={submit}
+        >
           <Field label="Full name">
             <Input
               value={form.name}
@@ -246,16 +307,6 @@ export function PeoplePage() {
               }
             />
           </Field>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setDrawerOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">Create professional</Button>
-          </div>
         </form>
       </Drawer>
     </div>

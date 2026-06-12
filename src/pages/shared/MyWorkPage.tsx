@@ -151,7 +151,8 @@ export function MyWorkPage({
   const toggleExpand = (jobId: string) =>
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      next.has(jobId) ? next.delete(jobId) : next.add(jobId);
+      if (next.has(jobId)) next.delete(jobId);
+      else next.add(jobId);
       return next;
     });
 

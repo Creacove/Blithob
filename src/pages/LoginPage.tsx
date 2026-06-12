@@ -77,7 +77,7 @@ export function LoginPage() {
           </Link>
         </div>
 
-        <section className="py-12 sm:py-16">
+        <section className="py-8 sm:py-16">
           <div className="max-w-2xl">
             <p className="text-sm font-medium text-[var(--blue)]">
               Interactive demo
@@ -91,7 +91,7 @@ export function LoginPage() {
             </p>
           </div>
 
-          <div className="mt-10 overflow-hidden rounded-2xl border border-[var(--border)] bg-white">
+          <div className="mt-7 overflow-hidden rounded-2xl border border-[var(--border)] bg-white sm:mt-10">
             {personas.map(
               (
                 { persona, title, name, description, detail, icon: Icon },
@@ -101,7 +101,7 @@ export function LoginPage() {
                   key={persona}
                   type="button"
                   onClick={() => enter(persona)}
-                  className={`group grid w-full gap-4 p-5 text-left transition hover:bg-blue-50/50 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:p-6 ${
+                  className={`group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 p-4 text-left transition hover:bg-blue-50/50 sm:gap-4 sm:p-6 ${
                     index ? "border-t border-[var(--border)]" : ""
                   }`}
                   aria-label={`Continue as ${title}`}
@@ -118,15 +118,15 @@ export function LoginPage() {
                         {name}
                       </span>
                     </span>
-                    <span className="mt-1 block text-base text-[var(--ink)]">
+                    <span className="mt-1 block text-sm leading-5 text-[var(--ink)] sm:text-base">
                       {description}
                     </span>
-                    <span className="mt-1 block text-sm text-[var(--muted)]">
+                    <span className="mt-1 hidden text-sm text-[var(--muted)] sm:block">
                       {detail}
                     </span>
                   </span>
-                  <span className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[var(--blue)]">
-                    Open workspace
+                  <span className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--blue)]">
+                    <span className="sr-only sm:not-sr-only">Open workspace</span>
                     <ArrowRight
                       size={17}
                       className="transition-transform group-hover:translate-x-1"

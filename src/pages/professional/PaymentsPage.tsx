@@ -3,7 +3,12 @@ import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SummaryBand } from "../../components/SummaryBand";
-import { EmptyState, RecordList } from "../../components/ui";
+import {
+  EmptyState,
+  RecordList,
+  ResponsiveRecord
+} from "../../components/ui";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { formatCurrency, formatDate } from "../../lib/format";
 import { paymentMethodLabel } from "../../lib/payment";
 import { useProfessionalStore } from "../../store/professionalStore";
@@ -15,6 +20,7 @@ export function PaymentsPage() {
   const payments = useProfessionalStore((state) => state.payments);
   const assignments = useProfessionalStore((state) => state.assignments);
   const jobs = useProfessionalStore((state) => state.jobs);
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const ownPayments = professional
     ? payments.filter((item) => item.professionalId === professional.id)
     : [];
@@ -35,7 +41,8 @@ export function PaymentsPage() {
                 .filter((item) => item.status === "due")
                 .reduce((sum, item) => sum + item.amount, 0)
             ),
-            tone: "attention"
+            tone: "attention",
+            mobilePriority: "primary"
           },
           {
             label: "Scheduled",
@@ -45,7 +52,8 @@ export function PaymentsPage() {
           {
             label: "Paid",
             value: ownPayments.filter((item) => item.status === "paid").length,
-            tone: "positive"
+            tone: "positive",
+            mobilePriority: "primary"
           },
           {
             label: "Issues",
@@ -63,7 +71,36 @@ export function PaymentsPage() {
           />
         </div>
       ) : (
-        <RecordList className="mt-6" label="My payments">
+        isMobile ? (
+          <div className="mt-6 grid gap-3" aria-label="My payments mobile">
+            {ownPayments.map((payment) => {
+              const assignment = assignments.find(
+                (item) => item.id === payment.assignmentId
+              );
+              const job = jobs.find((item) => item.id === assignment?.jobId);
+              return (
+                <ResponsiveRecord
+                  key={payment.id}
+                  to={`/professional/payments/${payment.id}`}
+                  ariaLabel={`Open ${job?.title ?? "Assignment payment"} payment mobile`}
+                  title={job?.title ?? "Assignment payment"}
+                  subtitle={`Due ${formatDate(payment.dueDate)}`}
+                  status={<StatusBadge status={payment.status} />}
+                  facts={[
+                    { label: "Amount", value: formatCurrency(payment.amount) },
+                    {
+                      label: "Method",
+                      value: payment.method
+                        ? paymentMethodLabel(payment.method)
+                        : "Not recorded"
+                    }
+                  ]}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <RecordList className="mt-6" label="My payments">
           {ownPayments.map((payment) => {
             const assignment = assignments.find(
               (item) => item.id === payment.assignmentId
@@ -105,7 +142,8 @@ export function PaymentsPage() {
               </Link>
             );
           })}
-        </RecordList>
+          </RecordList>
+        )
       )}
     </div>
   );

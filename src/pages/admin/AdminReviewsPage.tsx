@@ -18,9 +18,11 @@ import {
   EmptyState,
   Field,
   RecordList,
+  ResponsiveRecord,
   Section,
   Textarea
 } from "../../components/ui";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { formatDateTime } from "../../lib/format";
 import { useProfessionalStore } from "../../store/professionalStore";
 
@@ -202,6 +204,27 @@ export function AdminReviewsPage() {
         title={selectedJob?.title ?? "Review work"}
         description={`Submission from ${selectedProfessional?.name ?? "Professional"}`}
         width="wide"
+        footer={
+          selectedAssignment ? (
+            <>
+              <Button
+                variant="secondary"
+                disabled={!feedback.trim()}
+                onClick={() => decideWork("changes_requested")}
+              >
+                <RotateCcw size={16} aria-hidden />
+                Request changes
+              </Button>
+              <Button
+                disabled={!feedback.trim()}
+                onClick={() => decideWork("approved")}
+              >
+                <Check size={16} aria-hidden />
+                Approve
+              </Button>
+            </>
+          ) : undefined
+        }
       >
         {selectedAssignment && selectedJob && latestSubmission && (
           <div className="space-y-6">
@@ -272,23 +295,6 @@ export function AdminReviewsPage() {
                 placeholder="Explain exactly why this is approved or what must change."
               />
             </Field>
-            <div className="flex flex-wrap justify-end gap-3">
-              <Button
-                variant="secondary"
-                disabled={!feedback.trim()}
-                onClick={() => decideWork("changes_requested")}
-              >
-                <RotateCcw size={16} aria-hidden />
-                Request changes
-              </Button>
-              <Button
-                disabled={!feedback.trim()}
-                onClick={() => decideWork("approved")}
-              >
-                <Check size={16} aria-hidden />
-                Approve
-              </Button>
-            </div>
           </div>
         )}
       </Drawer>
@@ -302,6 +308,27 @@ export function AdminReviewsPage() {
         title={`${selectedService?.name ?? "Service"} readiness`}
         description={`Evidence from ${selectedReadinessProfessional?.name ?? "Professional"}`}
         width="wide"
+        footer={
+          selectedEnrolment ? (
+            <>
+              <Button
+                variant="secondary"
+                disabled={!feedback.trim()}
+                onClick={() => decideReadiness("changes_requested")}
+              >
+                <RotateCcw size={16} aria-hidden />
+                Request changes
+              </Button>
+              <Button
+                disabled={!feedback.trim()}
+                onClick={() => decideReadiness("approved")}
+              >
+                <CheckCircle2 size={16} aria-hidden />
+                Approve readiness
+              </Button>
+            </>
+          ) : undefined
+        }
       >
         {selectedEnrolment && selectedService && (
           <div className="space-y-6">
@@ -385,23 +412,6 @@ export function AdminReviewsPage() {
                 placeholder="Explain the readiness decision clearly."
               />
             </Field>
-            <div className="flex flex-wrap justify-end gap-3">
-              <Button
-                variant="secondary"
-                disabled={!feedback.trim()}
-                onClick={() => decideReadiness("changes_requested")}
-              >
-                <RotateCcw size={16} aria-hidden />
-                Request changes
-              </Button>
-              <Button
-                disabled={!feedback.trim()}
-                onClick={() => decideReadiness("approved")}
-              >
-                <CheckCircle2 size={16} aria-hidden />
-                Approve readiness
-              </Button>
-            </div>
           </div>
         )}
       </Drawer>
@@ -469,6 +479,8 @@ function WorkQueue({
   onReview: (id: string) => void;
   onComplete: (id: string) => void;
 }) {
+  const isMobile = useMediaQuery("(max-width: 767px)");
+
   if (assignments.length === 0) {
     return (
       <EmptyState
@@ -478,7 +490,61 @@ function WorkQueue({
     );
   }
   return (
-    <RecordList label="Work review queue">
+    isMobile ? (
+      <div className="grid gap-3" aria-label="Work review queue mobile">
+        {assignments.map((assignment) => {
+          const job = jobs.find((item) => item.id === assignment.jobId);
+          const professional = professionals.find(
+            (item) => item.id === assignment.professionalId
+          );
+          const latestSubmission = submissions
+            .filter((item) => item.assignmentId === assignment.id)
+            .sort((left, right) => right.version - left.version)[0];
+          return (
+            <ResponsiveRecord
+              key={assignment.id}
+              title={
+                <Link
+                  to={`/admin/assignments/${assignment.id}`}
+                  className="hover:text-[var(--blue)]"
+                >
+                  {job?.title ?? "Unknown Job"}
+                </Link>
+              }
+              subtitle={professional?.name ?? "Unknown Professional"}
+              status={<StatusBadge status={assignment.status} />}
+              facts={[
+                {
+                  label: "Evidence",
+                  value: latestSubmission
+                    ? formatDateTime(latestSubmission.submittedAt)
+                    : "Awaiting"
+                },
+                {
+                  label: "Route",
+                  value: assignment.leadReviewerId ? "Via Lead" : "Direct"
+                }
+              ]}
+              action={
+                assignment.status === "waiting_for_admin" ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => onReview(assignment.id)}
+                  >
+                    Review
+                  </Button>
+                ) : assignment.status === "approved" ? (
+                  <Button onClick={() => onComplete(assignment.id)}>
+                    Complete
+                  </Button>
+                ) : undefined
+              }
+            />
+          );
+        })}
+      </div>
+    ) : (
+      <RecordList label="Work review queue">
       {assignments.map((assignment) => {
         const job = jobs.find((item) => item.id === assignment.jobId);
         const professional = professionals.find(
@@ -540,7 +606,8 @@ function WorkQueue({
           </div>
         );
       })}
-    </RecordList>
+      </RecordList>
+    )
   );
 }
 
@@ -565,6 +632,8 @@ function ReadinessQueue({
   users: ReturnType<typeof useProfessionalStore.getState>["users"];
   onReview: (id: string) => void;
 }) {
+  const isMobile = useMediaQuery("(max-width: 767px)");
+
   if (enrolments.length === 0) {
     return (
       <EmptyState
@@ -574,7 +643,45 @@ function ReadinessQueue({
     );
   }
   return (
-    <RecordList label="Readiness review queue">
+    isMobile ? (
+      <div className="grid gap-3" aria-label="Readiness review queue mobile">
+        {enrolments.map((enrolment) => {
+          const service = services.find((item) => item.id === enrolment.serviceId);
+          const professional = professionals.find(
+            (item) => item.id === enrolment.professionalId
+          );
+          return (
+            <ResponsiveRecord
+              key={enrolment.id}
+              title={service?.name ?? "Unknown Service"}
+              subtitle={professional?.name ?? "Unknown Professional"}
+              status={<StatusBadge status={enrolment.status} />}
+              facts={[
+                {
+                  label: "Evidence updated",
+                  value: formatDateTime(enrolment.updatedAt)
+                },
+                {
+                  label: "Route",
+                  value: enrolment.leadCertifiedAt ? "Via Lead" : "Direct"
+                }
+              ]}
+              action={
+                enrolment.status === "waiting_for_admin" ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => onReview(enrolment.id)}
+                  >
+                    Review
+                  </Button>
+                ) : undefined
+              }
+            />
+          );
+        })}
+      </div>
+    ) : (
+      <RecordList label="Readiness review queue">
       {enrolments.map((enrolment) => {
         const service = services.find((item) => item.id === enrolment.serviceId);
         const professional = professionals.find(
@@ -624,6 +731,7 @@ function ReadinessQueue({
           </div>
         );
       })}
-    </RecordList>
+      </RecordList>
+    )
   );
 }
