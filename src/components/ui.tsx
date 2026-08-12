@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import type {
   ButtonHTMLAttributes,
+  CSSProperties,
   ForwardedRef,
   InputHTMLAttributes,
   ReactNode,
@@ -45,15 +46,17 @@ export function Field({
   label,
   error,
   hint,
-  children
+  children,
+  className
 }: {
   label: string;
   error?: string;
   hint?: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <label className="block">
+    <label className={clsx("block min-w-0", className)}>
       <span className="mb-2 block text-sm font-medium text-[var(--ink)]">
         {label}
       </span>
@@ -74,19 +77,28 @@ export function Field({
 const control =
   "min-h-12 w-full rounded-[10px] border border-[var(--border)] bg-white px-3.5 text-base text-[var(--ink)] outline-none transition placeholder:text-slate-400 focus:border-[var(--blue)] focus:ring-4 focus:ring-blue-500/10";
 
-export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={clsx(control, props.className)} {...props} />;
+export function Input({
+  className,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} className={clsx(control, className)} />;
 }
 
-export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={clsx(control, props.className)} {...props} />;
+export function Select({
+  className,
+  ...props
+}: SelectHTMLAttributes<HTMLSelectElement>) {
+  return <select {...props} className={clsx(control, className)} />;
 }
 
-export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function Textarea({
+  className,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
-      className={clsx(control, "min-h-28 resize-y py-3", props.className)}
       {...props}
+      className={clsx(control, "min-h-28 resize-y py-3", className)}
     />
   );
 }
@@ -343,6 +355,48 @@ export function RecordList({
   );
 }
 
+export function DesktopRecordRow({
+  children,
+  columns,
+  layoutAt = "xl",
+  to,
+  ariaLabel,
+  className
+}: {
+  children: ReactNode;
+  columns: string;
+  layoutAt?: "sm" | "md" | "lg" | "xl";
+  to?: string;
+  ariaLabel?: string;
+  className?: string;
+}) {
+  const rowClassName = clsx(
+    "desktop-record-row grid min-w-0 gap-4 px-4 py-4 sm:px-5",
+    to &&
+      "transition hover:bg-[var(--surface-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--blue)]",
+    className
+  );
+  const style = {
+    "--record-columns": columns
+  } as CSSProperties;
+
+  return to ? (
+    <Link
+      to={to}
+      aria-label={ariaLabel}
+      className={rowClassName}
+      data-layout-at={layoutAt}
+      style={style}
+    >
+      {children}
+    </Link>
+  ) : (
+    <div className={rowClassName} data-layout-at={layoutAt} style={style}>
+      {children}
+    </div>
+  );
+}
+
 export function MetaList({
   items,
   className
@@ -392,7 +446,7 @@ export function ProgressBar({
         aria-valuemin={0}
         aria-valuemax={safeMax}
         aria-valuenow={safeValue}
-        className="h-2 overflow-hidden rounded-full bg-slate-200"
+        className="h-1.5 overflow-hidden rounded-full bg-slate-100"
       >
         <div
           className="h-full rounded-full bg-[var(--blue)] transition-[width] duration-300"

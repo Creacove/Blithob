@@ -8,10 +8,15 @@ import { StatusBadge } from "./StatusBadge";
 import { SummaryBand } from "./SummaryBand";
 import { ToastProvider, useToast } from "./ToastProvider";
 import {
+  DesktopRecordRow,
+  Field,
+  Input,
   ProgressBar,
   ResponsiveRecord,
+  Select,
   Section,
-  StickyActionBar
+  StickyActionBar,
+  Textarea
 } from "./ui";
 
 function DrawerHarness() {
@@ -141,7 +146,9 @@ describe("design system", () => {
     const { rerender } = render(
       <StatusBadge status="changes_requested_by_lead" />
     );
-    expect(screen.getByText("Lead requested changes")).toBeInTheDocument();
+    expect(screen.getByText("Lead requested changes")).toHaveClass(
+      "whitespace-nowrap"
+    );
 
     rerender(<StatusBadge status="waiting_for_admin" />);
     expect(screen.getByText("Waiting for Admin")).toBeInTheDocument();
@@ -165,9 +172,54 @@ describe("design system", () => {
   it("exposes progress values to assistive technology", () => {
     render(<ProgressBar value={3} max={5} label="Training progress" />);
 
-    expect(
-      screen.getByRole("progressbar", { name: "Training progress" })
-    ).toHaveAttribute("aria-valuenow", "3");
+    const progress = screen.getByRole("progressbar", {
+      name: "Training progress"
+    });
+    expect(progress).toHaveAttribute("aria-valuenow", "3");
+    expect(progress).toHaveClass("h-1.5", "bg-slate-100");
+  });
+
+  it("keeps desktop record columns explicit and shared across rows", () => {
+    render(
+      <DesktopRecordRow
+        columns="minmax(14rem,1fr) 10rem 1.25rem"
+        layoutAt="xl"
+      >
+        <span>Campaign Refresh</span>
+        <span>Waiting for Admin</span>
+        <span>Open</span>
+      </DesktopRecordRow>
+    );
+
+    const row = screen.getByText("Campaign Refresh").parentElement;
+    expect(row).toHaveAttribute("data-layout-at", "xl");
+    expect(row).toHaveStyle({
+      "--record-columns": "minmax(14rem,1fr) 10rem 1.25rem"
+    });
+  });
+
+  it("preserves shared control styling when pages add custom classes", () => {
+    render(
+      <div>
+        <Input aria-label="Search" className="pl-10" />
+        <Select aria-label="Filter" className="sm:w-56">
+          <option>All</option>
+        </Select>
+        <Field label="Description" className="sm:col-span-2">
+          <Textarea aria-label="Description" className="min-h-40" />
+        </Field>
+      </div>
+    );
+
+    expect(screen.getByLabelText("Search")).toHaveClass("w-full", "pl-10");
+    expect(screen.getByLabelText("Filter")).toHaveClass("w-full", "sm:w-56");
+    expect(screen.getByLabelText("Description")).toHaveClass(
+      "w-full",
+      "min-h-40"
+    );
+    expect(screen.getByText("Description").closest("label")).toHaveClass(
+      "sm:col-span-2"
+    );
   });
 
   it("supports collapsed mobile disclosure sections", async () => {

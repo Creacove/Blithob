@@ -16,6 +16,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { useToast } from "../../components/ToastProvider";
 import {
   Button,
+  DesktopRecordRow,
   EmptyState,
   Field,
   Input,
@@ -280,24 +281,28 @@ export function ProfessionalDetailPage() {
                 const removable =
                   enrolment.status !== "approved" && !relatedWork;
                 return (
-                  <div
+                  <DesktopRecordRow
                     key={enrolment.id}
-                    className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(12rem,1fr)_minmax(9rem,0.65fr)_auto_auto] sm:items-center"
+                    columns="minmax(12rem,1fr) minmax(9rem,0.65fr) 10rem 6.5rem"
+                    layoutAt="md"
+                    className="gap-3"
                   >
-                    <div>
-                      <p className="font-semibold text-[var(--ink)]">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-[var(--ink)]">
                         {service?.name ?? "Unknown Service"}
                       </p>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
+                      <p className="mt-1 truncate text-sm text-[var(--muted)]">
                         {enrolment.requirements.filter((item) => item.completed)
                           .length}{" "}
                         of {enrolment.requirements.length} requirements complete
                       </p>
                     </div>
-                    <p className="text-sm text-[var(--muted)]">
+                    <p className="truncate text-sm text-[var(--muted)]">
                       {lead ? `Lead: ${lead.name}` : "Direct to Admin"}
                     </p>
-                    <StatusBadge status={enrolment.status} />
+                    <div className="min-w-0">
+                      <StatusBadge status={enrolment.status} />
+                    </div>
                     <button
                       type="button"
                       disabled={!removable}
@@ -312,7 +317,7 @@ export function ProfessionalDetailPage() {
                       <Trash2 size={15} aria-hidden="true" />
                       Remove
                     </button>
-                  </div>
+                  </DesktopRecordRow>
                 );
               })}
             </RecordList>
@@ -334,20 +339,26 @@ export function ProfessionalDetailPage() {
               {professionalAssignments.map((assignment) => {
                 const job = jobs.find((item) => item.id === assignment.jobId);
                 return (
-                  <div
+                  <DesktopRecordRow
                     key={assignment.id}
-                    className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(12rem,1fr)_auto_auto_auto] sm:items-center"
+                    columns="minmax(12rem,1fr) 10.5rem 7.5rem 4rem"
+                    layoutAt="md"
+                    className="gap-3"
                   >
-                    <div>
-                      <p className="flex items-center gap-2 font-semibold text-[var(--ink)]">
+                    <div className="min-w-0">
+                      <p className="flex min-w-0 items-center gap-2 font-semibold text-[var(--ink)]">
                         <BriefcaseBusiness size={16} aria-hidden="true" />
-                        {job?.title ?? "Unknown Job"}
+                        <span className="truncate">
+                          {job?.title ?? "Unknown Job"}
+                        </span>
                       </p>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
+                      <p className="mt-1 truncate text-sm text-[var(--muted)]">
                         Due {formatDate(assignment.deadline)}
                       </p>
                     </div>
-                    <StatusBadge status={assignment.status} />
+                    <div className="min-w-0">
+                      <StatusBadge status={assignment.status} />
+                    </div>
                     <p className="text-sm font-semibold text-[var(--ink)]">
                       {formatCurrency(assignment.agreedPay)}
                     </p>
@@ -357,7 +368,7 @@ export function ProfessionalDetailPage() {
                     >
                       Open
                     </Link>
-                  </div>
+                  </DesktopRecordRow>
                 );
               })}
             </RecordList>
@@ -384,20 +395,26 @@ export function ProfessionalDetailPage() {
                   (item) => item.id === assignment?.jobId
                 );
                 return (
-                  <div
+                  <DesktopRecordRow
                     key={payment.id}
-                    className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(12rem,1fr)_auto_auto_auto] sm:items-center"
+                    columns="minmax(12rem,1fr) 9.5rem 7.5rem 4rem"
+                    layoutAt="md"
+                    className="gap-3"
                   >
-                    <div>
-                      <p className="flex items-center gap-2 font-semibold text-[var(--ink)]">
+                    <div className="min-w-0">
+                      <p className="flex min-w-0 items-center gap-2 font-semibold text-[var(--ink)]">
                         <WalletCards size={16} aria-hidden="true" />
-                        {job?.title ?? "Assignment payment"}
+                        <span className="truncate">
+                          {job?.title ?? "Assignment payment"}
+                        </span>
                       </p>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
+                      <p className="mt-1 truncate text-sm text-[var(--muted)]">
                         Due {formatDate(payment.dueDate)}
                       </p>
                     </div>
-                    <StatusBadge status={payment.status} />
+                    <div className="min-w-0">
+                      <StatusBadge status={payment.status} />
+                    </div>
                     <p className="text-sm font-semibold text-[var(--ink)]">
                       {formatCurrency(payment.amount)}
                     </p>
@@ -407,7 +424,7 @@ export function ProfessionalDetailPage() {
                     >
                       Open
                     </Link>
-                  </div>
+                  </DesktopRecordRow>
                 );
               })}
             </RecordList>

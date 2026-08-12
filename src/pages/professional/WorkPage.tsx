@@ -1,10 +1,10 @@
 import { ArrowRight } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SummaryBand } from "../../components/SummaryBand";
 import {
+  DesktopRecordRow,
   EmptyState,
   RecordList,
   ResponsiveRecord,
@@ -160,27 +160,31 @@ export function WorkPage() {
               (item) => item.id === assignment.leadReviewerId
             );
             return (
-              <Link
+              <DesktopRecordRow
                 key={assignment.id}
                 to={`/professional/work/${assignment.id}`}
-                className="grid gap-3 px-4 py-4 transition hover:bg-[var(--surface-subtle)] sm:px-5 xl:grid-cols-[minmax(14rem,1.2fr)_minmax(9rem,0.7fr)_auto_auto_minmax(10rem,0.7fr)_auto] xl:items-center"
+                ariaLabel={`Open ${job?.title ?? "Assignment"}`}
+                columns="minmax(14rem,1.2fr) 10.5rem 7.5rem 9.5rem minmax(10rem,0.75fr) 1.25rem"
+                className="gap-3"
               >
-                <div>
-                  <p className="font-semibold text-[var(--ink)]">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[var(--ink)]">
                     {job?.title ?? "Assignment"}
                   </p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
+                  <p className="mt-1 truncate text-sm text-[var(--muted)]">
                     {service?.name ?? "Service"}
                   </p>
                 </div>
-                <StatusBadge status={assignment.status} />
+                <div className="min-w-0">
+                  <StatusBadge status={assignment.status} />
+                </div>
                 <p className="font-semibold text-[var(--ink)]">
                   {formatCurrency(assignment.agreedPay)}
                 </p>
-                <p className="text-sm text-[var(--muted)]">
+                <p className="whitespace-nowrap text-sm text-[var(--muted)]">
                   Due {formatDate(assignment.deadline)}
                 </p>
-                <p className="text-sm text-[var(--muted)]">
+                <p className="truncate text-sm text-[var(--muted)]">
                   Reviewer: {reviewer?.name ?? "Direct to Admin"}
                 </p>
                 <ArrowRight
@@ -188,7 +192,7 @@ export function WorkPage() {
                   className="text-[var(--blue)]"
                   aria-hidden
                 />
-              </Link>
+              </DesktopRecordRow>
             );
           })}
           </RecordList>

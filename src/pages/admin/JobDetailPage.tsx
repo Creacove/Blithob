@@ -17,6 +17,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { useToast } from "../../components/ToastProvider";
 import {
   Button,
+  DesktopRecordRow,
   EmptyState,
   Field,
   Input,
@@ -292,27 +293,32 @@ export function JobDetailPage() {
                   (item) => item.id === assignment.leadReviewerId
                 );
                 return (
-                  <Link
+                  <DesktopRecordRow
                     key={assignment.id}
                     to={`/admin/assignments/${assignment.id}`}
-                    className="grid gap-3 px-4 py-4 transition hover:bg-[var(--surface-subtle)] sm:grid-cols-[minmax(12rem,1fr)_auto_auto_auto] sm:items-center"
+                    ariaLabel={`Open ${professional?.name ?? "Professional"} assignment`}
+                    columns="minmax(12rem,1fr) 10.5rem 7.5rem 9.5rem"
+                    layoutAt="lg"
+                    className="gap-3"
                   >
-                    <div>
-                      <p className="font-semibold text-[var(--ink)]">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-[var(--ink)]">
                         {professional?.name ?? "Unknown Professional"}
                       </p>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
+                      <p className="mt-1 truncate text-sm text-[var(--muted)]">
                         {reviewer ? `Lead: ${reviewer.name}` : "Direct to Admin"}
                       </p>
                     </div>
-                    <StatusBadge status={assignment.status} />
+                    <div className="min-w-0">
+                      <StatusBadge status={assignment.status} />
+                    </div>
                     <span className="text-sm font-semibold text-[var(--ink)]">
                       {formatCurrency(assignment.agreedPay)}
                     </span>
-                    <span className="text-sm text-[var(--muted)]">
+                    <span className="whitespace-nowrap text-sm text-[var(--muted)]">
                       Due {formatDate(assignment.deadline)}
                     </span>
-                  </Link>
+                  </DesktopRecordRow>
                 );
               })}
             </RecordList>

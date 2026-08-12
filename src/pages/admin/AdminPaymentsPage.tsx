@@ -8,6 +8,7 @@ import { SummaryBand } from "../../components/SummaryBand";
 import { useToast } from "../../components/ToastProvider";
 import {
   Button,
+  DesktopRecordRow,
   EmptyState,
   Field,
   Input,
@@ -228,37 +229,40 @@ export function AdminPaymentsPage() {
               (item) => item.id === payment.professionalId
             );
             return (
-              <div
+              <DesktopRecordRow
                 key={payment.id}
-                className="grid gap-3 px-4 py-4 sm:px-5 xl:grid-cols-[minmax(14rem,1.2fr)_auto_auto_minmax(10rem,0.65fr)_auto] xl:items-center"
+                columns="minmax(14rem,1.2fr) 8rem 9.5rem minmax(12rem,0.8fr) 10.5rem"
+                className="gap-3"
               >
-                <div>
+                <div className="min-w-0">
                   <Link
                     to={`/admin/payments/${payment.id}`}
-                    className="font-semibold text-[var(--ink)] hover:text-[var(--blue)]"
+                    className="block truncate font-semibold text-[var(--ink)] hover:text-[var(--blue)]"
                   >
                     {job?.title ?? "Assignment payment"}
                   </Link>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
+                  <p className="mt-1 truncate text-sm text-[var(--muted)]">
                     {professional?.name ?? "Unknown Professional"}
                   </p>
                 </div>
                 <p className="font-semibold text-[var(--ink)]">
                   {formatCurrency(payment.amount)}
                 </p>
-                <StatusBadge status={payment.status} />
-                <div className="text-sm text-[var(--muted)]">
-                  <p>Due {formatDate(payment.dueDate)}</p>
-                  <p className="mt-1">
+                <div className="min-w-0">
+                  <StatusBadge status={payment.status} />
+                </div>
+                <div className="min-w-0 text-sm text-[var(--muted)]">
+                  <p className="truncate">Due {formatDate(payment.dueDate)}</p>
+                  <p className="mt-1 truncate">
                     {payment.method
                       ? paymentMethodLabel(payment.method)
                       : "Method not recorded"}
                     {payment.reference ? ` - ${payment.reference}` : ""}
                   </p>
                   {payment.receiptFileName && (
-                    <p className="mt-1 flex items-center gap-1 font-medium text-emerald-700">
+                    <p className="mt-1 flex min-w-0 items-center gap-1 font-medium text-emerald-700">
                       <FileCheck2 size={14} aria-hidden />
-                      {payment.receiptFileName}
+                      <span className="truncate">{payment.receiptFileName}</span>
                     </p>
                   )}
                 </div>
@@ -275,10 +279,10 @@ export function AdminPaymentsPage() {
                     aria-label={`Record payment for ${payment.id}`}
                     onClick={() => openRecord(payment.id)}
                   >
-                    Record payment
+                    Record
                   </Button>
                 )}
-              </div>
+              </DesktopRecordRow>
             );
           })}
           </RecordList>

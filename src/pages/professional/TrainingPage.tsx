@@ -1,9 +1,9 @@
 import { ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SummaryBand } from "../../components/SummaryBand";
 import {
+  DesktopRecordRow,
   EmptyState,
   ProgressBar,
   RecordList,
@@ -115,35 +115,38 @@ export function TrainingPage() {
               (item) => item.completed
             ).length;
             return (
-              <Link
+              <DesktopRecordRow
                 key={enrolment.id}
                 to={`/professional/training/${enrolment.id}`}
-                className="grid gap-4 px-4 py-4 transition hover:bg-[var(--surface-subtle)] sm:px-5 lg:grid-cols-[minmax(14rem,1fr)_minmax(12rem,0.8fr)_auto_minmax(10rem,0.65fr)_auto] lg:items-center"
+                ariaLabel={`Open ${service?.name ?? "Service"} training`}
+                columns="minmax(15rem,1fr) 9.5rem 10rem minmax(10rem,0.7fr) 1.25rem"
               >
-                <div>
-                  <p className="font-semibold text-[var(--ink)]">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[var(--ink)]">
                     {service?.name ?? "Service"}
                   </p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
+                  <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">
                     {service?.description}
                   </p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <ProgressBar
                     value={complete}
                     max={enrolment.requirements.length}
                     label={`${service?.name ?? "Service"} progress`}
                   />
-                  <p className="mt-2 text-sm text-[var(--muted)]">
+                  <p className="mt-1.5 text-sm text-[var(--muted)]">
                     {complete} of {enrolment.requirements.length} complete
                   </p>
                 </div>
-                <StatusBadge status={enrolment.status} />
-                <p className="text-sm text-[var(--muted)]">
+                <div className="min-w-0">
+                  <StatusBadge status={enrolment.status} />
+                </div>
+                <p className="truncate text-sm text-[var(--muted)]">
                   {lead?.name ?? "Direct to Admin"}
                 </p>
                 <ArrowRight size={18} className="text-[var(--blue)]" aria-hidden />
-              </Link>
+              </DesktopRecordRow>
             );
           })}
           </RecordList>

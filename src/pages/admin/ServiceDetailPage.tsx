@@ -14,6 +14,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { useToast } from "../../components/ToastProvider";
 import {
   Button,
+  DesktopRecordRow,
   EmptyState,
   Field,
   Input,
@@ -171,7 +172,7 @@ export function ServiceDetailPage() {
                 }
               />
             </Field>
-            <Field label="Description">
+            <Field label="Description" className="sm:col-span-2">
               <Textarea
                 value={overview.description}
                 onChange={(event) =>
@@ -180,7 +181,7 @@ export function ServiceDetailPage() {
                     description: event.target.value
                   }))
                 }
-                className="sm:col-span-2"
+                className="min-h-32"
               />
             </Field>
             <div className="sm:col-span-2 sm:text-right">
@@ -385,25 +386,30 @@ export function ServiceDetailPage() {
           ) : (
             <RecordList>
               {serviceJobs.map((job) => (
-                <Link
+                <DesktopRecordRow
                   key={job.id}
                   to={`/admin/jobs/${job.id}`}
-                  className="grid gap-3 px-4 py-4 transition hover:bg-[var(--surface-subtle)] sm:grid-cols-[1fr_auto_auto] sm:items-center"
+                  ariaLabel={`Open ${job.title}`}
+                  columns="minmax(12rem,1fr) 8.5rem 4rem"
+                  layoutAt="md"
+                  className="gap-3"
                 >
-                  <div>
-                    <p className="flex items-center gap-2 font-semibold text-[var(--ink)]">
+                  <div className="min-w-0">
+                    <p className="flex min-w-0 items-center gap-2 font-semibold text-[var(--ink)]">
                       <BriefcaseBusiness size={16} aria-hidden="true" />
-                      {job.title}
+                      <span className="truncate">{job.title}</span>
                     </p>
-                    <p className="mt-1 text-sm text-[var(--muted)]">
+                    <p className="mt-1 truncate text-sm text-[var(--muted)]">
                       Due {formatDate(job.deadline)}
                     </p>
                   </div>
-                  <StatusBadge status={getJobStatus(job.id)} />
+                  <div className="min-w-0">
+                    <StatusBadge status={getJobStatus(job.id)} />
+                  </div>
                   <span className="text-sm font-semibold text-[var(--blue)]">
                     Open
                   </span>
-                </Link>
+                </DesktopRecordRow>
               ))}
             </RecordList>
           )}

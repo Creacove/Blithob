@@ -81,6 +81,30 @@ describe("application routing", () => {
     ).not.toBeInTheDocument();
   });
 
+  it.each([
+    ["admin", "/admin/today"],
+    ["lead", "/professional/today"],
+    ["professional", "/professional/today"]
+  ] as const)(
+    "keeps desktop account actions available for %s users",
+    async (persona, path) => {
+      const user = userEvent.setup();
+      useProfessionalStore.getState().signIn(persona);
+      renderAppAt(path);
+
+      await user.click(
+        screen.getByRole("button", { name: "Open desktop user menu" })
+      );
+
+      expect(
+        screen.getByRole("button", { name: "Reset demo data" })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Sign out" })
+      ).toBeInTheDocument();
+    }
+  );
+
   it("keeps Admin phone navigation to four destinations plus More", async () => {
     const user = userEvent.setup();
     useProfessionalStore.getState().signIn("admin");

@@ -1,9 +1,9 @@
 import { ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SummaryBand } from "../../components/SummaryBand";
 import {
+  DesktopRecordRow,
   EmptyState,
   ProgressBar,
   RecordList,
@@ -136,39 +136,42 @@ export function TeamPage() {
             ).length;
 
             return (
-              <Link
+              <DesktopRecordRow
                 key={enrolment.id}
                 to={`/professional/team/${enrolment.id}`}
-                className="grid gap-4 px-4 py-4 transition hover:bg-[var(--surface-subtle)] sm:px-5 xl:grid-cols-[minmax(12rem,0.8fr)_minmax(15rem,1fr)_minmax(11rem,0.7fr)_auto_minmax(8rem,0.55fr)_auto] xl:items-center"
+                ariaLabel={`Open ${member?.name ?? "Professional"} readiness`}
+                columns="minmax(11rem,0.9fr) minmax(14rem,1.1fr) 10rem 9.5rem minmax(9rem,0.7fr) 1.25rem"
               >
-                <div>
+                <div className="min-w-0">
                   <p className="font-semibold text-[var(--ink)]">
                     {member?.name ?? "Professional"}
                   </p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
+                  <p className="mt-1 truncate text-sm text-[var(--muted)]">
                     {member?.location}
                   </p>
                 </div>
-                <div>
-                  <p className="font-semibold text-[var(--ink)]">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[var(--ink)]">
                     {service?.name ?? "Service"}
                   </p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
+                  <p className="mt-1 truncate text-sm text-[var(--muted)]">
                     {service?.shortName}
                   </p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <ProgressBar
                     value={complete}
                     max={enrolment.requirements.length}
                     label={`${member?.name ?? "Professional"} readiness progress`}
                   />
-                  <p className="mt-2 text-sm text-[var(--muted)]">
+                  <p className="mt-1.5 text-sm text-[var(--muted)]">
                     {complete} of {enrolment.requirements.length} complete
                   </p>
                 </div>
-                <StatusBadge status={enrolment.status} />
-                <p className="text-sm text-[var(--muted)]">
+                <div className="min-w-0">
+                  <StatusBadge status={enrolment.status} />
+                </div>
+                <p className="truncate text-sm text-[var(--muted)]">
                   Updated {formatDate(enrolment.updatedAt)}
                 </p>
                 <ArrowRight
@@ -176,7 +179,7 @@ export function TeamPage() {
                   className="text-[var(--blue)]"
                   aria-hidden
                 />
-              </Link>
+              </DesktopRecordRow>
             );
           })}
           </RecordList>

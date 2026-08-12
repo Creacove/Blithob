@@ -6,6 +6,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import {
   Button,
+  DesktopRecordRow,
   EmptyState,
   Input,
   RecordList,
@@ -262,10 +263,10 @@ function JobRow({
   actionCount: number;
 }) {
   return (
-    <Link
+    <DesktopRecordRow
       to={`/admin/jobs/${id}`}
-      aria-label={`Open ${title}`}
-      className="grid gap-4 px-4 py-4 transition hover:bg-[var(--surface-subtle)] sm:grid-cols-[minmax(14rem,1fr)_auto] sm:items-center sm:px-5 xl:grid-cols-[minmax(15rem,1.25fr)_auto_minmax(22rem,1fr)_auto]"
+      ariaLabel={`Open ${title}`}
+      columns="minmax(15rem,1.2fr) 8.5rem minmax(22rem,1fr) 1.25rem"
     >
       <span className="min-w-0">
         <strong className="block truncate text-base font-semibold text-[var(--ink)]">
@@ -275,8 +276,10 @@ function JobRow({
           {service}
         </span>
       </span>
-      <StatusBadge status={status} />
-      <span className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[var(--muted)]">
+      <div className="min-w-0">
+        <StatusBadge status={status} />
+      </div>
+      <span className="flex min-w-0 flex-wrap gap-x-5 gap-y-1 text-sm text-[var(--muted)]">
         <span className="font-medium">{progress}</span>
         <span>
           {deadline ? `Due ${formatDate(deadline)}` : "No deadline"}
@@ -288,6 +291,6 @@ function JobRow({
         </span>
       </span>
       <ChevronRight size={18} className="text-[var(--muted)]" aria-hidden />
-    </Link>
+    </DesktopRecordRow>
   );
 }

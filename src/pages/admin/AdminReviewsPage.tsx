@@ -15,6 +15,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { useToast } from "../../components/ToastProvider";
 import {
   Button,
+  DesktopRecordRow,
   EmptyState,
   Field,
   RecordList,
@@ -560,24 +561,25 @@ function WorkQueue({
           (user) => user.id === previousReview?.reviewerUserId
         );
         return (
-          <div
+          <DesktopRecordRow
             key={assignment.id}
-            className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(15rem,1.2fr)_minmax(9rem,0.65fr)_minmax(10rem,0.7fr)_auto] lg:items-center"
+            columns="minmax(15rem,1.2fr) 10.5rem minmax(11rem,0.8fr) 10.5rem"
+            className="gap-3"
           >
-            <div>
+            <div className="min-w-0">
               <Link
                 to={`/admin/assignments/${assignment.id}`}
-                className="font-semibold text-[var(--ink)] hover:text-[var(--blue)]"
+                className="block truncate font-semibold text-[var(--ink)] hover:text-[var(--blue)]"
               >
                 {job?.title ?? "Unknown Job"}
               </Link>
-              <p className="mt-1 text-sm text-[var(--muted)]">
+              <p className="mt-1 truncate text-sm text-[var(--muted)]">
                 {professional?.name ?? "Unknown Professional"}
               </p>
             </div>
-            <div>
+            <div className="min-w-0">
               <StatusBadge status={assignment.status} />
-              <p className="mt-1 text-xs text-[var(--muted)]">
+              <p className="mt-1 truncate text-xs text-[var(--muted)]">
                 {previousReviewer
                   ? `Previous: ${previousReviewer.name}`
                   : assignment.leadReviewerId
@@ -585,25 +587,25 @@ function WorkQueue({
                     : "Direct Admin route"}
               </p>
             </div>
-            <p className="text-sm text-[var(--muted)]">
+            <p className="truncate text-sm text-[var(--muted)]">
               {latestSubmission
                 ? `Evidence ${formatDateTime(latestSubmission.submittedAt)}`
                 : "Awaiting resubmission"}
             </p>
             {assignment.status === "waiting_for_admin" ? (
               <Button variant="secondary" onClick={() => onReview(assignment.id)}>
-                Review submission
+                Review
               </Button>
             ) : assignment.status === "approved" ? (
               <Button onClick={() => onComplete(assignment.id)}>
-                Complete assignment
+                Complete
               </Button>
             ) : (
-              <span className="text-sm font-semibold text-orange-700">
+              <span className="truncate text-sm font-semibold text-orange-700">
                 Waiting for resubmission
               </span>
             )}
-          </div>
+          </DesktopRecordRow>
         );
       })}
       </RecordList>
@@ -694,21 +696,22 @@ function ReadinessQueue({
           (user) => user.id === previousReview?.reviewerUserId
         );
         return (
-          <div
+          <DesktopRecordRow
             key={enrolment.id}
-            className="grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(15rem,1.2fr)_minmax(9rem,0.65fr)_minmax(10rem,0.7fr)_auto] lg:items-center"
+            columns="minmax(15rem,1.2fr) 10.5rem minmax(11rem,0.8fr) 10.5rem"
+            className="gap-3"
           >
-            <div>
-              <p className="font-semibold text-[var(--ink)]">
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-[var(--ink)]">
                 {service?.name ?? "Unknown Service"}
               </p>
-              <p className="mt-1 text-sm text-[var(--muted)]">
+              <p className="mt-1 truncate text-sm text-[var(--muted)]">
                 {professional?.name ?? "Unknown Professional"}
               </p>
             </div>
-            <div>
+            <div className="min-w-0">
               <StatusBadge status={enrolment.status} />
-              <p className="mt-1 text-xs text-[var(--muted)]">
+              <p className="mt-1 truncate text-xs text-[var(--muted)]">
                 {previousReviewer
                   ? `Previous: ${previousReviewer.name}`
                   : enrolment.leadCertifiedAt
@@ -716,19 +719,19 @@ function ReadinessQueue({
                     : "Direct Admin route"}
               </p>
             </div>
-            <p className="text-sm text-[var(--muted)]">
+            <p className="truncate text-sm text-[var(--muted)]">
               Evidence updated {formatDateTime(enrolment.updatedAt)}
             </p>
             {enrolment.status === "waiting_for_admin" ? (
               <Button variant="secondary" onClick={() => onReview(enrolment.id)}>
-                Review readiness
+                Review
               </Button>
             ) : (
-              <span className="text-sm font-semibold text-orange-700">
+              <span className="truncate text-sm font-semibold text-orange-700">
                 Waiting for resubmission
               </span>
             )}
-          </div>
+          </DesktopRecordRow>
         );
       })}
       </RecordList>

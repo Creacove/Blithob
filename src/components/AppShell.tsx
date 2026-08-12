@@ -3,6 +3,7 @@ import {
   Bell,
   BookOpenCheck,
   BriefcaseBusiness,
+  ChevronDown,
   ClipboardCheck,
   Gauge,
   Layers3,
@@ -14,9 +15,10 @@ import {
   WalletCards
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import type { AccountRole } from "../domain/model";
+import { initials } from "../lib/format";
 import { useProfessionalStore } from "../store/professionalStore";
 import { BrandMark } from "./BrandMark";
 import { FilterSheet } from "./FilterSheet";
@@ -119,14 +121,112 @@ function detailBack(pathname: string, role: AccountRole) {
   );
 }
 
+function AccountMenu({
+  compact,
+  userName,
+  workspaceLabel,
+  onReset,
+  onSignOut
+}: {
+  compact: boolean;
+  userName: string;
+  workspaceLabel: string;
+  onReset: () => void;
+  onSignOut: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const placement = compact ? "tablet" : "desktop";
+
+  useEffect(() => {
+    const close = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+
+  return (
+    <div
+      className={`border-t border-[var(--border)] ${compact ? "p-2" : "p-3"}`}
+    >
+      <div className="relative" ref={menuRef}>
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          className={`flex min-h-12 w-full items-center rounded-[10px] transition hover:bg-[var(--surface-subtle)] ${
+            compact ? "justify-center px-2" : "gap-3 px-2 text-left"
+          }`}
+          aria-expanded={open}
+          aria-label={`Open ${placement} user menu`}
+          title={compact ? `${userName} · ${workspaceLabel}` : undefined}
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[var(--ink)] text-xs font-semibold text-white">
+            {initials(userName)}
+          </span>
+          {!compact && (
+            <>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-[var(--ink)]">
+                  {userName}
+                </span>
+                <span className="block truncate text-xs text-[var(--muted)]">
+                  {workspaceLabel}
+                </span>
+              </span>
+              <ChevronDown size={15} className="text-[var(--muted)]" />
+            </>
+          )}
+        </button>
+        {open && (
+          <div
+            className={`absolute z-50 w-52 rounded-xl border border-[var(--border)] bg-white p-1.5 shadow-xl ${
+              compact
+                ? "bottom-0 left-[calc(100%+8px)]"
+                : "bottom-[calc(100%+8px)] left-0 right-0 w-auto"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={onReset}
+              className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--ink)]"
+            >
+              <RotateCcw size={15} aria-hidden />
+              Reset demo data
+            </button>
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-[var(--critical)] hover:bg-red-50"
+            >
+              <LogOut size={15} aria-hidden />
+              Sign out
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SideNavigation({
   items,
   role,
-  compact = false
+  compact = false,
+  userName,
+  workspaceLabel,
+  onReset,
+  onSignOut
 }: {
   items: NavigationItem[];
   role: AccountRole;
   compact?: boolean;
+  userName: string;
+  workspaceLabel: string;
+  onReset: () => void;
+  onSignOut: () => void;
 }) {
   return (
     <>
@@ -165,6 +265,13 @@ function SideNavigation({
           </NavLink>
         ))}
       </nav>
+      <AccountMenu
+        compact={compact}
+        userName={userName}
+        workspaceLabel={workspaceLabel}
+        onReset={onReset}
+        onSignOut={onSignOut}
+      />
     </>
   );
 }
@@ -196,6 +303,12 @@ export function AppShell({ role }: { role: AccountRole }) {
       location.pathname
     );
   const mobileLabel = role === "admin" ? "Admin" : isLead ? "Lead" : "Professional";
+  const workspaceLabel =
+    role === "admin"
+      ? "Admin workspace"
+      : isLead
+        ? "Lead Professional"
+        : "Professional workspace";
   const updatesPath =
     role === "admin" ? "/admin/notifications" : "/professional/notifications";
 
@@ -215,11 +328,26 @@ export function AppShell({ role }: { role: AccountRole }) {
   return (
     <div className="app-grid">
       <aside className="desktop-sidebar sticky top-0 hidden h-screen flex-col border-r border-[var(--border)] bg-white lg:flex">
-        <SideNavigation items={allItems} role={role} />
+        <SideNavigation
+          items={allItems}
+          role={role}
+          userName={currentUser?.name ?? mobileLabel}
+          workspaceLabel={workspaceLabel}
+          onReset={doReset}
+          onSignOut={doSignOut}
+        />
       </aside>
 
       <aside className="tablet-rail sticky top-0 hidden h-screen flex-col border-r border-[var(--border)] bg-white md:flex lg:hidden">
-        <SideNavigation items={allItems} role={role} compact />
+        <SideNavigation
+          items={allItems}
+          role={role}
+          compact
+          userName={currentUser?.name ?? mobileLabel}
+          workspaceLabel={workspaceLabel}
+          onReset={doReset}
+          onSignOut={doSignOut}
+        />
       </aside>
 
       <div className="min-w-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">

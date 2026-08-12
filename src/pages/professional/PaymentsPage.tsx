@@ -1,9 +1,9 @@
 import { ArrowRight, FileCheck2 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SummaryBand } from "../../components/SummaryBand";
 import {
+  DesktopRecordRow,
   EmptyState,
   RecordList,
   ResponsiveRecord
@@ -107,39 +107,45 @@ export function PaymentsPage() {
             );
             const job = jobs.find((item) => item.id === assignment?.jobId);
             return (
-              <Link
+              <DesktopRecordRow
                 key={payment.id}
                 to={`/professional/payments/${payment.id}`}
-                className="grid gap-3 px-4 py-4 transition hover:bg-[var(--surface-subtle)] sm:px-5 lg:grid-cols-[minmax(14rem,1.1fr)_auto_auto_minmax(11rem,0.7fr)_auto] lg:items-center"
+                ariaLabel={`Open ${job?.title ?? "Assignment payment"} payment`}
+                columns="minmax(15rem,1.15fr) 8rem 9.5rem minmax(12rem,0.8fr) 1.25rem"
+                className="gap-3"
               >
-                <div>
-                  <p className="font-semibold text-[var(--ink)]">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[var(--ink)]">
                     {job?.title ?? "Assignment payment"}
                   </p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
+                  <p className="mt-1 truncate text-sm text-[var(--muted)]">
                     Due {formatDate(payment.dueDate)}
                   </p>
                 </div>
                 <p className="font-semibold text-[var(--ink)]">
                   {formatCurrency(payment.amount)}
                 </p>
-                <StatusBadge status={payment.status} />
-                <div className="text-sm text-[var(--muted)]">
-                  <p>
+                <div className="min-w-0">
+                  <StatusBadge status={payment.status} />
+                </div>
+                <div className="min-w-0 text-sm text-[var(--muted)]">
+                  <p className="truncate">
                     {payment.method
                       ? paymentMethodLabel(payment.method)
                       : "Method not recorded"}
                   </p>
-                  {payment.reference && <p className="mt-1">{payment.reference}</p>}
+                  {payment.reference && (
+                    <p className="mt-1 truncate">{payment.reference}</p>
+                  )}
                   {payment.receiptFileName && (
-                    <p className="mt-1 flex items-center gap-1 text-emerald-700">
+                    <p className="mt-1 flex min-w-0 items-center gap-1 truncate text-emerald-700">
                       <FileCheck2 size={14} aria-hidden />
-                      {payment.receiptFileName}
+                      <span className="truncate">{payment.receiptFileName}</span>
                     </p>
                   )}
                 </div>
                 <ArrowRight size={18} className="text-[var(--blue)]" aria-hidden />
-              </Link>
+              </DesktopRecordRow>
             );
           })}
           </RecordList>

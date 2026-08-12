@@ -130,7 +130,7 @@ export function StatusBadge({ status }: { status: Status }) {
   const Icon = icons[status];
   return (
     <span
-      className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status]}`}
+      className={`inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status]}`}
     >
       <Icon size={12} aria-hidden="true" />
       {labels[status]}

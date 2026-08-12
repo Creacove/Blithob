@@ -13,6 +13,7 @@ import { SummaryBand } from "../../components/SummaryBand";
 import { useToast } from "../../components/ToastProvider";
 import {
   Button,
+  DesktopRecordRow,
   EmptyState,
   Field,
   RecordList,
@@ -195,30 +196,30 @@ export function LeadReviewsPage() {
               .sort((left, right) => right.version - left.version)[0];
 
             return (
-              <div
+              <DesktopRecordRow
                 key={assignment.id}
-                className="grid gap-4 px-4 py-4 sm:px-5 xl:grid-cols-[minmax(15rem,1.1fr)_minmax(10rem,0.7fr)_auto_minmax(10rem,0.65fr)_auto] xl:items-center"
+                columns="minmax(15rem,1.1fr) 10.5rem 8rem 11rem 10.5rem"
               >
-                <div>
-                  <p className="font-semibold text-[var(--ink)]">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-[var(--ink)]">
                     {job?.title ?? "Assignment"}
                   </p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
+                  <p className="mt-1 truncate text-sm text-[var(--muted)]">
                     {assignee?.name ?? "Professional"}
                   </p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <StatusBadge status={assignment.status} />
-                  <p className="mt-1 text-xs text-[var(--muted)]">
+                  <p className="mt-1 whitespace-nowrap text-xs text-[var(--muted)]">
                     Due {formatDate(assignment.deadline)}
                   </p>
                 </div>
-                <p className="text-sm text-[var(--muted)]">
+                <p className="truncate text-sm text-[var(--muted)]">
                   {submission
                     ? `Version ${submission.version}`
                     : "Awaiting revision"}
                 </p>
-                <p className="text-sm text-[var(--muted)]">
+                <p className="truncate text-sm text-[var(--muted)]">
                   {submission
                     ? formatDateTime(submission.submittedAt)
                     : "No current submission"}
@@ -229,16 +230,16 @@ export function LeadReviewsPage() {
                     aria-label={`Review assignment ${assignment.id}`}
                     onClick={() => setSelectedId(assignment.id)}
                   >
-                    Review submission
+                    Review
                   </Button>
                 ) : (
-                  <span className="text-sm font-semibold text-[var(--muted)]">
+                  <span className="truncate text-sm font-semibold text-[var(--muted)]">
                     {assignment.status === "changes_requested_by_lead"
                       ? "Waiting for revision"
                       : "Certified for Admin"}
                   </span>
                 )}
-              </div>
+              </DesktopRecordRow>
             );
           })}
           </RecordList>
