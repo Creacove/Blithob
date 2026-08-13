@@ -204,7 +204,7 @@ export const useAppStore = create<AppStore>()(
               }
             ],
             completedCount: 0,
-            notes: "New worker added through the prototype.",
+            notes: "New Professional added.",
             joinedAt: new Date().toISOString().slice(0, 10),
             isLead: false
           };

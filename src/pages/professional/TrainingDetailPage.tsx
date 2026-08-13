@@ -263,7 +263,7 @@ export function TrainingDetailPage() {
                             </Field>
                             <Field
                               label={`${requirement.title} evidence file name`}
-                              hint="Prototype metadata only."
+                              hint="Optional. Record the name of the evidence file shared with Admin."
                             >
                               <Input
                                 value={draft.evidenceFileName}

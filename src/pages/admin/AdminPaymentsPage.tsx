@@ -299,7 +299,7 @@ export function AdminPaymentsPage() {
         title="Record payment"
         description={
           selected
-            ? `${formatCurrency(selected.amount)} - no money is moved by this prototype.`
+            ? `${formatCurrency(selected.amount)} - record the payment details for this Assignment.`
             : undefined
         }
         footer={
@@ -395,7 +395,10 @@ export function AdminPaymentsPage() {
                 />
               </Field>
             )}
-            <Field label="Receipt file name" hint="Optional receipt metadata for this prototype.">
+            <Field
+              label="Receipt file name"
+              hint="Optional. Add the file name shown on the payment record."
+            >
               <Input
                 value={form.receiptFileName}
                 onChange={(event) =>

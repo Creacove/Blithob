@@ -20,6 +20,7 @@ export function ProfilePage() {
   );
   const signOut = useProfessionalStore((state) => state.signOut);
   const resetDemo = useProfessionalStore((state) => state.resetDemo);
+  const backendMode = useProfessionalStore((state) => state.backendMode);
   const [form, setForm] = useState(() => ({
     name: professional?.name ?? "",
     email: professional?.email ?? "",
@@ -28,6 +29,7 @@ export function ProfilePage() {
   }));
   const { success, error } = useToast();
   const navigate = useNavigate();
+  const showReset = backendMode === "demo";
 
   if (!professional) return null;
 
@@ -51,7 +53,8 @@ export function ProfilePage() {
   };
 
   const reset = () => {
-    if (!window.confirm("Reset all prototype changes and restore the demo data?")) {
+    if (!showReset) return;
+    if (!window.confirm("Reset your demo workspace and return to its starting data?")) {
       return;
     }
     resetDemo();
@@ -177,14 +180,20 @@ export function ProfilePage() {
       {!professional.isLead && (
         <Section
           title="Account actions"
-          description="Manage this demo session from the Professional workspace."
+          description={
+            showReset
+              ? "Manage this demo workspace from the Professional workspace."
+              : "Manage your Blithob account from the Professional workspace."
+          }
           className="mt-5 md:hidden"
         >
           <div className="grid gap-2">
-            <Button variant="secondary" onClick={reset}>
-              <RotateCcw size={17} aria-hidden />
-              Reset demo data
-            </Button>
+            {showReset && (
+              <Button variant="secondary" onClick={reset}>
+                <RotateCcw size={17} aria-hidden />
+                Reset demo data
+              </Button>
+            )}
             <Button variant="danger" onClick={exit}>
               <LogOut size={17} aria-hidden />
               Sign out

@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
+import { BrandMark } from "./components/BrandMark";
 import type { AccountRole } from "./domain/model";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -30,7 +31,23 @@ import { WorkPage } from "./pages/professional/WorkPage";
 import { useProfessionalStore } from "./store/professionalStore";
 
 function ProtectedAccount({ role }: { role: AccountRole }) {
+  const isBootstrapping = useProfessionalStore((state) => state.isBootstrapping);
   const user = useProfessionalStore((state) => state.currentUser());
+  if (isBootstrapping) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[var(--canvas)] px-6">
+        <div
+          role="status"
+          className="flex flex-col items-center gap-5 text-center"
+        >
+          <BrandMark />
+          <p className="text-sm font-medium text-[var(--muted)]">
+            Loading your workspace…
+          </p>
+        </div>
+      </main>
+    );
+  }
   if (!user) return <Navigate to="/login" replace />;
   if (user.accountRole !== role) {
     return (

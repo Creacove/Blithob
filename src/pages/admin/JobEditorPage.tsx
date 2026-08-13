@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   type Control,
   useFieldArray,
@@ -128,122 +128,129 @@ export function JobEditorPage() {
   const references = useFieldArray({ control, name: "references" });
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [mobileStep, setMobileStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const savingRef = useRef(false);
+  const saveCompletedRef = useRef(false);
 
   const save = async (publish: boolean) => {
-    clearErrors();
-    const values = getValues();
-    const parsed = draftSchema.safeParse(values);
-    if (!parsed.success) {
-      parsed.error.issues.forEach((issue) =>
-        setError(issue.path.join(".") as keyof JobFormValues, {
-          message: issue.message
-        })
-      );
-      return;
-    }
+    if (savingRef.current || saveCompletedRef.current) return;
+    savingRef.current = true;
+    setIsSaving(true);
 
-    const required: Array<[keyof JobFormValues, string]> = [
-      ["title", "Add a Job title"],
-      ["objective", "Add a clear objective"],
-      ["description", "Add the full work description"],
-      ["deadline", "Add a deadline"]
-    ];
-    const requiresCompleteBrief =
-      publish || existingJob?.publicationState === "open";
-    if (requiresCompleteBrief) {
-      let invalid = false;
-      required.forEach(([field, message]) => {
-        if (!String(values[field]).trim()) {
-          setError(field, { message });
-          invalid = true;
-        }
-      });
-      const requiredRows: Array<
-        ["steps" | "deliverables" | "acceptanceCriteria", string]
-      > = [
-        ["steps", "Add at least one complete step"],
-        ["deliverables", "Add at least one deliverable"],
-        ["acceptanceCriteria", "Add at least one acceptance criterion"]
-      ];
-      requiredRows.forEach(([field, message]) => {
-        if (
-          values[field].length === 0 ||
-          values[field].some((item) => !item.value.trim())
-        ) {
-          setError(field, { message });
-          invalid = true;
-        }
-      });
-      values.references.forEach((reference, index) => {
-        if (!reference.label.trim()) {
-          setError(`references.${index}.label`, {
-            message: "Add a reference label"
-          });
-          invalid = true;
-        }
-        if (
-          reference.kind === "link" &&
-          !/^https?:\/\//i.test(reference.url.trim())
-        ) {
-          setError(`references.${index}.url`, {
-            message: "Add a complete http or https URL"
-          });
-          invalid = true;
-        }
-        if (reference.kind === "file" && !reference.fileName.trim()) {
-          setError(`references.${index}.fileName`, {
-            message: "Add the file name"
-          });
-          invalid = true;
-        }
-      });
-      if (invalid) {
-        error("Complete the required brief fields before publishing");
+    try {
+      clearErrors();
+      const values = getValues();
+      const parsed = draftSchema.safeParse(values);
+      if (!parsed.success) {
+        parsed.error.issues.forEach((issue) =>
+          setError(issue.path.join(".") as keyof JobFormValues, {
+            message: issue.message
+          })
+        );
         return;
       }
-    }
 
-    const input = {
-      title: values.title.trim(),
-      serviceId: values.serviceId,
-      clientContext: values.clientContext.trim(),
-      objective: values.objective.trim(),
-      description: values.description.trim(),
-      steps: values.steps
-        .map((item) => item.value.trim())
-        .filter(Boolean),
-      deliverables: values.deliverables
-        .map((item) => item.value.trim())
-        .filter(Boolean),
-      acceptanceCriteria: values.acceptanceCriteria
-        .map((item) => item.value.trim())
-        .filter(Boolean),
-      references: values.references
-        .filter(
-          (reference) =>
-            reference.label.trim() ||
-            reference.url.trim() ||
-            reference.fileName.trim()
-        )
-        .map((reference, index) => ({
-          id: `reference-${Date.now()}-${index}`,
-          label: reference.label.trim(),
-          kind: reference.kind,
-          url:
-            reference.kind === "link"
-              ? reference.url.trim() || undefined
-              : undefined,
-          fileName:
-            reference.kind === "file"
-              ? reference.fileName.trim() || undefined
-              : undefined
-        })),
-      submissionEvidenceRequired: values.submissionEvidenceRequired,
-      deadline: values.deadline
-        ? new Date(values.deadline).toISOString()
-        : ""
-    };
-    try {
+      const required: Array<[keyof JobFormValues, string]> = [
+        ["title", "Add a Job title"],
+        ["objective", "Add a clear objective"],
+        ["description", "Add the full work description"],
+        ["deadline", "Add a deadline"]
+      ];
+      const requiresCompleteBrief =
+        publish || existingJob?.publicationState === "open";
+      if (requiresCompleteBrief) {
+        let invalid = false;
+        required.forEach(([field, message]) => {
+          if (!String(values[field]).trim()) {
+            setError(field, { message });
+            invalid = true;
+          }
+        });
+        const requiredRows: Array<
+          ["steps" | "deliverables" | "acceptanceCriteria", string]
+        > = [
+          ["steps", "Add at least one complete step"],
+          ["deliverables", "Add at least one deliverable"],
+          ["acceptanceCriteria", "Add at least one acceptance criterion"]
+        ];
+        requiredRows.forEach(([field, message]) => {
+          if (
+            values[field].length === 0 ||
+            values[field].some((item) => !item.value.trim())
+          ) {
+            setError(field, { message });
+            invalid = true;
+          }
+        });
+        values.references.forEach((reference, index) => {
+          if (!reference.label.trim()) {
+            setError(`references.${index}.label`, {
+              message: "Add a reference label"
+            });
+            invalid = true;
+          }
+          if (
+            reference.kind === "link" &&
+            !/^https?:\/\//i.test(reference.url.trim())
+          ) {
+            setError(`references.${index}.url`, {
+              message: "Add a complete http or https URL"
+            });
+            invalid = true;
+          }
+          if (reference.kind === "file" && !reference.fileName.trim()) {
+            setError(`references.${index}.fileName`, {
+              message: "Add the file name"
+            });
+            invalid = true;
+          }
+        });
+        if (invalid) {
+          error("Complete the required brief fields before publishing");
+          return;
+        }
+      }
+
+      const input = {
+        title: values.title.trim(),
+        serviceId: values.serviceId,
+        clientContext: values.clientContext.trim(),
+        objective: values.objective.trim(),
+        description: values.description.trim(),
+        steps: values.steps
+          .map((item) => item.value.trim())
+          .filter(Boolean),
+        deliverables: values.deliverables
+          .map((item) => item.value.trim())
+          .filter(Boolean),
+        acceptanceCriteria: values.acceptanceCriteria
+          .map((item) => item.value.trim())
+          .filter(Boolean),
+        references: values.references
+          .filter(
+            (reference) =>
+              reference.label.trim() ||
+              reference.url.trim() ||
+              reference.fileName.trim()
+          )
+          .map((reference, index) => ({
+            id: `reference-${Date.now()}-${index}`,
+            label: reference.label.trim(),
+            kind: reference.kind,
+            url:
+              reference.kind === "link"
+                ? reference.url.trim() || undefined
+                : undefined,
+            fileName:
+              reference.kind === "file"
+                ? reference.fileName.trim() || undefined
+                : undefined
+          })),
+        submissionEvidenceRequired: values.submissionEvidenceRequired,
+        deadline: values.deadline
+          ? new Date(values.deadline).toISOString()
+          : ""
+      };
       const savedJobId = existingJob?.id ?? await createJob(input);
       if (existingJob) {
         await updateJob(existingJob.id, input);
@@ -263,9 +270,13 @@ export function JobEditorPage() {
             ? "Job brief saved"
             : "Draft saved"
       );
+      saveCompletedRef.current = true;
       navigate(`/admin/jobs/${savedJobId}`);
     } catch (caught) {
       error(caught instanceof Error ? caught.message : "The Job could not be saved");
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
     }
   };
 
@@ -499,9 +510,14 @@ export function JobEditorPage() {
               type="button"
               variant="secondary"
               className="min-w-0 flex-1 px-3"
+              disabled={isSaving}
               onClick={() => save(false)}
             >
-              {existingJob ? "Save changes" : "Save draft"}
+              {isSaving
+                ? "Saving…"
+                : existingJob
+                  ? "Save changes"
+                  : "Save draft"}
             </Button>
             {mobileStep < mobileStages.length - 1 ? (
               <Button
@@ -516,9 +532,10 @@ export function JobEditorPage() {
               <Button
                 type="button"
                 className="min-w-0 flex-1 px-3"
+                disabled={isSaving}
                 onClick={() => save(true)}
               >
-                Publish
+                {isSaving ? "Publishing…" : "Publish"}
               </Button>
             ) : null}
           </StickyActionBar>
@@ -527,13 +544,18 @@ export function JobEditorPage() {
           <Button
             type="button"
             variant={existingJob?.publicationState === "open" ? "primary" : "secondary"}
+            disabled={isSaving}
             onClick={() => save(false)}
           >
-            {existingJob ? "Save changes" : "Save draft"}
+            {isSaving
+              ? "Saving…"
+              : existingJob
+                ? "Save changes"
+                : "Save draft"}
           </Button>
           {existingJob?.publicationState !== "open" && (
-            <Button type="button" onClick={() => save(true)}>
-              Publish job
+            <Button type="button" disabled={isSaving} onClick={() => save(true)}>
+              {isSaving ? "Publishing…" : "Publish job"}
             </Button>
           )}
         </div>

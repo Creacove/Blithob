@@ -419,7 +419,7 @@ export function AssignmentPage() {
           </Field>
           <Field
             label="Submission file name"
-            hint="Prototype metadata only; no file is uploaded."
+            hint="Optional. Record the name of a file shared with this submission."
           >
             <Input
               value={fileName}

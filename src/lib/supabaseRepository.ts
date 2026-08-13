@@ -555,7 +555,7 @@ export class SupabaseRepository {
 
   private async currentUserId() {
     const { data, error } = await this.client.auth.getUser();
-    if (error || !data.user) throw new Error(error?.message ?? "No active Supabase user");
+    if (error || !data.user) throw new Error(error?.message ?? "No active account session");
     return data.user.id;
   }
 
@@ -631,7 +631,7 @@ export class SupabaseRepository {
       const currentUserId = await this.currentUserId();
       if (currentUserId !== profileId) {
         throw new Error(
-          "A Professional's email is managed through Supabase Auth and cannot be changed by editing this record."
+          "A Professional's email can only be changed by the account owner."
         );
       }
       const { error } = await this.client.auth.updateUser({ email: nextEmail });

@@ -121,7 +121,7 @@ export function PayoutsPage() {
         open={Boolean(selected)}
         onClose={() => setSelectedId(null)}
         title="Record completed payment"
-        description="This records an external transfer; no money is moved in the prototype."
+        description="Record an external transfer for this payment."
       >
         {selected && (
           <div className="space-y-5">

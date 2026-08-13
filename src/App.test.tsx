@@ -28,6 +28,7 @@ describe("application routing", () => {
   beforeEach(() => {
     useProfessionalStore.getState().resetDemo();
     useProfessionalStore.getState().signOut();
+    useProfessionalStore.setState({ backendMode: "demo", isBootstrapping: false });
   });
 
   it("lets a visitor enter the prototype and choose a persona", async () => {
@@ -102,6 +103,36 @@ describe("application routing", () => {
       ).toBeInTheDocument();
     }
   );
+
+  it("hides demo reset controls for a remote account", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    useProfessionalStore.setState({ backendMode: "remote" });
+    renderAppAt("/admin/today");
+
+    await user.click(
+      screen.getByRole("button", { name: "Open desktop user menu" })
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Reset demo data" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+  });
+
+  it("waits for remote auth before redirecting a protected deep link", () => {
+    useProfessionalStore.setState({
+      backendMode: "remote",
+      isBootstrapping: true,
+      session: null
+    });
+    renderAppAt("/admin/people");
+
+    expect(screen.getByText(/Loading your workspace/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Sign in to Blithob" })
+    ).not.toBeInTheDocument();
+  });
 
   it("keeps Admin phone navigation to four destinations plus More", async () => {
     const user = userEvent.setup();

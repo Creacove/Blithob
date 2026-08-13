@@ -227,7 +227,7 @@ export function ProfessionalDetailPage() {
               />
               {backendMode === "remote" && (
                 <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                  Login email is managed by Supabase Auth.
+                  Login email can only be changed by the account owner.
                 </p>
               )}
             </Field>

@@ -111,8 +111,8 @@ export function PaymentDetailPage() {
             ]}
           />
           <p className="mt-5 border-t border-[var(--border)] pt-5 text-sm leading-6 text-[var(--muted)]">
-            Receipt file names are recorded as prototype metadata and are not
-            downloadable.
+            Receipt details are recorded for your records. Contact Admin if you
+            need the original receipt file.
           </p>
           {payment.issueNote && (
             <div className="mt-5 rounded-lg bg-red-50 p-4 text-red-800">

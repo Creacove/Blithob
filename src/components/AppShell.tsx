@@ -125,12 +125,14 @@ function AccountMenu({
   compact,
   userName,
   workspaceLabel,
+  showReset,
   onReset,
   onSignOut
 }: {
   compact: boolean;
   userName: string;
   workspaceLabel: string;
+  showReset: boolean;
   onReset: () => void;
   onSignOut: () => void;
 }) {
@@ -188,14 +190,16 @@ function AccountMenu({
                 : "bottom-[calc(100%+8px)] left-0 right-0 w-auto"
             }`}
           >
-            <button
-              type="button"
-              onClick={onReset}
-              className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--ink)]"
-            >
-              <RotateCcw size={15} aria-hidden />
-              Reset demo data
-            </button>
+            {showReset && (
+              <button
+                type="button"
+                onClick={onReset}
+                className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--ink)]"
+              >
+                <RotateCcw size={15} aria-hidden />
+                Reset demo data
+              </button>
+            )}
             <button
               type="button"
               onClick={onSignOut}
@@ -217,6 +221,7 @@ function SideNavigation({
   compact = false,
   userName,
   workspaceLabel,
+  showReset,
   onReset,
   onSignOut
 }: {
@@ -225,6 +230,7 @@ function SideNavigation({
   compact?: boolean;
   userName: string;
   workspaceLabel: string;
+  showReset: boolean;
   onReset: () => void;
   onSignOut: () => void;
 }) {
@@ -269,6 +275,7 @@ function SideNavigation({
         compact={compact}
         userName={userName}
         workspaceLabel={workspaceLabel}
+        showReset={showReset}
         onReset={onReset}
         onSignOut={onSignOut}
       />
@@ -287,6 +294,7 @@ export function AppShell({ role }: { role: AccountRole }) {
   const signOut = useProfessionalStore((state) => state.signOut);
   const resetDemo = useProfessionalStore((state) => state.resetDemo);
   const backendMode = useProfessionalStore((state) => state.backendMode);
+  const showReset = backendMode === "demo";
   const backendError = useProfessionalStore((state) => state.error);
   const clearError = useProfessionalStore((state) => state.clearError);
   const refreshRemote = useProfessionalStore((state) => state.refreshRemote);
@@ -322,7 +330,10 @@ export function AppShell({ role }: { role: AccountRole }) {
   };
 
   const doReset = () => {
-    if (window.confirm("Reset all prototype changes and restore the demo data?")) {
+    if (
+      showReset &&
+      window.confirm("Reset your demo workspace and return to its starting data?")
+    ) {
       resetDemo();
       setMoreOpen(false);
       navigate(role === "admin" ? "/admin/today" : "/professional/today");
@@ -337,6 +348,7 @@ export function AppShell({ role }: { role: AccountRole }) {
           role={role}
           userName={currentUser?.name ?? mobileLabel}
           workspaceLabel={workspaceLabel}
+          showReset={showReset}
           onReset={doReset}
           onSignOut={doSignOut}
         />
@@ -349,6 +361,7 @@ export function AppShell({ role }: { role: AccountRole }) {
           compact
           userName={currentUser?.name ?? mobileLabel}
           workspaceLabel={workspaceLabel}
+          showReset={showReset}
           onReset={doReset}
           onSignOut={doSignOut}
         />
@@ -493,14 +506,16 @@ export function AppShell({ role }: { role: AccountRole }) {
             {currentUser?.name}
           </p>
           <div className="grid gap-2">
-            <button
-              type="button"
-              onClick={doReset}
-              className="flex min-h-12 items-center gap-3 rounded-xl px-4 text-left text-sm font-medium text-[var(--muted)] hover:bg-[var(--surface-subtle)]"
-            >
-              <RotateCcw size={17} aria-hidden />
-              Reset demo data
-            </button>
+            {showReset && (
+              <button
+                type="button"
+                onClick={doReset}
+                className="flex min-h-12 items-center gap-3 rounded-xl px-4 text-left text-sm font-medium text-[var(--muted)] hover:bg-[var(--surface-subtle)]"
+              >
+                <RotateCcw size={17} aria-hidden />
+                Reset demo data
+              </button>
+            )}
             <button
               type="button"
               onClick={doSignOut}

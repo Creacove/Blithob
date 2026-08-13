@@ -27,6 +27,21 @@ test("Admin records a cash payment from the task sheet", async ({ page }) => {
   await expect(page.getByText("Payment record saved")).toBeVisible();
 });
 
+test("Admin cannot create duplicate jobs from a double submit", async ({
+  page
+}) => {
+  await signIn(page, "Admin");
+  await page.goto("/admin/jobs/new");
+
+  const title = "Double-submit QA job";
+  await page.getByLabel("Job title").fill(title);
+  await page.getByRole("button", { name: "Save draft" }).dblclick();
+
+  await expect(page).toHaveURL(/\/admin\/jobs\/[^/]+$/);
+  await page.goto("/admin/jobs");
+  await expect(page.getByText(title, { exact: true })).toHaveCount(1);
+});
+
 test("Professional submits independent work with evidence", async ({ page }) => {
   await signIn(page, "Professional");
   await page.goto("/professional/work/assignment-amara-campaign");

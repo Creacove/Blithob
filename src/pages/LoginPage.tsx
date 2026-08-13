@@ -10,7 +10,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { BrandMark } from "../components/BrandMark";
 import { Button, Field, Input } from "../components/ui";
 import type { DemoPersona } from "../domain/model";
-import { isSupabaseConfigured } from "../lib/supabase";
+import { isDemoMode, isSupabaseConfigured } from "../lib/supabase";
 import { useProfessionalStore } from "../store/professionalStore";
 
 const personas = [
@@ -110,7 +110,7 @@ function RemoteAuthPage() {
           </h1>
           <p className="mt-4 text-base leading-7 text-[var(--muted)]">
             Use the email address associated with your Blithob account. Your
-            workspace and permissions come from the secure Supabase account.
+            workspace and permissions are managed by your organization.
           </p>
 
           <form
@@ -228,6 +228,36 @@ export function LoginPage() {
   }
 
   if (isSupabaseConfigured) return <RemoteAuthPage />;
+
+  if (!isDemoMode) {
+    return (
+      <main className="min-h-screen bg-[var(--canvas)] px-4 py-5 sm:px-8">
+        <div className="mx-auto max-w-5xl">
+          <div className="flex h-14 items-center justify-between">
+            <BrandMark />
+            <Link
+              to="/"
+              className="inline-flex min-h-11 items-center gap-2 rounded-[10px] px-3 text-sm font-medium text-[var(--muted)] hover:bg-white hover:text-[var(--ink)]"
+            >
+              <ArrowLeft size={16} aria-hidden="true" />
+              Back
+            </Link>
+          </div>
+          <section className="mx-auto max-w-xl py-10 sm:py-20">
+            <p className="text-sm font-medium text-[var(--blue)]">
+              Blithob Pro workspace
+            </p>
+            <h1 className="mt-3 text-[clamp(2.25rem,5vw,4rem)] font-semibold leading-[1.05] text-[var(--ink)]">
+              Sign-in is temporarily unavailable
+            </h1>
+            <p className="mt-4 text-base leading-7 text-[var(--muted)]">
+              Please try again later or contact your Blithob administrator.
+            </p>
+          </section>
+        </div>
+      </main>
+    );
+  }
 
   const enter = (persona: DemoPersona) => {
     signIn(persona);

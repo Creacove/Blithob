@@ -782,7 +782,7 @@ async function hydrateRemote(
     const user = remoteState.users.find((item) => item.id === userId);
     if (!user) {
       throw new Error(
-        "Your Supabase account exists, but its Blithob profile is not ready yet."
+        "Your account is recognized, but your Blithob profile is not ready yet. Contact an administrator."
       );
     }
     const professional = user.professionalId

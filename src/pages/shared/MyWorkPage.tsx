@@ -400,13 +400,13 @@ export function MyWorkPage({
             />
           </Field>
           <Field
-            label="Attach file"
-            hint="The prototype stores only the file name; no upload occurs."
+            label="File name"
+            hint="Optional. Record the name of a file shared with this submission."
           >
             <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-center transition hover:border-blue-400 hover:bg-blue-50/40">
               <FileUp size={20} className="text-[#2563EB]" />
               <span className="mt-2 text-xs font-bold text-[#102A43]">
-                {fileName || "Choose a file"}
+                {fileName || "Choose a file to record its name"}
               </span>
               <input
                 type="file"
