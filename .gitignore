@@ -6,6 +6,7 @@ playwright-report/
 test-results/
 output/playwright/
 .worktrees/
+.playwright-cli/
 .env
 .env.local
 *.log

@@ -90,38 +90,50 @@ export function AdminAssignmentPage() {
     .filter((item) => item.assignmentId === assignment.id)
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 
-  const submitReview = () => {
+  const submitReview = async () => {
     if (!comment.trim() || !currentUser) {
       error("Add a clear review comment");
       return;
     }
-    reviewAssignment({
-      assignmentId: assignment.id,
-      reviewerUserId: currentUser.id,
-      reviewerType: "admin",
-      decision,
-      comment
-    });
-    setReviewOpen(false);
-    setComment("");
-    success(decision === "approved" ? "Assignment approved" : "Changes requested");
+    try {
+      await reviewAssignment({
+        assignmentId: assignment.id,
+        reviewerUserId: currentUser.id,
+        reviewerType: "admin",
+        decision,
+        comment
+      });
+      setReviewOpen(false);
+      setComment("");
+      success(decision === "approved" ? "Assignment approved" : "Changes requested");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Assignment review could not be saved");
+    }
   };
 
-  const confirmComplete = () => {
-    completeAssignment(assignment.id);
-    setCompleteOpen(false);
-    success("Assignment completed and payment created");
+  const confirmComplete = async () => {
+    try {
+      await completeAssignment(assignment.id);
+      setCompleteOpen(false);
+      success("Assignment completed and payment created");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Assignment could not be completed");
+    }
   };
 
-  const confirmCancel = () => {
+  const confirmCancel = async () => {
     if (!cancellationReason.trim()) {
       error("Add a short cancellation reason");
       return;
     }
-    cancelAssignment(assignment.id, cancellationReason);
-    setCancelOpen(false);
-    setCancellationReason("");
-    success("Assignment cancelled");
+    try {
+      await cancelAssignment(assignment.id, cancellationReason);
+      setCancelOpen(false);
+      setCancellationReason("");
+      success("Assignment cancelled");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Assignment could not be cancelled");
+    }
   };
 
   return (

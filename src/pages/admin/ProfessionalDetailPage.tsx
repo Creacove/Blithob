@@ -36,6 +36,7 @@ export function ProfessionalDetailPage() {
     state.professionals.find((item) => item.id === professionalId)
   );
   const professionals = useProfessionalStore((state) => state.professionals);
+  const backendMode = useProfessionalStore((state) => state.backendMode);
   const services = useProfessionalStore((state) => state.services);
   const enrolments = useProfessionalStore(
     (state) => state.serviceEnrolments
@@ -109,51 +110,71 @@ export function ProfessionalDetailPage() {
     );
   }
 
-  const saveProfile = (event: React.FormEvent) => {
+  const saveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
-    updateProfessional(professional.id, profileForm);
-    success("Contact details saved");
+    try {
+      await updateProfessional(professional.id, profileForm);
+      success("Contact details saved");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Contact details could not be saved");
+    }
   };
 
-  const saveNotes = () => {
-    updateProfessional(professional.id, { adminNotes });
-    success("Internal notes saved");
+  const saveNotes = async () => {
+    try {
+      await updateProfessional(professional.id, { adminNotes });
+      success("Internal notes saved");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Internal notes could not be saved");
+    }
   };
 
-  const enrol = (event: React.FormEvent) => {
+  const enrol = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!serviceId) return;
-    const created = createServiceEnrolment(
-      professional.id,
-      serviceId,
-      leadId || undefined
-    );
-    if (!created) {
-      error("This Service cannot be assigned");
-      return;
+    try {
+      const created = await createServiceEnrolment(
+        professional.id,
+        serviceId,
+        leadId || undefined
+      );
+      if (!created) {
+        error("This Service cannot be assigned");
+        return;
+      }
+      setEnrolDrawerOpen(false);
+      setServiceId("");
+      setLeadId("");
+      success("Service readiness assigned");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Service readiness could not be assigned");
     }
-    setEnrolDrawerOpen(false);
-    setServiceId("");
-    setLeadId("");
-    success("Service readiness assigned");
   };
 
-  const changeCapability = () => {
-    setLeadCapability(professional.id, !professional.isLead);
-    setCapabilityConfirmOpen(false);
-    success(
-      professional.isLead
-        ? "Lead capability removed"
-        : "Lead capability granted"
-    );
+  const changeCapability = async () => {
+    try {
+      await setLeadCapability(professional.id, !professional.isLead);
+      setCapabilityConfirmOpen(false);
+      success(
+        professional.isLead
+          ? "Lead capability removed"
+          : "Lead capability granted"
+      );
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Lead capability could not be changed");
+    }
   };
 
-  const confirmRemoveEnrolment = () => {
+  const confirmRemoveEnrolment = async () => {
     if (!removeEnrolmentId) return;
-    const removed = removeServiceEnrolment(removeEnrolmentId);
-    setRemoveEnrolmentId(undefined);
-    if (removed) success("Service enrolment removed");
-    else error("This enrolment is already approved or linked to work");
+    try {
+      const removed = await removeServiceEnrolment(removeEnrolmentId);
+      setRemoveEnrolmentId(undefined);
+      if (removed) success("Service enrolment removed");
+      else error("This enrolment is already approved or linked to work");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Service enrolment could not be removed");
+    }
   };
 
   return (
@@ -196,6 +217,7 @@ export function ProfessionalDetailPage() {
               <Input
                 type="email"
                 value={profileForm.email}
+                disabled={backendMode === "remote"}
                 onChange={(event) =>
                   setProfileForm((current) => ({
                     ...current,
@@ -203,6 +225,11 @@ export function ProfessionalDetailPage() {
                   }))
                 }
               />
+              {backendMode === "remote" && (
+                <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                  Login email is managed by Supabase Auth.
+                </p>
+              )}
             </Field>
             <Field label="Phone">
               <Input

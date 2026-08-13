@@ -71,24 +71,28 @@ export function TeamDetailPage() {
   ).length;
   const canReview = enrolment.status === "waiting_for_lead";
 
-  const decide = (decision: "changes_requested" | "certified") => {
+  const decide = async (decision: "changes_requested" | "certified") => {
     if (!currentUser || !feedback.trim()) {
       error("Add clear Lead feedback");
       return;
     }
-    reviewServiceEnrolment({
-      enrolmentId: enrolment.id,
-      reviewerUserId: currentUser.id,
-      reviewerType: "lead",
-      decision,
-      comment: feedback
-    });
-    setFeedback("");
-    success(
-      decision === "certified"
-        ? "Readiness certified for Admin"
-        : "Changes requested"
-    );
+    try {
+      await reviewServiceEnrolment({
+        enrolmentId: enrolment.id,
+        reviewerUserId: currentUser.id,
+        reviewerType: "lead",
+        decision,
+        comment: feedback
+      });
+      setFeedback("");
+      success(
+        decision === "certified"
+          ? "Readiness certified for Admin"
+          : "Changes requested"
+      );
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Readiness review could not be saved");
+    }
   };
 
   return (

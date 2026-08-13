@@ -104,47 +104,59 @@ export function AdminReviewsPage() {
     .filter((review) => review.enrolmentId === selectedEnrolment?.id)
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 
-  const decideWork = (decision: "changes_requested" | "approved") => {
+  const decideWork = async (decision: "changes_requested" | "approved") => {
     if (!selectedAssignment || !currentUser || !feedback.trim()) {
       error("Add clear review feedback");
       return;
     }
-    reviewAssignment({
-      assignmentId: selectedAssignment.id,
-      reviewerUserId: currentUser.id,
-      reviewerType: "admin",
-      decision,
-      comment: feedback
-    });
-    setSelectedAssignmentId(undefined);
-    setFeedback("");
-    success(decision === "approved" ? "Assignment approved" : "Changes requested");
+    try {
+      await reviewAssignment({
+        assignmentId: selectedAssignment.id,
+        reviewerUserId: currentUser.id,
+        reviewerType: "admin",
+        decision,
+        comment: feedback
+      });
+      setSelectedAssignmentId(undefined);
+      setFeedback("");
+      success(decision === "approved" ? "Assignment approved" : "Changes requested");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Assignment review could not be saved");
+    }
   };
 
-  const decideReadiness = (
+  const decideReadiness = async (
     decision: "changes_requested" | "approved"
   ) => {
     if (!selectedEnrolment || !currentUser || !feedback.trim()) {
       error("Add clear review feedback");
       return;
     }
-    reviewServiceEnrolment({
-      enrolmentId: selectedEnrolment.id,
-      reviewerUserId: currentUser.id,
-      reviewerType: "admin",
-      decision,
-      comment: feedback
-    });
-    setSelectedEnrolmentId(undefined);
-    setFeedback("");
-    success(decision === "approved" ? "Readiness approved" : "Changes requested");
+    try {
+      await reviewServiceEnrolment({
+        enrolmentId: selectedEnrolment.id,
+        reviewerUserId: currentUser.id,
+        reviewerType: "admin",
+        decision,
+        comment: feedback
+      });
+      setSelectedEnrolmentId(undefined);
+      setFeedback("");
+      success(decision === "approved" ? "Readiness approved" : "Changes requested");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Readiness review could not be saved");
+    }
   };
 
-  const confirmComplete = () => {
+  const confirmComplete = async () => {
     if (!completeAssignmentId) return;
-    completeAssignment(completeAssignmentId);
-    setCompleteAssignmentId(undefined);
-    success("Assignment completed and payment created");
+    try {
+      await completeAssignment(completeAssignmentId);
+      setCompleteAssignmentId(undefined);
+      success("Assignment completed and payment created");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Assignment could not be completed");
+    }
   };
 
   return (

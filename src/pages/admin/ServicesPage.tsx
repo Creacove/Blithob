@@ -30,7 +30,7 @@ export function ServicesPage() {
   const [description, setDescription] = useState("");
   const [requirements, setRequirements] = useState([emptyRequirement()]);
   const navigate = useNavigate();
-  const { success } = useToast();
+  const { success, error } = useToast();
   const services = useProfessionalStore((state) => state.services);
   const enrolments = useProfessionalStore(
     (state) => state.serviceEnrolments
@@ -46,22 +46,26 @@ export function ServicesPage() {
       .includes(query.trim().toLowerCase())
   );
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     const validRequirements = requirements.filter(
       (requirement) =>
         requirement.title.trim() && requirement.description.trim()
     );
     if (!name.trim() || !shortName.trim() || !description.trim()) return;
-    const id = createService({
-      name,
-      shortName,
-      description,
-      requirements: validRequirements
-    });
-    success("Service created");
-    setDrawerOpen(false);
-    navigate(`/admin/services/${id}`);
+    try {
+      const id = await createService({
+        name,
+        shortName,
+        description,
+        requirements: validRequirements
+      });
+      success("Service created");
+      setDrawerOpen(false);
+      navigate(`/admin/services/${id}`);
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Service could not be created");
+    }
   };
 
   return (

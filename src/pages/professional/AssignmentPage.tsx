@@ -58,7 +58,7 @@ export function AssignmentPage() {
   const [link, setLink] = useState("");
   const [fileName, setFileName] = useState("");
   const [checkedCriteria, setCheckedCriteria] = useState<string[]>([]);
-  const { success } = useToast();
+  const { success, error } = useToast();
 
   if (
     !professional ||
@@ -91,19 +91,27 @@ export function AssignmentPage() {
     notes.trim() &&
     (!job.submissionEvidenceRequired || link.trim() || fileName.trim());
 
-  const start = () => {
-    startAssignment(assignment.id);
-    success("Assignment started");
+  const start = async () => {
+    try {
+      await startAssignment(assignment.id);
+      success("Assignment started");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Assignment could not be started");
+    }
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!canSubmit) return;
-    submitAssignment(assignment.id, { notes, link, fileName });
-    setDrawerOpen(false);
-    setNotes("");
-    setLink("");
-    setFileName("");
-    success("Work submitted for review");
+    try {
+      await submitAssignment(assignment.id, { notes, link, fileName });
+      setDrawerOpen(false);
+      setNotes("");
+      setLink("");
+      setFileName("");
+      success("Work submitted for review");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Work could not be submitted");
+    }
   };
 
   return (

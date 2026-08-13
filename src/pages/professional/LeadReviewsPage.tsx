@@ -76,25 +76,29 @@ export function LeadReviewsPage() {
     .filter((review) => review.assignmentId === selected?.id)
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 
-  const decide = (decision: "changes_requested" | "certified") => {
+  const decide = async (decision: "changes_requested" | "certified") => {
     if (!selected || !currentUser || !feedback.trim()) {
       error("Add clear Lead feedback");
       return;
     }
-    reviewAssignment({
-      assignmentId: selected.id,
-      reviewerUserId: currentUser.id,
-      reviewerType: "lead",
-      decision,
-      comment: feedback
-    });
-    setSelectedId(undefined);
-    setFeedback("");
-    success(
-      decision === "certified"
-        ? "Assignment certified for Admin"
-        : "Changes requested"
-    );
+    try {
+      await reviewAssignment({
+        assignmentId: selected.id,
+        reviewerUserId: currentUser.id,
+        reviewerType: "lead",
+        decision,
+        comment: feedback
+      });
+      setSelectedId(undefined);
+      setFeedback("");
+      success(
+        decision === "certified"
+          ? "Assignment certified for Admin"
+          : "Changes requested"
+      );
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Assignment review could not be saved");
+    }
   };
 
   return (

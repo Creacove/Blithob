@@ -94,7 +94,7 @@ export function JobDetailPage() {
     (draft) => draft.selected
   ).length;
 
-  const submitAssignments = () => {
+  const submitAssignments = async () => {
     const inputs = Object.entries(drafts)
       .filter(([, draft]) => draft.selected)
       .map(([professionalId, draft]) => ({
@@ -112,18 +112,26 @@ export function JobDetailPage() {
       error("Set pay and deadline for every selected Professional");
       return;
     }
-    addAssignments(job.id, inputs);
-    setDrawerOpen(false);
-    setDrafts({});
-    success(
-      `${inputs.length} Assignment${inputs.length === 1 ? "" : "s"} created`
-    );
+    try {
+      await addAssignments(job.id, inputs);
+      setDrawerOpen(false);
+      setDrafts({});
+      success(
+        `${inputs.length} Assignment${inputs.length === 1 ? "" : "s"} created`
+      );
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Assignments could not be created");
+    }
   };
 
-  const confirmArchive = () => {
-    archiveJob(job.id);
-    setArchiveOpen(false);
-    success("Job archived");
+  const confirmArchive = async () => {
+    try {
+      await archiveJob(job.id);
+      setArchiveOpen(false);
+      success("Job archived");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Job could not be archived");
+    }
   };
 
   return (

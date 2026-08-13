@@ -32,7 +32,7 @@ export function PeoplePage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const navigate = useNavigate();
-  const { success } = useToast();
+  const { success, error } = useToast();
   const professionals = useProfessionalStore((state) => state.professionals);
   const enrolments = useProfessionalStore(
     (state) => state.serviceEnrolments
@@ -57,7 +57,7 @@ export function PeoplePage() {
     return matchesQuery && matchesFilter;
   });
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (
       !form.name.trim() ||
@@ -67,11 +67,15 @@ export function PeoplePage() {
     ) {
       return;
     }
-    const id = createProfessional(form);
-    setDrawerOpen(false);
-    setForm(emptyForm);
-    success("Professional account created");
-    navigate(`/admin/people/${id}`);
+    try {
+      const id = await createProfessional(form);
+      setDrawerOpen(false);
+      setForm(emptyForm);
+      success("Professional account created");
+      navigate(`/admin/people/${id}`);
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Professional account could not be created");
+    }
   };
 
   return (

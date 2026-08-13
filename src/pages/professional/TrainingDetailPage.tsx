@@ -54,7 +54,7 @@ export function TrainingDetailPage() {
       ])
     )
   );
-  const { success } = useToast();
+  const { success, error } = useToast();
 
   if (
     !professional ||
@@ -94,26 +94,34 @@ export function TrainingDetailPage() {
     );
   });
 
-  const toggleRequirement = (requirementId: string, completed: boolean) => {
+  const toggleRequirement = async (requirementId: string, completed: boolean) => {
     const draft = evidence[requirementId] ?? {
       evidenceLink: "",
       evidenceFileName: ""
     };
-    setRequirementProgress(enrolment.id, requirementId, {
-      completed,
-      evidenceLink: draft.evidenceLink,
-      evidenceFileName: draft.evidenceFileName
-    });
+    try {
+      await setRequirementProgress(enrolment.id, requirementId, {
+        completed,
+        evidenceLink: draft.evidenceLink,
+        evidenceFileName: draft.evidenceFileName
+      });
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Readiness progress could not be saved");
+    }
   };
 
-  const sendForReview = () => {
+  const sendForReview = async () => {
     if (!canSubmit) return;
-    submitServiceEnrolment(enrolment.id);
-    success(
-      enrolment.leadId && enrolment.leadId !== professional.id
-        ? "Readiness sent to your Lead"
-        : "Readiness sent to Admin"
-    );
+    try {
+      await submitServiceEnrolment(enrolment.id);
+      success(
+        enrolment.leadId && enrolment.leadId !== professional.id
+          ? "Readiness sent to your Lead"
+          : "Readiness sent to Admin"
+      );
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Readiness could not be sent for review");
+    }
   };
 
   return (

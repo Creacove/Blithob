@@ -54,7 +54,7 @@ export function AdminPaymentPage() {
     () => payment?.internalNote ?? ""
   );
   const [correctionNote, setCorrectionNote] = useState("");
-  const { success } = useToast();
+  const { success, error } = useToast();
 
   if (!payment || !assignment || !job || !professional) {
     return (
@@ -71,19 +71,23 @@ export function AdminPaymentPage() {
     (method === "cash" || reference.trim()) &&
     correctionNote.trim();
 
-  const saveCorrection = () => {
+  const saveCorrection = async () => {
     if (!canCorrect) return;
-    correctPayment(payment.id, {
-      paymentDate: new Date(paymentDate).toISOString(),
-      method,
-      reference,
-      receiptFileName,
-      internalNote,
-      correctionNote
-    });
-    setDrawerOpen(false);
-    setCorrectionNote("");
-    success("Payment record corrected");
+    try {
+      await correctPayment(payment.id, {
+        paymentDate: new Date(paymentDate).toISOString(),
+        method,
+        reference,
+        receiptFileName,
+        internalNote,
+        correctionNote
+      });
+      setDrawerOpen(false);
+      setCorrectionNote("");
+      success("Payment record corrected");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Payment record could not be corrected");
+    }
   };
 
   return (

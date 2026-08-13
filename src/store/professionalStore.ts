@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { migrateLegacyState } from "../domain/migrate";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { SupabaseRepository } from "../lib/supabaseRepository";
 import type {
   DemoPersona,
   DemoState,
@@ -41,6 +43,9 @@ interface Session {
   persona: DemoPersona;
 }
 
+type BackendMode = "demo" | "remote";
+type AsyncValue<T> = T | Promise<T>;
+
 export interface CreateProfessionalInput {
   name: string;
   email: string;
@@ -72,13 +77,25 @@ export type JobDraftInput = Omit<
 
 interface ProfessionalActions {
   session: Session | null;
+  backendMode: BackendMode;
+  isBootstrapping: boolean;
+  isLoading: boolean;
+  isPasswordRecovery: boolean;
+  error: string | null;
   signIn: (persona: DemoPersona) => void;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string) => Promise<boolean>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
   signOut: () => void;
+  initializeBackend: () => Promise<void>;
+  refreshRemote: () => Promise<void>;
+  clearError: () => void;
   currentUser: () => DemoState["users"][number] | undefined;
   currentProfessional: () => Professional | undefined;
   resetDemo: () => void;
 
-  createProfessional: (input: CreateProfessionalInput) => string;
+  createProfessional: (input: CreateProfessionalInput) => AsyncValue<string>;
   updateProfessional: (
     professionalId: string,
     input: Partial<
@@ -87,63 +104,63 @@ interface ProfessionalActions {
         "name" | "email" | "phone" | "location" | "adminNotes" | "accountStatus"
       >
     >
-  ) => void;
-  removeProfessional: (professionalId: string) => boolean;
-  setLeadCapability: (professionalId: string, enabled: boolean) => void;
+  ) => AsyncValue<void>;
+  removeProfessional: (professionalId: string) => AsyncValue<boolean>;
+  setLeadCapability: (professionalId: string, enabled: boolean) => AsyncValue<void>;
 
-  createService: (input: CreateServiceInput) => string;
+  createService: (input: CreateServiceInput) => AsyncValue<string>;
   updateService: (
     serviceId: string,
     input: Partial<Pick<Service, "name" | "shortName" | "description">>
-  ) => void;
+  ) => AsyncValue<void>;
   replaceServiceRequirements: (
     serviceId: string,
     requirements: ServiceRequirementInput[]
-  ) => void;
-  setServiceActive: (serviceId: string, active: boolean) => boolean;
+  ) => AsyncValue<void>;
+  setServiceActive: (serviceId: string, active: boolean) => AsyncValue<boolean>;
 
   createServiceEnrolment: (
     professionalId: string,
     serviceId: string,
     leadId?: string
-  ) => string | undefined;
-  assignServiceLead: (enrolmentId: string, leadId?: string) => void;
+  ) => AsyncValue<string | undefined>;
+  assignServiceLead: (enrolmentId: string, leadId?: string) => AsyncValue<void>;
   setRequirementProgress: (
     enrolmentId: string,
     requirementId: string,
     input: Pick<
       RequirementProgress,
-      "completed" | "evidenceLink" | "evidenceFileName"
+      "completed" | "evidenceLink" | "evidenceFilePath" | "evidenceFileName"
     >
-  ) => void;
-  submitServiceEnrolment: (enrolmentId: string) => void;
-  reviewServiceEnrolment: (command: ServiceEnrolmentReviewCommand) => void;
-  removeServiceEnrolment: (enrolmentId: string) => boolean;
+  ) => AsyncValue<void>;
+  submitServiceEnrolment: (enrolmentId: string) => AsyncValue<void>;
+  reviewServiceEnrolment: (command: ServiceEnrolmentReviewCommand) => AsyncValue<void>;
+  removeServiceEnrolment: (enrolmentId: string) => AsyncValue<boolean>;
 
-  createJob: (input: JobDraftInput) => string | undefined;
-  updateJob: (jobId: string, input: Partial<JobDraftInput>) => void;
-  publishJob: (jobId: string) => boolean;
-  archiveJob: (jobId: string) => void;
+  createJob: (input: JobDraftInput) => AsyncValue<string | undefined>;
+  updateJob: (jobId: string, input: Partial<JobDraftInput>) => AsyncValue<void>;
+  publishJob: (jobId: string) => AsyncValue<boolean>;
+  archiveJob: (jobId: string) => AsyncValue<void>;
 
-  addAssignments: (jobId: string, inputs: NewAssignmentInput[]) => void;
-  startAssignment: (assignmentId: string) => void;
+  addAssignments: (jobId: string, inputs: NewAssignmentInput[]) => AsyncValue<void>;
+  startAssignment: (assignmentId: string) => AsyncValue<void>;
   submitAssignment: (
     assignmentId: string,
     input: Parameters<typeof submitAssignmentWorkflow>[2]
-  ) => void;
-  reviewAssignment: (command: AssignmentReviewCommand) => void;
-  completeAssignment: (assignmentId: string) => void;
-  cancelAssignment: (assignmentId: string, reason: string) => void;
+  ) => AsyncValue<void>;
+  reviewAssignment: (command: AssignmentReviewCommand) => AsyncValue<void>;
+  completeAssignment: (assignmentId: string) => AsyncValue<void>;
+  cancelAssignment: (assignmentId: string, reason: string) => AsyncValue<void>;
 
   recordPayment: (
     paymentId: string,
     input: RecordPaymentInput
-  ) => void;
+  ) => AsyncValue<void>;
   correctPayment: (
     paymentId: string,
     input: Parameters<typeof correctPaymentWorkflow>[2]
-  ) => void;
-  markNotificationRead: (notificationId: string) => void;
+  ) => AsyncValue<void>;
+  markNotificationRead: (notificationId: string) => AsyncValue<void>;
 
   approvedServiceIdsFor: (professionalId: string) => string[];
   jobOperationalStatus: (
@@ -160,11 +177,18 @@ interface ProfessionalActions {
 export type ProfessionalStore = DemoState & ProfessionalActions;
 
 function makeId(prefix: string) {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 function now() {
   return new Date().toISOString();
+}
+
+function commit(update: () => unknown) {
+  update();
 }
 
 function validJobForPublishing(state: DemoState, job: Job) {
@@ -227,6 +251,11 @@ export const useProfessionalStore = create<ProfessionalStore>()(
     (set, get) => ({
       ...createDemoState(),
       session: null,
+      backendMode: isSupabaseConfigured ? "remote" : "demo",
+      isBootstrapping: isSupabaseConfigured,
+      isLoading: false,
+      isPasswordRecovery: false,
+      error: null,
 
       signIn: (persona) =>
         set((state) => {
@@ -235,7 +264,14 @@ export const useProfessionalStore = create<ProfessionalStore>()(
             session: user ? { persona, userId: user.id } : null
           };
         }),
+      signInWithPassword: async () => undefined,
+      signUp: async () => false,
+      requestPasswordReset: async () => undefined,
+      updatePassword: async () => undefined,
       signOut: () => set({ session: null }),
+      initializeBackend: async () => undefined,
+      refreshRemote: async () => undefined,
+      clearError: () => set({ error: null }),
       currentUser: () => {
         const session = get().session;
         return session
@@ -286,8 +322,8 @@ export const useProfessionalStore = create<ProfessionalStore>()(
         return professionalId;
       },
 
-      updateProfessional: (professionalId, input) =>
-        set((state) => {
+      updateProfessional: (professionalId, input) => {
+        commit(() => set((state) => {
           const professional = state.professionals.find(
             (item) => item.id === professionalId
           );
@@ -315,7 +351,8 @@ export const useProfessionalStore = create<ProfessionalStore>()(
                 : item
             )
           };
-        }),
+        }));
+      },
 
       removeProfessional: (professionalId) => {
         const state = get();
@@ -342,8 +379,8 @@ export const useProfessionalStore = create<ProfessionalStore>()(
         return true;
       },
 
-      setLeadCapability: (professionalId, enabled) =>
-        set((state) => ({
+      setLeadCapability: (professionalId, enabled) => {
+        commit(() => set((state) => ({
           professionals: state.professionals.map((item) =>
             item.id === professionalId ? { ...item, isLead: enabled } : item
           ),
@@ -376,7 +413,8 @@ export const useProfessionalStore = create<ProfessionalStore>()(
                     }
                   : item
               )
-        })),
+        })));
+      },
 
       createService: (input) => {
         const serviceId = makeId("service");
@@ -405,8 +443,8 @@ export const useProfessionalStore = create<ProfessionalStore>()(
         return serviceId;
       },
 
-      updateService: (serviceId, input) =>
-        set((state) => ({
+      updateService: (serviceId, input) => {
+        commit(() => set((state) => ({
           services: state.services.map((item) =>
             item.id === serviceId
               ? {
@@ -419,10 +457,11 @@ export const useProfessionalStore = create<ProfessionalStore>()(
                 }
               : item
           )
-        })),
+        })));
+      },
 
-      replaceServiceRequirements: (serviceId, requirements) =>
-        set((state) => {
+      replaceServiceRequirements: (serviceId, requirements) => {
+        commit(() => set((state) => {
           const nextRequirements = requirements.map((requirement, order) => ({
             id: requirement.id ?? makeId("requirement"),
             title: requirement.title.trim(),
@@ -459,7 +498,8 @@ export const useProfessionalStore = create<ProfessionalStore>()(
                 : enrolment
             )
           };
-        }),
+        }));
+      },
 
       setServiceActive: (serviceId, active) => {
         const state = get();
@@ -489,7 +529,7 @@ export const useProfessionalStore = create<ProfessionalStore>()(
                 (item) => item.id === leadId && item.isLead
               )
             : undefined;
-        const enrolmentId = `enrolment-${professionalId}-${serviceId}`;
+        const enrolmentId = makeId("enrolment");
         const createdAt = now();
         set({
           serviceEnrolments: [
@@ -512,8 +552,8 @@ export const useProfessionalStore = create<ProfessionalStore>()(
         return enrolmentId;
       },
 
-      assignServiceLead: (enrolmentId, leadId) =>
-        set((state) => {
+      assignServiceLead: (enrolmentId, leadId) => {
+        commit(() => set((state) => {
           const enrolment = state.serviceEnrolments.find(
             (item) => item.id === enrolmentId
           );
@@ -528,21 +568,25 @@ export const useProfessionalStore = create<ProfessionalStore>()(
                 : item
             )
           };
-        }),
+        }));
+      },
 
-      setRequirementProgress: (enrolmentId, requirementId, input) =>
-        set((state) =>
+      setRequirementProgress: (enrolmentId, requirementId, input) => {
+        commit(() => set((state) =>
           setRequirementProgressWorkflow(
             state,
             enrolmentId,
             requirementId,
             input
           )
-        ),
-      submitServiceEnrolment: (enrolmentId) =>
-        set((state) => submitServiceEnrolmentWorkflow(state, enrolmentId)),
-      reviewServiceEnrolment: (command) =>
-        set((state) => reviewServiceEnrolmentWorkflow(state, command)),
+        ));
+      },
+      submitServiceEnrolment: (enrolmentId) => {
+        commit(() => set((state) => submitServiceEnrolmentWorkflow(state, enrolmentId)));
+      },
+      reviewServiceEnrolment: (command) => {
+        commit(() => set((state) => reviewServiceEnrolmentWorkflow(state, command)));
+      },
       removeServiceEnrolment: (enrolmentId) => {
         const state = get();
         const next = removeServiceEnrolmentWorkflow(state, enrolmentId);
@@ -573,8 +617,8 @@ export const useProfessionalStore = create<ProfessionalStore>()(
         return jobId;
       },
 
-      updateJob: (jobId, input) =>
-        set((state) => ({
+      updateJob: (jobId, input) => {
+        commit(() => set((state) => ({
           jobs: state.jobs.map((item) =>
             item.id === jobId
               ? {
@@ -586,7 +630,8 @@ export const useProfessionalStore = create<ProfessionalStore>()(
                 }
               : item
           )
-        })),
+        })));
+      },
 
       publishJob: (jobId) => {
         const state = get();
@@ -602,42 +647,52 @@ export const useProfessionalStore = create<ProfessionalStore>()(
         return true;
       },
 
-      archiveJob: (jobId) =>
-        set((state) => ({
+      archiveJob: (jobId) => {
+        commit(() => set((state) => ({
           jobs: state.jobs.map((item) =>
             item.id === jobId
               ? { ...item, publicationState: "archived", updatedAt: now() }
               : item
           )
-        })),
+        })));
+      },
 
-      addAssignments: (jobId, inputs) =>
-        set((state) => addAssignmentsWorkflow(state, jobId, inputs)),
-      startAssignment: (assignmentId) =>
-        set((state) => startAssignmentWorkflow(state, assignmentId)),
-      submitAssignment: (assignmentId, input) =>
-        set((state) =>
+      addAssignments: (jobId, inputs) => {
+        commit(() => set((state) => addAssignmentsWorkflow(state, jobId, inputs)));
+      },
+      startAssignment: (assignmentId) => {
+        commit(() => set((state) => startAssignmentWorkflow(state, assignmentId)));
+      },
+      submitAssignment: (assignmentId, input) => {
+        commit(() => set((state) =>
           submitAssignmentWorkflow(state, assignmentId, input)
-        ),
-      reviewAssignment: (command) =>
-        set((state) => reviewAssignmentWorkflow(state, command)),
-      completeAssignment: (assignmentId) =>
-        set((state) => completeAssignmentWorkflow(state, assignmentId)),
-      cancelAssignment: (assignmentId, reason) =>
-        set((state) =>
+        ));
+      },
+      reviewAssignment: (command) => {
+        commit(() => set((state) => reviewAssignmentWorkflow(state, command)));
+      },
+      completeAssignment: (assignmentId) => {
+        commit(() => set((state) => completeAssignmentWorkflow(state, assignmentId)));
+      },
+      cancelAssignment: (assignmentId, reason) => {
+        commit(() => set((state) =>
           cancelAssignmentWorkflow(state, assignmentId, reason)
-        ),
+        ));
+      },
 
-      recordPayment: (paymentId, input) =>
-        set((state) => recordPaymentWorkflow(state, paymentId, input)),
-      correctPayment: (paymentId, input) =>
-        set((state) => correctPaymentWorkflow(state, paymentId, input)),
-      markNotificationRead: (notificationId) =>
-        set((state) => ({
+      recordPayment: (paymentId, input) => {
+        commit(() => set((state) => recordPaymentWorkflow(state, paymentId, input)));
+      },
+      correctPayment: (paymentId, input) => {
+        commit(() => set((state) => correctPaymentWorkflow(state, paymentId, input)));
+      },
+      markNotificationRead: (notificationId) => {
+        commit(() => set((state) => ({
           notifications: state.notifications.map((item) =>
             item.id === notificationId ? { ...item, read: true } : item
           )
-        })),
+        })));
+      },
 
       approvedServiceIdsFor: (professionalId) =>
         approvedServiceIdsFor(get(), professionalId),
@@ -659,7 +714,517 @@ export const useProfessionalStore = create<ProfessionalStore>()(
           } as ProfessionalStore;
         }
         return persistedState as ProfessionalStore;
-      }
+      },
+      partialize: (state) =>
+        state.backendMode === "remote"
+          ? { backendMode: "remote", session: null }
+          : state
     }
   )
 );
+
+function emptyRemoteState(): DemoState {
+  return {
+    users: [],
+    professionals: [],
+    services: [],
+    serviceEnrolments: [],
+    readinessReviews: [],
+    jobs: [],
+    assignments: [],
+    submissions: [],
+    assignmentReviews: [],
+    payments: [],
+    notifications: [],
+    activity: []
+  };
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Something went wrong.";
+}
+
+const remoteRepository = supabase ? new SupabaseRepository(supabase) : null;
+let authSubscription: { unsubscribe: () => void } | null = null;
+let remoteQueue = Promise.resolve();
+let remoteSessionGeneration = 0;
+
+function beginRemoteSession() {
+  remoteSessionGeneration += 1;
+  remoteQueue = Promise.resolve();
+  return remoteSessionGeneration;
+}
+
+function invalidateRemoteSession() {
+  beginRemoteSession();
+}
+
+function isCurrentRemoteSession(userId: string, generation: number) {
+  const state = useProfessionalStore.getState();
+  return (
+    generation === remoteSessionGeneration &&
+    state.backendMode === "remote" &&
+    (!state.session || state.session.userId === userId)
+  );
+}
+
+async function hydrateRemote(
+  userId: string,
+  showLoading = true,
+  generation = remoteSessionGeneration
+) {
+  if (!remoteRepository) return;
+  if (!isCurrentRemoteSession(userId, generation)) return;
+  if (showLoading) useProfessionalStore.setState({ isLoading: true });
+  try {
+    const remoteState = await remoteRepository.loadState();
+    if (!isCurrentRemoteSession(userId, generation)) return;
+    const user = remoteState.users.find((item) => item.id === userId);
+    if (!user) {
+      throw new Error(
+        "Your Supabase account exists, but its Blithob profile is not ready yet."
+      );
+    }
+    const professional = user.professionalId
+      ? remoteState.professionals.find(
+          (item) => item.id === user.professionalId
+        )
+      : undefined;
+    const persona: DemoPersona =
+      user.accountRole === "admin"
+        ? "admin"
+        : professional?.isLead
+          ? "lead"
+          : "professional";
+    useProfessionalStore.setState({
+      ...remoteState,
+      backendMode: "remote",
+      session: { userId, persona },
+      isPasswordRecovery: false,
+      error: null
+    });
+  } finally {
+    if (generation === remoteSessionGeneration) {
+      useProfessionalStore.setState({
+        isLoading: false,
+        isBootstrapping: false
+      });
+    }
+  }
+}
+
+async function initializeBackend() {
+  if (!remoteRepository || !supabase) {
+    useProfessionalStore.setState({
+      backendMode: "demo",
+      isBootstrapping: false,
+      isLoading: false,
+      isPasswordRecovery: false
+    });
+    return;
+  }
+
+  useProfessionalStore.setState({
+    backendMode: "remote",
+    isBootstrapping: true,
+    error: null
+  });
+
+  try {
+    if (!authSubscription) {
+      const { data: authData } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          if (event === "SIGNED_OUT") {
+            invalidateRemoteSession();
+            useProfessionalStore.setState({
+              ...emptyRemoteState(),
+              session: null,
+              isPasswordRecovery: false,
+              isBootstrapping: false,
+              isLoading: false
+            });
+            return;
+          }
+          if (event === "PASSWORD_RECOVERY") {
+            beginRemoteSession();
+            useProfessionalStore.setState({
+              backendMode: "remote",
+              session: null,
+              isPasswordRecovery: true,
+              isBootstrapping: false,
+              isLoading: false,
+              error: null
+            });
+            return;
+          }
+          if (
+            session &&
+            (event === "SIGNED_IN" || event === "USER_UPDATED")
+          ) {
+            const generation = beginRemoteSession();
+            void hydrateRemote(session.user.id, true, generation).catch(
+              (error: unknown) => {
+                if (generation === remoteSessionGeneration) {
+                  useProfessionalStore.setState({ error: errorMessage(error) });
+                }
+              }
+            );
+          }
+        }
+      );
+      authSubscription = authData.subscription;
+    }
+
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw new Error(error.message);
+    if (data.session) {
+      const generation = beginRemoteSession();
+      await hydrateRemote(data.session.user.id, true, generation);
+    } else {
+      invalidateRemoteSession();
+      useProfessionalStore.setState({
+        ...emptyRemoteState(),
+        session: null,
+        isPasswordRecovery: false,
+        isBootstrapping: false,
+        isLoading: false
+      });
+    }
+  } catch (error) {
+    useProfessionalStore.setState({
+      error: errorMessage(error),
+      isBootstrapping: false,
+      isLoading: false
+    });
+  }
+}
+
+function scheduleRemote(operation: () => Promise<void>) {
+  const state = useProfessionalStore.getState();
+  if (
+    !remoteRepository ||
+    state.backendMode !== "remote" ||
+    !state.session
+  ) {
+    return undefined;
+  }
+
+  const userId = state.session.userId;
+  const generation = remoteSessionGeneration;
+  const task = remoteQueue.catch(() => undefined).then(async () => {
+    if (!isCurrentRemoteSession(userId, generation)) return;
+    useProfessionalStore.setState({ isLoading: true });
+    try {
+      await operation();
+      if (isCurrentRemoteSession(userId, generation)) {
+        await hydrateRemote(userId, false, generation);
+      }
+    } catch (error) {
+      if (!isCurrentRemoteSession(userId, generation)) return;
+      const operationError = errorMessage(error);
+      try {
+        await hydrateRemote(userId, false, generation);
+      } catch (refreshError) {
+        useProfessionalStore.setState({ error: errorMessage(refreshError) });
+      }
+      useProfessionalStore.setState({ error: operationError });
+      throw error;
+    } finally {
+      if (generation === remoteSessionGeneration) {
+        useProfessionalStore.setState({ isLoading: false });
+      }
+    }
+  });
+  remoteQueue = task.catch(() => undefined);
+  return task;
+}
+
+const baseActions = useProfessionalStore.getState();
+
+useProfessionalStore.setState({
+  initializeBackend,
+  refreshRemote: async () => {
+    const state = useProfessionalStore.getState();
+    if (state.backendMode !== "remote" || !state.session) return;
+    const generation = remoteSessionGeneration;
+    await hydrateRemote(state.session.userId, true, generation).catch((error: unknown) => {
+      useProfessionalStore.setState({ error: errorMessage(error) });
+    });
+  },
+  signInWithPassword: async (email, password) => {
+    if (!supabase) throw new Error("Supabase is not configured.");
+    useProfessionalStore.setState({ isLoading: true, error: null });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password
+      });
+      if (error) throw new Error(error.message);
+      if (!data.session) throw new Error("Supabase did not return a session.");
+      const generation = beginRemoteSession();
+      await hydrateRemote(data.session.user.id, true, generation);
+    } catch (error) {
+      useProfessionalStore.setState({ error: errorMessage(error) });
+      throw error;
+    } finally {
+      useProfessionalStore.setState({ isLoading: false });
+    }
+  },
+  signUp: async (email, password, displayName) => {
+    if (!supabase) throw new Error("Supabase is not configured.");
+    useProfessionalStore.setState({ isLoading: true, error: null });
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: { display_name: displayName.trim() }
+        }
+      });
+      if (error) throw new Error(error.message);
+      if (data.session) {
+        const generation = beginRemoteSession();
+        await hydrateRemote(data.session.user.id, true, generation);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      useProfessionalStore.setState({ error: errorMessage(error) });
+      throw error;
+    } finally {
+      useProfessionalStore.setState({ isLoading: false });
+    }
+  },
+  requestPasswordReset: async (email) => {
+    if (!supabase) throw new Error("Supabase is not configured.");
+    useProfessionalStore.setState({ isLoading: true, error: null });
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/login`
+      });
+      if (error) throw new Error(error.message);
+    } catch (error) {
+      useProfessionalStore.setState({ error: errorMessage(error) });
+      throw error;
+    } finally {
+      useProfessionalStore.setState({ isLoading: false });
+    }
+  },
+  updatePassword: async (password) => {
+    if (!supabase) throw new Error("Supabase is not configured.");
+    useProfessionalStore.setState({ isLoading: true, error: null });
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw new Error(error.message);
+      useProfessionalStore.setState({ isPasswordRecovery: false });
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        const generation = beginRemoteSession();
+        await hydrateRemote(data.session.user.id, true, generation);
+      }
+    } catch (error) {
+      useProfessionalStore.setState({ error: errorMessage(error) });
+      throw error;
+    } finally {
+      useProfessionalStore.setState({ isLoading: false });
+    }
+  },
+  clearError: () => useProfessionalStore.setState({ error: null }),
+  signOut: () => {
+    const wasRemote = useProfessionalStore.getState().backendMode === "remote";
+    invalidateRemoteSession();
+    baseActions.signOut();
+    if (supabase && wasRemote) {
+      void supabase.auth.signOut();
+    }
+  },
+  resetDemo: () => {
+    if (useProfessionalStore.getState().backendMode === "remote") {
+      void useProfessionalStore.getState().refreshRemote();
+      return;
+    }
+    baseActions.resetDemo();
+  },
+  createProfessional: (input) => {
+    const id = baseActions.createProfessional(input) as string;
+    if (remoteRepository) {
+      const task = scheduleRemote(() => remoteRepository.inviteProfessional(input, id).then(() => undefined));
+      return task ? task.then(() => id) : id;
+    }
+    return id;
+  },
+  updateProfessional: (professionalId, input) => {
+    baseActions.updateProfessional(professionalId, input);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.updateProfessional(professionalId, input));
+    }
+  },
+  removeProfessional: (professionalId) => {
+    const removed = baseActions.removeProfessional(professionalId);
+    if (removed && remoteRepository) {
+      const task = scheduleRemote(() => remoteRepository.removeProfessional(professionalId));
+      return task ? task.then(() => removed) : removed;
+    }
+    return removed;
+  },
+  setLeadCapability: (professionalId, enabled) => {
+    baseActions.setLeadCapability(professionalId, enabled);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.setLeadCapability(professionalId, enabled));
+    }
+  },
+  createService: (input) => {
+    const id = baseActions.createService(input) as string;
+    if (remoteRepository) {
+      const task = scheduleRemote(() => remoteRepository.createService(input, id));
+      return task ? task.then(() => id) : id;
+    }
+    return id;
+  },
+  updateService: (serviceId, input) => {
+    baseActions.updateService(serviceId, input);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.updateService(serviceId, input));
+    }
+  },
+  replaceServiceRequirements: (serviceId, requirements) => {
+    baseActions.replaceServiceRequirements(serviceId, requirements);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.replaceServiceRequirements(serviceId, requirements));
+    }
+  },
+  setServiceActive: (serviceId, active) => {
+    const changed = baseActions.setServiceActive(serviceId, active);
+    if (changed && remoteRepository) {
+      const task = scheduleRemote(() => remoteRepository.setServiceActive(serviceId, active));
+      return task ? task.then(() => changed) : changed;
+    }
+    return changed;
+  },
+  createServiceEnrolment: (professionalId, serviceId, leadId) => {
+    const id = baseActions.createServiceEnrolment(
+      professionalId,
+      serviceId,
+      leadId
+    ) as string | undefined;
+    if (id && remoteRepository) {
+      const task = scheduleRemote(() => remoteRepository.createServiceEnrolment(professionalId, serviceId, leadId, id));
+      return task ? task.then(() => id) : id;
+    }
+    return id;
+  },
+  assignServiceLead: (enrolmentId, leadId) => {
+    baseActions.assignServiceLead(enrolmentId, leadId);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.assignServiceLead(enrolmentId, leadId));
+    }
+  },
+  setRequirementProgress: (enrolmentId, requirementId, input) => {
+    baseActions.setRequirementProgress(enrolmentId, requirementId, input);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.setRequirementProgress(enrolmentId, requirementId, input));
+    }
+  },
+  submitServiceEnrolment: (enrolmentId) => {
+    baseActions.submitServiceEnrolment(enrolmentId);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.submitServiceEnrolment(enrolmentId));
+    }
+  },
+  reviewServiceEnrolment: (command) => {
+    baseActions.reviewServiceEnrolment(command);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.reviewServiceEnrolment(command));
+    }
+  },
+  removeServiceEnrolment: (enrolmentId) => {
+    const removed = baseActions.removeServiceEnrolment(enrolmentId);
+    if (removed && remoteRepository) {
+      const task = scheduleRemote(() => remoteRepository.removeServiceEnrolment(enrolmentId));
+      return task ? task.then(() => removed) : removed;
+    }
+    return removed;
+  },
+  createJob: (input) => {
+    const id = baseActions.createJob(input) as string | undefined;
+    if (id && remoteRepository) {
+      const task = scheduleRemote(() => remoteRepository.createJob(input, id));
+      return task ? task.then(() => id) : id;
+    }
+    return id;
+  },
+  updateJob: (jobId, input) => {
+    baseActions.updateJob(jobId, input);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.updateJob(jobId, input));
+    }
+  },
+  publishJob: (jobId) => {
+    const published = baseActions.publishJob(jobId);
+    if (published && remoteRepository) {
+      const task = scheduleRemote(() => remoteRepository.publishJob(jobId));
+      return task ? task.then(() => published) : published;
+    }
+    return published;
+  },
+  archiveJob: (jobId) => {
+    baseActions.archiveJob(jobId);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.archiveJob(jobId));
+    }
+  },
+  addAssignments: (jobId, inputs) => {
+    baseActions.addAssignments(jobId, inputs);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.addAssignments(jobId, inputs));
+    }
+  },
+  startAssignment: (assignmentId) => {
+    baseActions.startAssignment(assignmentId);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.startAssignment(assignmentId));
+    }
+  },
+  submitAssignment: (assignmentId, input) => {
+    baseActions.submitAssignment(assignmentId, input);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.submitAssignment(assignmentId, input));
+    }
+  },
+  reviewAssignment: (command) => {
+    baseActions.reviewAssignment(command);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.reviewAssignment(command));
+    }
+  },
+  completeAssignment: (assignmentId) => {
+    baseActions.completeAssignment(assignmentId);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.completeAssignment(assignmentId));
+    }
+  },
+  cancelAssignment: (assignmentId, reason) => {
+    baseActions.cancelAssignment(assignmentId, reason);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.cancelAssignment(assignmentId, reason));
+    }
+  },
+  recordPayment: (paymentId, input) => {
+    baseActions.recordPayment(paymentId, input);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.recordPayment(paymentId, input));
+    }
+  },
+  correctPayment: (paymentId, input) => {
+    baseActions.correctPayment(paymentId, input);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.correctPayment(paymentId, input));
+    }
+  },
+  markNotificationRead: (notificationId) => {
+    baseActions.markNotificationRead(notificationId);
+    if (remoteRepository) {
+      return scheduleRemote(() => remoteRepository.markNotificationRead(notificationId));
+    }
+  }
+});

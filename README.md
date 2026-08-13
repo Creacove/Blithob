@@ -1,7 +1,7 @@
-# Blithob Professionals Prototype
+# Blithob Pro
 
-Responsive coded prototype for demonstrating the Blithob workforce operations
-workflow across Admin, Trainer, and Worker roles.
+Blithob Pro is the workforce operations application for managing Professionals,
+service readiness, Jobs, Assignments, reviews, and payments.
 
 ## Run locally
 
@@ -10,14 +10,28 @@ npm install
 npm run dev
 ```
 
-Use the role selector to enter one of the curated demo personas:
+The app uses Supabase automatically when `.env.local` contains:
 
-- Admin: Ayo Blithob
-- Trainer: Nneka Okafor
-- Worker: Amara Okoye
+```bash
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-public-key
+```
 
-Changes persist in browser storage. Use **Reset demo data** in the workspace
-navigation to restore the original scenario.
+Without those variables, the original local demo adapter remains available for
+UI development and tests. With Supabase configured, sign-in is handled by
+Supabase Auth and all workflow reads and writes use the remote database.
+
+The linked hosted project is `Blithob` (`cyrgywfdmfnqnontjnxv`). Apply future
+database changes with:
+
+```bash
+supabase link --project-ref cyrgywfdmfnqnontjnxv
+supabase db push
+supabase db lint --linked --fail-on error
+```
+
+The first Admin account must be created in Supabase Auth and its profile role
+set to `admin`. Admins can then invite Professionals from the People screen.
 
 ## Verification
 
@@ -32,12 +46,12 @@ Playwright uses the installed Chrome channel in this workspace.
 
 ## Structure
 
-- `src/domain/`: typed entities, seed scenario, and immutable workflow rules.
-- `src/store/`: persistent mock repository and domain actions.
+- `src/domain/`: typed entities, local seed scenario, and immutable workflow rules.
+- `src/lib/`: Supabase client and relational-to-frontend repository adapter.
+- `src/store/`: demo adapter plus Supabase-backed orchestration and auth state.
 - `src/pages/`: role-specific product surfaces.
 - `src/components/`: shared layout, status, form, and navigation components.
 - `e2e/`: desktop and mobile acceptance flows.
-- `docs/reference/`: the original product scope and prototype-planning documents.
-
-There is no backend, real authentication, file transfer, email delivery, or
-payment processing in this prototype.
+- `supabase/migrations/`: schema, RLS, Storage policies, workflow RPCs, and service catalog.
+- `supabase/functions/`: privileged server-side operations such as Professional invites.
+- `docs/`: product scope, backend design, and execution plan.

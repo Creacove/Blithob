@@ -5,9 +5,12 @@ import {
   ShieldCheck,
   Users
 } from "lucide-react";
+import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { BrandMark } from "../components/BrandMark";
+import { Button, Field, Input } from "../components/ui";
 import type { DemoPersona } from "../domain/model";
+import { isSupabaseConfigured } from "../lib/supabase";
 import { useProfessionalStore } from "../store/professionalStore";
 
 const personas = [
@@ -37,6 +40,174 @@ const personas = [
   }
 ];
 
+function RemoteAuthPage() {
+  const [mode, setMode] = useState<"signIn" | "reset" | "recovery">("signIn");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const signInWithPassword = useProfessionalStore(
+    (state) => state.signInWithPassword
+  );
+  const requestPasswordReset = useProfessionalStore(
+    (state) => state.requestPasswordReset
+  );
+  const updatePassword = useProfessionalStore((state) => state.updatePassword);
+  const isPasswordRecovery = useProfessionalStore(
+    (state) => state.isPasswordRecovery
+  );
+  const isLoading = useProfessionalStore((state) => state.isLoading);
+  const error = useProfessionalStore((state) => state.error);
+  const clearError = useProfessionalStore((state) => state.clearError);
+
+  const activeMode = isPasswordRecovery ? "recovery" : mode;
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    clearError();
+    setSubmitted(false);
+    try {
+      if (activeMode === "reset") {
+        await requestPasswordReset(email);
+        setSubmitted(true);
+        return;
+      }
+      if (activeMode === "recovery") {
+        await updatePassword(newPassword);
+        setSubmitted(true);
+        return;
+      }
+      await signInWithPassword(email, password);
+    } catch {
+      // The store owns the user-facing error so all auth entry points stay consistent.
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-[var(--canvas)] px-4 py-5 sm:px-8">
+      <div className="mx-auto max-w-5xl">
+        <div className="flex h-14 items-center justify-between">
+          <BrandMark />
+          <Link
+            to="/"
+            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] px-3 text-sm font-medium text-[var(--muted)] hover:bg-white hover:text-[var(--ink)]"
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+            Back
+          </Link>
+        </div>
+
+        <section className="mx-auto max-w-xl py-10 sm:py-20">
+          <p className="text-sm font-medium text-[var(--blue)]">
+            Blithob Pro workspace
+          </p>
+          <h1 className="mt-3 text-[clamp(2.25rem,5vw,4rem)] font-semibold leading-[1.05] text-[var(--ink)]">
+            {activeMode === "reset"
+              ? "Reset your password"
+              : activeMode === "recovery"
+                ? "Choose a new password"
+                : "Sign in to Blithob"}
+          </h1>
+          <p className="mt-4 text-base leading-7 text-[var(--muted)]">
+            Use the email address associated with your Blithob account. Your
+            workspace and permissions come from the secure Supabase account.
+          </p>
+
+          <form
+            onSubmit={submit}
+            className="mt-8 space-y-5 rounded-2xl border border-[var(--border)] bg-white p-5 sm:p-7"
+          >
+            {activeMode !== "recovery" && <Field label="Email address">
+              <Input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+            </Field>}
+
+            {activeMode === "signIn" && (
+              <Field label="Password">
+                <Input
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Enter your password"
+                  required
+                />
+              </Field>
+            )}
+            {activeMode === "recovery" && (
+              <Field label="New password">
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  placeholder="Choose a new password"
+                  minLength={8}
+                  required
+                />
+              </Field>
+            )}
+
+            {error && (
+              <p
+                role="alert"
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium leading-5 text-red-800"
+              >
+                {error}
+              </p>
+            )}
+            {submitted && (
+              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium leading-5 text-emerald-800">
+                If an account exists for that email, a password reset link is
+                on its way.
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading
+                ? "Working…"
+                : activeMode === "reset"
+                  ? "Send reset link"
+                  : activeMode === "recovery"
+                    ? "Update password"
+                    : "Sign in"}
+            </Button>
+
+            {activeMode !== "recovery" && <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <button
+                type="button"
+                className="font-semibold text-[var(--blue)] hover:underline"
+                onClick={() => {
+                  clearError();
+                  setSubmitted(false);
+                  setMode((current) =>
+                    current === "signIn" ? "reset" : "signIn"
+                  );
+                }}
+              >
+                {activeMode === "signIn" ? "Forgot password?" : "Back to sign in"}
+              </button>
+              <span className="text-[var(--muted)]">
+                Need access? Ask a Blithob Admin for an invite.
+              </span>
+            </div>}
+          </form>
+        </section>
+      </div>
+    </main>
+  );
+}
+
 export function LoginPage() {
   const session = useProfessionalStore((state) => state.session);
   const currentUser = useProfessionalStore((state) => state.currentUser());
@@ -55,6 +226,8 @@ export function LoginPage() {
       />
     );
   }
+
+  if (isSupabaseConfigured) return <RemoteAuthPage />;
 
   const enter = (persona: DemoPersona) => {
     signIn(persona);

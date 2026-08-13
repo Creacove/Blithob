@@ -50,7 +50,7 @@ export function AdminPaymentsPage() {
   const professionals = useProfessionalStore((state) => state.professionals);
   const recordPayment = useProfessionalStore((state) => state.recordPayment);
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const { success } = useToast();
+  const { success, error } = useToast();
   const selected = payments.find((payment) => payment.id === selectedId);
   const filtered =
     filter === "all"
@@ -83,21 +83,25 @@ export function AdminPaymentsPage() {
         ? Boolean(form.issueNote.trim())
         : true;
 
-  const save = () => {
+  const save = async () => {
     if (!selected || !canSave) return;
-    recordPayment(selected.id, {
-      status: form.status,
-      paymentDate: form.paymentDate
-        ? new Date(form.paymentDate).toISOString()
-        : undefined,
-      method: form.method,
-      reference: form.reference,
-      receiptFileName: form.receiptFileName,
-      internalNote: form.internalNote,
-      issueNote: form.issueNote
-    });
-    setSelectedId(undefined);
-    success("Payment record saved");
+    try {
+      await recordPayment(selected.id, {
+        status: form.status,
+        paymentDate: form.paymentDate
+          ? new Date(form.paymentDate).toISOString()
+          : undefined,
+        method: form.method,
+        reference: form.reference,
+        receiptFileName: form.receiptFileName,
+        internalNote: form.internalNote,
+        issueNote: form.issueNote
+      });
+      setSelectedId(undefined);
+      success("Payment record saved");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Payment record could not be saved");
+    }
   };
 
   return (

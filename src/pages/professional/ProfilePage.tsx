@@ -26,7 +26,7 @@ export function ProfilePage() {
     phone: professional?.phone ?? "",
     location: professional?.location ?? ""
   }));
-  const { success } = useToast();
+  const { success, error } = useToast();
   const navigate = useNavigate();
 
   if (!professional) return null;
@@ -40,10 +40,14 @@ export function ProfilePage() {
     form.phone.trim() &&
     form.location.trim();
 
-  const save = () => {
+  const save = async () => {
     if (!canSave) return;
-    updateProfessional(professional.id, form);
-    success("Profile saved");
+    try {
+      await updateProfessional(professional.id, form);
+      success("Profile saved");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Profile could not be saved");
+    }
   };
 
   const reset = () => {

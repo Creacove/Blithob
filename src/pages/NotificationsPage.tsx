@@ -16,6 +16,10 @@ export function NotificationsPage() {
     (state) => state.markNotificationRead
   );
 
+  const handleRead = (notificationId: string) => {
+    void Promise.resolve(markRead(notificationId)).catch(() => undefined);
+  };
+
   return (
     <div>
       <PageHeader
@@ -35,7 +39,7 @@ export function NotificationsPage() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => markRead(item.id)}
+                onClick={() => handleRead(item.id)}
                 className="flex w-full items-start gap-4 px-4 py-4 text-left transition hover:bg-[var(--surface-subtle)] sm:px-5"
               >
                 <span

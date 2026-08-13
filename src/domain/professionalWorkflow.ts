@@ -708,7 +708,7 @@ export function setRequirementProgress(
   requirementId: string,
   input: Pick<
     RequirementProgress,
-    "completed" | "evidenceLink" | "evidenceFileName"
+    "completed" | "evidenceLink" | "evidenceFilePath" | "evidenceFileName"
   >
 ): DemoState {
   const enrolment = state.serviceEnrolments.find(
@@ -1091,7 +1091,7 @@ export function startAssignment(
 export function submitAssignment(
   state: DemoState,
   assignmentId: string,
-  input: Pick<Submission, "notes" | "link" | "fileName">
+  input: Pick<Submission, "notes" | "link" | "filePath" | "fileName">
 ): DemoState {
   const assignment = state.assignments.find((item) => item.id === assignmentId);
   const job = state.jobs.find((item) => item.id === assignment?.jobId);
@@ -1407,6 +1407,7 @@ export interface RecordPaymentInput {
   paymentDate?: string;
   method?: PaymentMethod;
   reference?: string;
+  receiptFilePath?: string;
   receiptFileName?: string;
   internalNote?: string;
   issueNote?: string;

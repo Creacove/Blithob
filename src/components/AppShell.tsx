@@ -286,6 +286,10 @@ export function AppShell({ role }: { role: AccountRole }) {
   );
   const signOut = useProfessionalStore((state) => state.signOut);
   const resetDemo = useProfessionalStore((state) => state.resetDemo);
+  const backendMode = useProfessionalStore((state) => state.backendMode);
+  const backendError = useProfessionalStore((state) => state.error);
+  const clearError = useProfessionalStore((state) => state.clearError);
+  const refreshRemote = useProfessionalStore((state) => state.refreshRemote);
   const notifications = useProfessionalStore((state) => state.notifications);
   const isLead = Boolean(professional?.isLead);
   const allItems = desktopItems(role, isLead);
@@ -386,6 +390,33 @@ export function AppShell({ role }: { role: AccountRole }) {
         </header>
 
         <main className="mx-auto max-w-[1280px] p-4 sm:p-6 lg:p-8">
+          {backendMode === "remote" && backendError && (
+            <div
+              role="alert"
+              className="mb-5 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+            >
+              <p className="min-w-0 flex-1 leading-6">
+                <strong className="font-semibold">Change not saved.</strong>{" "}
+                {backendError} Review the form and try again.
+              </p>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  className="rounded-lg bg-white px-3 py-2 font-semibold text-red-900 ring-1 ring-red-200 hover:bg-red-100"
+                  onClick={() => void refreshRemote()}
+                >
+                  Refresh data
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg px-2 py-2 font-semibold text-red-700 hover:bg-red-100"
+                  onClick={clearError}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
           <div className="page-enter">
             <Outlet />
           </div>

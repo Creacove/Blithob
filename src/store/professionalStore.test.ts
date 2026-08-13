@@ -292,8 +292,8 @@ describe("professional store", () => {
     expect(updatedEnrolment?.requirements[2].completed).toBe(false);
   });
 
-  it("allows an incomplete Job to be saved as a draft", () => {
-    const jobId = useProfessionalStore.getState().createJob({
+  it("allows an incomplete Job to be saved as a draft", async () => {
+    const jobId = await useProfessionalStore.getState().createJob({
       title: "Client research",
       serviceId: "service-content",
       clientContext: "",
@@ -317,8 +317,8 @@ describe("professional store", () => {
     });
   });
 
-  it("publishes only a complete Job brief", () => {
-    const jobId = useProfessionalStore.getState().createJob({
+  it("publishes only a complete Job brief", async () => {
+    const jobId = await useProfessionalStore.getState().createJob({
       title: "Client research",
       serviceId: "service-content",
       clientContext: "A client needs a sourced market summary.",
@@ -375,8 +375,8 @@ describe("professional store", () => {
     expect(useProfessionalStore.getState().assignments).toHaveLength(before);
   });
 
-  it("rejects Assignments until a Job is published", () => {
-    const jobId = useProfessionalStore.getState().createJob({
+  it("rejects Assignments until a Job is published", async () => {
+    const jobId = await useProfessionalStore.getState().createJob({
       title: "Draft research brief",
       serviceId: "service-content",
       clientContext: "",

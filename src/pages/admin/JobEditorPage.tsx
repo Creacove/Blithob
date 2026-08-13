@@ -129,7 +129,7 @@ export function JobEditorPage() {
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [mobileStep, setMobileStep] = useState(0);
 
-  const save = (publish: boolean) => {
+  const save = async (publish: boolean) => {
     clearErrors();
     const values = getValues();
     const parsed = draftSchema.safeParse(values);
@@ -243,26 +243,30 @@ export function JobEditorPage() {
         ? new Date(values.deadline).toISOString()
         : ""
     };
-    const savedJobId = existingJob?.id ?? createJob(input);
-    if (existingJob) {
-      updateJob(existingJob.id, input);
+    try {
+      const savedJobId = existingJob?.id ?? await createJob(input);
+      if (existingJob) {
+        await updateJob(existingJob.id, input);
+      }
+      if (!savedJobId) {
+        error("Choose an active Service");
+        return;
+      }
+      if (publish && !(await publishJob(savedJobId))) {
+        error("The Job could not be published");
+        return;
+      }
+      success(
+        publish
+          ? "Job published"
+          : existingJob
+            ? "Job brief saved"
+            : "Draft saved"
+      );
+      navigate(`/admin/jobs/${savedJobId}`);
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "The Job could not be saved");
     }
-    if (!savedJobId) {
-      error("Choose an active Service");
-      return;
-    }
-    if (publish && !publishJob(savedJobId)) {
-      error("The Job could not be published");
-      return;
-    }
-    success(
-      publish
-        ? "Job published"
-        : existingJob
-          ? "Job brief saved"
-          : "Draft saved"
-    );
-    navigate(`/admin/jobs/${savedJobId}`);
   };
 
   return (

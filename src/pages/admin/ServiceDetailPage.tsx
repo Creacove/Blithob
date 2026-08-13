@@ -83,20 +83,28 @@ export function ServiceDetailPage() {
   );
   const serviceJobs = jobs.filter((item) => item.serviceId === service.id);
 
-  const saveOverview = (event: React.FormEvent) => {
+  const saveOverview = async (event: React.FormEvent) => {
     event.preventDefault();
-    updateService(service.id, overview);
-    success("Service overview saved");
+    try {
+      await updateService(service.id, overview);
+      success("Service overview saved");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Service overview could not be saved");
+    }
   };
 
-  const saveRequirements = () => {
+  const saveRequirements = async () => {
     const valid = requirements.filter(
       (requirement) =>
         requirement.title.trim() && requirement.description.trim()
     );
-    replaceRequirements(service.id, valid);
-    setRequirements(valid);
-    success("Readiness requirements saved");
+    try {
+      await replaceRequirements(service.id, valid);
+      setRequirements(valid);
+      success("Readiness requirements saved");
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Readiness requirements could not be saved");
+    }
   };
 
   const moveRequirement = (index: number, direction: -1 | 1) => {
@@ -109,13 +117,17 @@ export function ServiceDetailPage() {
     });
   };
 
-  const toggleActive = () => {
-    const changed = setServiceActive(service.id, !service.active);
+  const toggleActive = async () => {
     setActivationConfirmOpen(false);
-    if (changed) {
-      success(service.active ? "Service deactivated" : "Service activated");
-    } else {
-      error("Resolve open Jobs or unfinished readiness before deactivating");
+    try {
+      const changed = await setServiceActive(service.id, !service.active);
+      if (changed) {
+        success(service.active ? "Service deactivated" : "Service activated");
+      } else {
+        error("Resolve open Jobs or unfinished readiness before deactivating");
+      }
+    } catch (caught) {
+      error(caught instanceof Error ? caught.message : "Service status could not be saved");
     }
   };
 

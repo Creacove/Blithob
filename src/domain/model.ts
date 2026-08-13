@@ -83,6 +83,7 @@ export interface RequirementProgress {
   requirementId: string;
   completed: boolean;
   evidenceLink?: string;
+  evidenceFilePath?: string;
   evidenceFileName?: string;
   completedAt?: string;
 }
@@ -125,6 +126,7 @@ export interface Job {
     label: string;
     kind: "link" | "file";
     url?: string;
+    filePath?: string;
     fileName?: string;
   }>;
   submissionEvidenceRequired: boolean;
@@ -157,6 +159,7 @@ export interface Submission {
   version: number;
   notes: string;
   link?: string;
+  filePath?: string;
   fileName?: string;
   submittedAt: string;
 }
@@ -182,6 +185,7 @@ export interface Payment {
   paymentDate?: string;
   method?: PaymentMethod;
   reference?: string;
+  receiptFilePath?: string;
   receiptFileName?: string;
   internalNote?: string;
   issueNote?: string;
