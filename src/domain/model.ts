@@ -207,6 +207,8 @@ export interface ActivityEvent {
   actor: string;
   action: string;
   subject: string;
+  subjectType?: string;
+  subjectId?: string;
   createdAt: string;
 }
 

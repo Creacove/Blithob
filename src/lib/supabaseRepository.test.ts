@@ -115,6 +115,94 @@ describe("Supabase state mapping", () => {
       }
     ]);
   });
+
+  it("orders activity newest-first and gives assignment events a readable subject", () => {
+    const state = mapRemoteState({
+      profiles: [
+        {
+          id: "profile-admin",
+          display_name: "Ayo Admin",
+          email: "ayo@example.com",
+          account_role: "admin"
+        },
+        {
+          id: "profile-pro",
+          display_name: "Amara Okafor",
+          email: "amara@example.com",
+          account_role: "professional"
+        }
+      ],
+      professionals: [
+        {
+          id: "professional-1",
+          profile_id: "profile-pro",
+          phone: "+234 800 000 1001",
+          location: "Lagos",
+          account_status: "active",
+          is_lead: false,
+          joined_at: "2026-08-13T09:00:00.000Z"
+        }
+      ],
+      services: [],
+      requirements: [],
+      enrolments: [],
+      progress: [],
+      readinessReviews: [],
+      jobs: [
+        {
+          id: "job-1",
+          title: "Campaign refresh",
+          service_id: "service-1",
+          deadline: "2026-09-01T12:00:00.000Z",
+          publication_state: "open",
+          created_at: "2026-08-13T09:00:00.000Z",
+          updated_at: "2026-08-13T09:00:00.000Z"
+        }
+      ],
+      jobReferences: [],
+      assignments: [
+        {
+          id: "assignment-1",
+          job_id: "job-1",
+          professional_id: "professional-1",
+          agreed_pay: 50000,
+          deadline: "2026-09-01T12:00:00.000Z",
+          status: "in_progress",
+          created_at: "2026-08-13T09:00:00.000Z"
+        }
+      ],
+      submissions: [],
+      assignmentReviews: [],
+      payments: [],
+      notifications: [],
+      activity: [
+        {
+          id: "activity-old",
+          actor_user_id: "profile-admin",
+          action: "assigned professionals",
+          subject_type: "job",
+          subject_id: "job-1",
+          created_at: "2026-08-13T09:00:00.000Z"
+        },
+        {
+          id: "activity-new",
+          actor_user_id: "profile-admin",
+          action: "submitted assignment",
+          subject_type: "assignment",
+          subject_id: "assignment-1",
+          created_at: "2026-08-13T10:00:00.000Z"
+        }
+      ]
+    });
+
+    expect(state.activity.map((item) => item.id)).toEqual([
+      "activity-new",
+      "activity-old"
+    ]);
+    expect(state.activity[0].subject).toBe(
+      "Campaign refresh — Amara Okafor"
+    );
+  });
 });
 
 describe("Supabase write mapping", () => {

@@ -21,6 +21,22 @@ People; the deployed `invite-professional` Edge Function creates the Auth
 invite and the matching `professionals` row without exposing a service key to
 the browser.
 
+## Invitation email delivery
+
+The application already uses Supabase Auth's server-side invitation flow. The
+browser calls the `invite-professional` Edge Function; it never handles a
+service-role key or sends mail directly. For a client-owned sending address,
+verify the domain with the email provider, configure that provider as the
+Supabase Auth SMTP sender, and add the deployed Netlify URL (plus the eventual
+custom domain) to the Auth site URL and redirect allow-list. Keep provider
+secrets in Supabase project settings, never in `VITE_*` variables or source
+control.
+
+Until the client supplies DNS/domain access and the provider credentials, the
+remaining release check is invitation delivery itself. The in-app invite
+record and account-creation path are already implemented and can be verified
+once that external configuration is available.
+
 ## Release checks
 
 ```bash

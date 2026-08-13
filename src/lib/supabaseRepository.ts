@@ -321,31 +321,74 @@ function mapNotification(row: DbRow): Notification {
   };
 }
 
-function subjectForActivity(
-  row: DbRow,
-  jobsById: Map<string, Job>,
-  assignmentsById: Map<string, Assignment>
-) {
+interface ActivitySubjectContext {
+  jobsById: Map<string, Job>;
+  assignmentsById: Map<string, Assignment>;
+  professionalsById: Map<string, Professional>;
+  serviceEnrolmentsById: Map<string, ServiceEnrolment>;
+  servicesById: Map<string, Service>;
+  paymentsById: Map<string, Payment>;
+}
+
+function subjectForActivity(row: DbRow, context: ActivitySubjectContext) {
   const subjectId = nullableText(row, "subject_id");
   if (!subjectId) return textValue(row, "subject_type", "activity");
   const subjectType = textValue(row, "subject_type");
-  if (subjectType === "job") return jobsById.get(subjectId)?.title ?? subjectId;
-  if (subjectType === "assignment") return assignmentsById.get(subjectId)?.id ?? subjectId;
+  if (subjectType === "job") {
+    return context.jobsById.get(subjectId)?.title ?? subjectId;
+  }
+  if (subjectType === "professional") {
+    return context.professionalsById.get(subjectId)?.name ?? subjectId;
+  }
+  if (subjectType === "assignment") {
+    const assignment = context.assignmentsById.get(subjectId);
+    if (!assignment) return subjectId;
+    const job = context.jobsById.get(assignment.jobId);
+    const professional = context.professionalsById.get(assignment.professionalId);
+    if (job && professional) return `${job.title} — ${professional.name}`;
+    return job?.title ?? professional?.name ?? subjectId;
+  }
+  if (subjectType === "service_enrolment") {
+    const enrolment = context.serviceEnrolmentsById.get(subjectId);
+    const service = enrolment
+      ? context.servicesById.get(enrolment.serviceId)
+      : undefined;
+    const professional = enrolment
+      ? context.professionalsById.get(enrolment.professionalId)
+      : undefined;
+    if (service && professional) return `${service.name} — ${professional.name}`;
+    return service?.name ?? professional?.name ?? subjectId;
+  }
+  if (subjectType === "payment") {
+    const payment = context.paymentsById.get(subjectId);
+    const assignment = payment
+      ? context.assignmentsById.get(payment.assignmentId)
+      : undefined;
+    const job = assignment ? context.jobsById.get(assignment.jobId) : undefined;
+    const professional = payment
+      ? context.professionalsById.get(payment.professionalId)
+      : undefined;
+    if (job && professional) return `${job.title} — ${professional.name}`;
+    return job?.title ?? professional?.name ?? subjectId;
+  }
   return subjectId;
 }
 
 function mapActivity(
   row: DbRow,
   usersById: Map<string, User>,
-  jobsById: Map<string, Job>,
-  assignmentsById: Map<string, Assignment>
+  context: ActivitySubjectContext
 ): ActivityEvent {
   const actorId = nullableText(row, "actor_user_id");
+  const subjectId = nullableText(row, "subject_id");
+  const subjectType = nullableText(row, "subject_type");
   return {
     id: idValue(row, "id"),
     actor: actorId ? usersById.get(actorId)?.name ?? "Blithob user" : "System",
     action: textValue(row, "action"),
-    subject: subjectForActivity(row, jobsById, assignmentsById),
+    subject: subjectForActivity(row, context),
+    ...(subjectType ? { subjectType } : {}),
+    ...(subjectId ? { subjectId } : {}),
     createdAt: textValue(row, "created_at")
   };
 }
@@ -370,6 +413,7 @@ export function mapRemoteState(input: RemoteRows): DemoState {
   const services = input.services.map((row) =>
     mapService(row, requirementsByService.get(idValue(row, "id")) ?? [])
   );
+  const servicesById = new Map(services.map((item) => [item.id, item]));
   const assignmentRows = input.assignments.map(mapAssignment);
   const assignmentsById = new Map(assignmentRows.map((item) => [item.id, item]));
   const completedCounts = new Map<string, number>();
@@ -396,6 +440,9 @@ export function mapRemoteState(input: RemoteRows): DemoState {
       completedCounts.get(idValue(row, "id")) ?? 0
     );
   });
+  const professionalsById = new Map(
+    professionals.map((item) => [item.id, item])
+  );
   const professionalByProfileId = new Map(
     professionals.map((item) => [item.userId, item.id])
   );
@@ -428,6 +475,9 @@ export function mapRemoteState(input: RemoteRows): DemoState {
   const serviceEnrolments = input.enrolments.map((row) =>
     mapEnrolment(row, requirementsByService, progressByEnrolment)
   );
+  const serviceEnrolmentsById = new Map(
+    serviceEnrolments.map((item) => [item.id, item])
+  );
 
   const referencesByJob = new Map<string, Job["references"]>();
   for (const row of [...input.jobReferences].sort(
@@ -451,6 +501,22 @@ export function mapRemoteState(input: RemoteRows): DemoState {
     mapJob(row, referencesByJob.get(idValue(row, "id")) ?? [])
   );
   const jobsById = new Map(jobs.map((item) => [item.id, item]));
+  const payments = input.payments.map(mapPayment);
+  const paymentsById = new Map(payments.map((item) => [item.id, item]));
+  const activity = [...input.activity]
+    .sort((left, right) =>
+      textValue(right, "created_at").localeCompare(textValue(left, "created_at"))
+    )
+    .map((row) =>
+      mapActivity(row, usersById, {
+        jobsById,
+        assignmentsById,
+        professionalsById,
+        serviceEnrolmentsById,
+        servicesById,
+        paymentsById
+      })
+    );
 
   return {
     users,
@@ -462,11 +528,9 @@ export function mapRemoteState(input: RemoteRows): DemoState {
     assignments: assignmentRows,
     submissions: input.submissions.map(mapSubmission),
     assignmentReviews: input.assignmentReviews.map(mapAssignmentReview),
-    payments: input.payments.map(mapPayment),
+    payments,
     notifications: input.notifications.map(mapNotification),
-    activity: input.activity.map((row) =>
-      mapActivity(row, usersById, jobsById, assignmentsById)
-    )
+    activity
   };
 }
 
@@ -553,6 +617,16 @@ export class SupabaseRepository {
     );
   }
 
+  private async selectActivity() {
+    return this.resolve<DbRow[]>(
+      this.client
+        .from("activity_events")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50)
+    );
+  }
+
   private async currentUserId() {
     const { data, error } = await this.client.auth.getUser();
     if (error || !data.user) throw new Error(error?.message ?? "No active account session");
@@ -577,7 +651,7 @@ export class SupabaseRepository {
       this.select("assignment_reviews"),
       this.select("payments"),
       this.select("notifications"),
-      this.select("activity_events")
+      this.selectActivity()
     ]);
 
     return mapRemoteState({

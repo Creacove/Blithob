@@ -10,6 +10,7 @@ import {
 } from "../../components/ui";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { formatDate, formatDateTime } from "../../lib/format";
+import type { ActivityEvent } from "../../domain/model";
 import { useProfessionalStore } from "../../store/professionalStore";
 
 export function AdminDashboard() {
@@ -213,32 +214,75 @@ export function AdminDashboard() {
           description="Latest operational changes."
           mobileDisclosure="collapsed"
         >
-          <div className="divide-y divide-[var(--border)]">
-            {activity.slice(0, 6).map((item) => (
-              <div key={item.id} className="flex gap-3 py-3 first:pt-0 last:pb-0">
-                <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--surface-subtle)] text-[var(--muted)]">
-                  <Clock3 size={14} aria-hidden />
-                </span>
-                <div>
-                  <p className="text-sm leading-5 text-[var(--muted)]">
-                    <strong className="font-semibold text-[var(--ink)]">
-                      {item.actor}
-                    </strong>{" "}
-                    {item.action}{" "}
-                    <strong className="font-medium text-[var(--ink)]">
-                      {item.subject}
-                    </strong>
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {formatDateTime(item.createdAt)}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          {activity.length === 0 ? (
+            <EmptyState
+              title="No recent activity yet."
+              description="Jobs, assignments, reviews, and payments will appear here as the workspace moves forward."
+            />
+          ) : (
+            <div className="divide-y divide-[var(--border)]">
+              {activity.slice(0, 6).map((item) => (
+                <ActivityRow key={item.id} item={item} />
+              ))}
+            </div>
+          )}
         </Section>
       </div>
     </div>
+  );
+}
+
+function activityLinkFor(item: ActivityEvent) {
+  if (!item.subjectId) return undefined;
+  switch (item.subjectType) {
+    case "job":
+      return `/admin/jobs/${item.subjectId}`;
+    case "assignment":
+      return `/admin/assignments/${item.subjectId}`;
+    case "payment":
+      return `/admin/payments/${item.subjectId}`;
+    case "professional":
+      return `/admin/people/${item.subjectId}`;
+    case "service_enrolment":
+      return "/admin/reviews";
+    default:
+      return undefined;
+  }
+}
+
+function ActivityRow({ item }: { item: ActivityEvent }) {
+  const to = activityLinkFor(item);
+  const className = `flex gap-3 py-3 first:pt-0 last:pb-0 ${
+    to ? "rounded-lg px-2 transition hover:bg-[var(--surface-subtle)]" : ""
+  }`;
+  const content = (
+    <>
+      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--surface-subtle)] text-[var(--muted)]">
+        <Clock3 size={14} aria-hidden />
+      </span>
+      <div>
+        <p className="text-sm leading-5 text-[var(--muted)]">
+          <strong className="font-semibold text-[var(--ink)]">
+            {item.actor}
+          </strong>{" "}
+          {item.action}{" "}
+          <strong className="font-medium text-[var(--ink)]">
+            {item.subject}
+          </strong>
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          {formatDateTime(item.createdAt)}
+        </p>
+      </div>
+    </>
+  );
+
+  return to ? (
+    <Link to={to} className={className}>
+      {content}
+    </Link>
+  ) : (
+    <div className={className}>{content}</div>
   );
 }
 
