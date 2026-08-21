@@ -12,11 +12,11 @@ import { BrandMark } from "../components/BrandMark";
 import {
   CategoryFolders,
   FinalWorkspace,
-  HeroWorkspace,
   JobCard,
   NotebookSteps,
   SearchPanel
 } from "../components/landing/LandingArtwork";
+import { heroDesktopAsset } from "../components/landing/heroDesktopAsset";
 import { proofMainAsset } from "../components/landing/proofMainAsset";
 import "./LandingPage.css";
 
@@ -102,7 +102,7 @@ export function LandingPage() {
 
           <div className="lp-header-actions">
             <Link className="lp-btn lp-btn-secondary hidden sm:inline-flex" to="/login">
-              Log in
+              Sign in
             </Link>
             <Link className="lp-btn lp-btn-primary hidden sm:inline-flex" to="/login">
               Get Started
@@ -149,7 +149,13 @@ export function LandingPage() {
           </div>
 
           <div className="lp-hero-visual">
-            <HeroWorkspace />
+            <picture className="lp-approved-hero-art">
+              <source media="(max-width: 767px)" srcSet="/landing/hero-mobile.webp" />
+              <img
+                src={heroDesktopAsset}
+                alt="Blithob Pro workspace with a laptop showing an opportunity"
+              />
+            </picture>
           </div>
         </div>
       </section>
@@ -320,7 +326,7 @@ export function LandingPage() {
               <div className="lp-footer-title">Get started</div>
               <div className="lp-footer-links">
                 <Link to="/login">Create your profile</Link>
-                <Link to="/login">Log in</Link>
+                <Link to="/login">Sign in</Link>
               </div>
             </div>
           </div>
