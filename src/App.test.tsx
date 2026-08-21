@@ -34,7 +34,7 @@ describe("application routing", () => {
     const user = userEvent.setup();
     renderAppAt("/");
 
-    await user.click(screen.getByRole("link", { name: "Sign in" }));
+    await user.click(screen.getAllByRole("link", { name: "Sign in" })[0]);
 
     expect(
       screen.getByRole("heading", { name: "Choose a workspace" })
