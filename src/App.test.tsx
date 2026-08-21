@@ -34,9 +34,7 @@ describe("application routing", () => {
     const user = userEvent.setup();
     renderAppAt("/");
 
-    await user.click(
-      screen.getByRole("link", { name: "Apply as a remote professional" })
-    );
+    await user.click(screen.getByRole("link", { name: "Sign in" }));
 
     expect(
       screen.getByRole("heading", { name: "Choose a workspace" })

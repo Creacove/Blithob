@@ -1,162 +1,341 @@
 import {
   ArrowRight,
-  BriefcaseBusiness,
-  Laptop2,
-  PlaneTakeoff,
-  Stamp
+  Check,
+  Compass,
+  Globe2,
+  Menu,
+  ShieldCheck,
+  Sparkles
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BrandMark } from "../components/BrandMark";
+import {
+  CategoryFolders,
+  FinalWorkspace,
+  JobCard,
+  NotebookSteps,
+  SearchPanel
+} from "../components/landing/LandingArtwork";
+import { heroDesktopAsset } from "../components/landing/heroDesktopAsset";
+import { proofMainAsset } from "../components/landing/proofMainAsset";
+import "./LandingPage.css";
 
-const services = [
+const jobs = [
   {
-    title: "Travel",
-    description: "Practical guidance to help you plan and move with confidence.",
-    icon: PlaneTakeoff
+    title: "Frontend Developer",
+    rate: "£1,500 / project",
+    type: "Contract",
+    location: "Remote",
+    accent: "#0B86D7"
   },
   {
-    title: "Visa Services",
-    description: "Clear support through requirements, applications, and next steps.",
-    icon: Stamp
+    title: "Social Media Manager",
+    rate: "£900 / month",
+    type: "Part-time",
+    location: "Remote",
+    accent: "#70C7ED"
   },
   {
-    title: "Recruitment",
-    description: "Dependable people matched to the needs of growing businesses.",
-    icon: BriefcaseBusiness
+    title: "Customer Support Rep",
+    rate: "£750 / month",
+    type: "Full-time",
+    location: "Remote",
+    accent: "#CFE8D2"
+  }
+];
+
+const reasons = [
+  {
+    title: "Clear job requirements",
+    copy: "Understand the role, expectations, and important details before you apply.",
+    stamp: "No surprises",
+    icon: ShieldCheck
   },
   {
-    title: "Remote Jobs",
-    description: "Training and flexible opportunities for capable professionals.",
-    icon: Laptop2
+    title: "Straightforward applications",
+    copy: "A simple application experience focused on the information that matters.",
+    stamp: "Apply simply",
+    icon: Compass
+  },
+  {
+    title: "Remote-friendly opportunities",
+    copy: "Discover flexible roles that can fit how and where you work.",
+    stamp: "Work your way",
+    icon: Globe2
+  },
+  {
+    title: "Real support, real people",
+    copy: "Clear next steps and a human path forward when you need help.",
+    stamp: "We’ve got you",
+    icon: Sparkles
   }
 ];
 
 export function LandingPage() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#F7F6F1] text-[#15202B]">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-60"
-        aria-hidden="true"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(21,32,43,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(21,32,43,0.035) 1px, transparent 1px)",
-          backgroundSize: "72px 72px"
-        }}
-      />
-      <div
-        className="pointer-events-none absolute -left-24 top-44 h-64 w-64 rounded-full bg-[#F2762E]/10 blur-3xl"
-        aria-hidden="true"
-      />
-
-      <header className="relative z-20 mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:h-24 sm:px-8">
-        <BrandMark />
-        <Link
-          to="/login"
-          className="inline-flex min-h-11 items-center rounded-full border border-[#15202B]/15 bg-white/70 px-5 text-sm font-semibold text-[#15202B] backdrop-blur transition hover:border-[#168CC6] hover:text-[#087DB6]"
-        >
-          Sign in
-        </Link>
-      </header>
-
-      <section className="relative z-10 mx-auto grid min-h-[calc(100vh-96px)] max-w-7xl px-5 pb-10 pt-8 sm:px-8 sm:pb-12 lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:gap-12 lg:pt-0">
-        <div className="page-enter max-w-3xl">
-          <div className="inline-flex items-center gap-3 rounded-full border border-[#168CC6]/20 bg-white/75 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#087DB6] shadow-sm shadow-[#168CC6]/5 backdrop-blur">
-            <span className="h-2 w-2 rounded-full bg-[#F2762E]" />
-            Travel · Visas · People · Remote work
-          </div>
-
-          <h1 className="mt-7 max-w-[13ch] text-[clamp(3.25rem,6.4vw,6.4rem)] font-semibold leading-[0.94] tracking-[-0.065em]">
-            Practical support for people and businesses{" "}
-            <span className="text-[#088FC9]">on the move.</span>
-          </h1>
-          <p className="mt-7 max-w-[60ch] text-lg leading-8 text-[#52606D] sm:text-xl">
-            Blithob Pro helps people take their next step and helps businesses
-            find capable support, across travel, visa services, recruitment,
-            and remote work opportunities.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a
-              href="#services"
-              className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[#088FC9] px-6 text-sm font-bold text-white shadow-lg shadow-[#088FC9]/20 transition hover:-translate-y-0.5 hover:bg-[#077FB3]"
-            >
-              Explore our services
-              <ArrowRight size={17} />
-            </a>
-            <Link
-              to="/login"
-              className="inline-flex min-h-12 items-center rounded-full border border-[#15202B]/15 bg-white px-6 text-sm font-bold text-[#15202B] transition hover:-translate-y-0.5 hover:border-[#F2762E] hover:text-[#C85A17]"
-            >
-              Apply as a remote professional
-            </Link>
-          </div>
-        </div>
-
-        <div className="page-enter relative mt-14 min-h-[430px] lg:mt-0 lg:min-h-[560px]">
-          <div
-            className="absolute left-[8%] top-[4%] h-[84%] w-[84%] rounded-[44%_56%_60%_40%/46%_38%_62%_54%] bg-[#078CC5]"
-            aria-hidden="true"
-          />
-          <div
-            className="absolute -right-10 top-5 h-36 w-36 rounded-full border-[28px] border-[#F2762E]"
-            aria-hidden="true"
-          />
-          <div
-            className="absolute bottom-8 left-0 h-24 w-24 rounded-full bg-[#15202B]"
-            aria-hidden="true"
-          />
-          <div className="absolute inset-[13%_8%_15%_16%] rotate-[-3deg] rounded-[2rem] border border-white/50 bg-white/[0.94] p-6 shadow-[0_32px_80px_rgba(16,54,72,0.24)] backdrop-blur sm:p-8">
-            <div className="flex items-start justify-between gap-4">
-              <img
-                src="/brand/blithob-mark.png"
-                alt=""
-                className="h-20 w-20 rounded-2xl object-contain sm:h-24 sm:w-24"
-              />
-              <span className="rounded-full bg-[#EAF7FC] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-[#087DB6]">
-                Blithob Pro
-              </span>
-            </div>
-            <p className="mt-10 max-w-[12ch] text-3xl font-semibold leading-tight tracking-[-0.04em] text-[#15202B] sm:text-4xl">
-              One company. Four ways forward.
-            </p>
-            <div className="mt-8 grid grid-cols-2 gap-2.5">
-              {services.map(({ title, icon: Icon }) => (
-                <div
-                  key={title}
-                  className="flex items-center gap-2 rounded-xl border border-[#15202B]/10 bg-[#F7F6F1] px-3 py-3 text-sm font-semibold"
-                >
-                  <Icon size={17} className="shrink-0 text-[#F2762E]" />
-                  {title}
-                </div>
-              ))}
-            </div>
-            <div className="mt-6 h-1.5 w-20 rounded-full bg-[#F2762E]" />
-          </div>
-        </div>
-
-        <div
-          id="services"
-          className="relative z-10 mt-8 grid border-y border-[#15202B]/12 sm:grid-cols-2 lg:col-span-2 lg:grid-cols-4"
-        >
-          {services.map(({ title, description, icon: Icon }) => (
-            <div
-              key={title}
-              className="group flex gap-3 border-b border-[#15202B]/10 py-5 sm:px-5 lg:border-b-0 lg:border-l lg:px-6 lg:first:border-l-0 lg:first:pl-0"
-            >
-              <Icon
-                size={20}
-                className="mt-0.5 shrink-0 text-[#F2762E] transition group-hover:-translate-y-0.5"
-              />
-              <div>
-                <h2 className="text-sm font-bold text-[#15202B]">{title}</h2>
-                <p className="mt-1 text-sm leading-5 text-[#65727E]">
-                  {description}
-                </p>
-              </div>
+    <main className="marketing-page overflow-hidden">
+      <div className="lp-ticker" aria-hidden="true">
+        <div className="lp-ticker-track">
+          {[0, 1].map((copy) => (
+            <div className="lp-ticker-row" key={copy}>
+              <span>New opportunities</span><Sparkles size={12} />
+              <span>Remote work</span><Sparkles size={12} />
+              <span>Creative</span><Sparkles size={12} />
+              <span>Tech</span><Sparkles size={12} />
+              <span>Operations</span><Sparkles size={12} />
+              <span>Career growth</span><Sparkles size={12} />
             </div>
           ))}
         </div>
+      </div>
+
+      <section className="lp-hero">
+        <header className="lp-header lp-shell">
+          <BrandMark />
+
+          <nav className="lp-nav" aria-label="Marketing navigation">
+            <a href="#jobs">Find Jobs</a>
+            <a href="#categories">Browse Categories</a>
+            <a href="#process">How It Works</a>
+            <a href="#why">Why Blithob Pro</a>
+          </nav>
+
+          <div className="lp-header-actions">
+            <Link className="lp-btn lp-btn-secondary hidden sm:inline-flex" to="/login">
+              Sign in
+            </Link>
+            <Link className="lp-btn lp-btn-primary hidden sm:inline-flex" to="/login">
+              Get Started
+            </Link>
+            <details className="relative sm:hidden">
+              <summary className="grid h-11 w-11 cursor-pointer list-none place-items-center rounded-full border border-[#D8E3E8] bg-white" aria-label="Open navigation">
+                <Menu size={20} />
+              </summary>
+              <div className="absolute right-0 top-14 z-30 grid min-w-48 gap-1 rounded-2xl border border-[#DDE5E8] bg-white p-2 text-sm font-bold shadow-xl">
+                <a href="#jobs" className="rounded-xl px-3 py-2">Find Jobs</a>
+                <a href="#categories" className="rounded-xl px-3 py-2">Categories</a>
+                <a href="#process" className="rounded-xl px-3 py-2">How It Works</a>
+                <Link to="/login" className="rounded-xl bg-[#E7F5FC] px-3 py-2 text-[#0B6F9E]">Sign in</Link>
+              </div>
+            </details>
+          </div>
+        </header>
+
+        <div className="lp-hero-grid lp-shell">
+          <div className="lp-hero-copy-wrap">
+            <div className="lp-kicker">
+              <span className="lp-kicker-dot">✳</span>
+              Curated jobs. Real opportunities.
+            </div>
+
+            <h1 className="lp-serif">
+              Your next <em>opportunity</em> is <em>closer</em> than you think
+            </h1>
+
+            <p className="lp-hero-copy">
+              Discover handpicked opportunities, understand what the work involves,
+              and find the role that fits where you want to go next.
+            </p>
+
+            <div className="lp-search-wrap">
+              <SearchPanel />
+            </div>
+
+            <div className="lp-hero-proof">
+              <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#0B86D7]" /> Clear role details</span>
+              <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#0B86D7]" /> Remote-friendly work</span>
+              <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#0B86D7]" /> Straightforward applications</span>
+            </div>
+          </div>
+
+          <div className="lp-hero-visual">
+            <picture className="lp-approved-hero-art">
+              <source media="(max-width: 767px)" srcSet="/landing/hero-mobile.webp" />
+              <img
+                src={heroDesktopAsset}
+                alt="Blithob Pro workspace with a laptop showing an opportunity"
+              />
+            </picture>
+          </div>
+        </div>
       </section>
+
+      <section id="jobs" className="lp-section lp-section-white">
+        <div className="lp-shell">
+          <div className="lp-jobs-head">
+            <div>
+              <div className="lp-kicker"><span className="lp-kicker-dot">✳</span> Fresh opportunities, handpicked for you.</div>
+              <h2 className="lp-display lp-serif">Jobs worth <em>checking out</em></h2>
+            </div>
+            <div>
+              <p className="lp-section-copy max-w-[560px]">
+                Explore opportunities with the useful details up front: what the work is,
+                how it works, where it can be done, and what it pays.
+              </p>
+              <a href="#categories" className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-[#0B6F9E]">
+                View all jobs <ArrowRight size={16} />
+              </a>
+            </div>
+          </div>
+
+          <div className="lp-job-board">
+            <div className="lp-job-grid">
+              {jobs.map((job) => <JobCard key={job.title} {...job} />)}
+            </div>
+            <div className="lp-board-note lp-script">New skills<br />New doors<br />☆</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="categories" className="lp-section lp-section-blue">
+        <div className="lp-shell">
+          <div className="mx-auto max-w-[900px] text-center">
+            <div className="lp-kicker"><span className="lp-kicker-dot">✳</span> Find your lane</div>
+            <h2 className="lp-display lp-serif">Whatever you’re good at, <em>start there.</em></h2>
+            <p className="lp-section-copy mx-auto mt-5 max-w-[620px]">
+              Explore the kinds of work that match the skills you already have, then keep growing from there.
+            </p>
+          </div>
+          <div className="lp-folder-stage">
+            <CategoryFolders />
+          </div>
+        </div>
+      </section>
+
+      <section id="process" className="lp-section lp-section-cream">
+        <div className="lp-shell">
+          <div className="lp-process-head">
+            <div className="lp-kicker"><span className="lp-kicker-dot">✳</span> How it works</div>
+            <h2 className="lp-display lp-serif">Getting hired shouldn’t be <em>complicated.</em></h2>
+            <p className="lp-section-copy mx-auto mt-5 max-w-[620px]">
+              Find the right opportunity, apply clearly, and know what the next step is.
+            </p>
+          </div>
+          <div className="lp-process-art">
+            <NotebookSteps />
+          </div>
+        </div>
+      </section>
+
+      <section id="why" className="lp-section lp-section-white">
+        <div className="lp-shell lp-why-grid">
+          <div className="lp-why-copy">
+            <div className="lp-kicker"><span className="lp-kicker-dot">✳</span> Why Blithob Pro?</div>
+            <h2 className="lp-display lp-serif">
+              Good jobs.<br />Clear details.<br /><strong>No noise.</strong>
+            </h2>
+            <p className="lp-section-copy mt-6 max-w-[480px]">
+              Blithob Pro is designed to cut through unnecessary friction so you can focus on opportunities that actually fit.
+            </p>
+            <div className="lp-script mt-9 max-w-[340px] rotate-[-2deg] text-2xl text-[#0B86D7]">
+              Built for real people who want real opportunities.
+            </div>
+          </div>
+
+          <div className="lp-reasons">
+            {reasons.map(({ title, copy, stamp, icon: Icon }) => (
+              <article className="lp-reason" key={title}>
+                <div className="lp-reason-icon"><Icon size={24} /></div>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{copy}</p>
+                </div>
+                <div className="lp-stamp">{stamp}</div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="stories" className="lp-section lp-section-cream">
+        <div className="lp-shell lp-proof-grid">
+          <div>
+            <div className="lp-kicker"><span className="lp-kicker-dot">✳</span> Success stories</div>
+            <h2 className="lp-display lp-serif">People finding their <em>next move.</em></h2>
+            <p className="lp-section-copy mt-5 max-w-[450px]">
+              This is where verified candidate stories will live as Blithob Pro places more professionals into new opportunities.
+            </p>
+            <div className="lp-proof-note">
+              We are keeping this section intentionally honest: no invented placement numbers and no fake testimonials.
+            </div>
+          </div>
+
+          <article className="lp-proof-card">
+            <img src={proofMainAsset} alt="Professional working at a laptop" />
+            <div className="lp-proof-card-copy">
+              <div className="lp-eyebrow">Your story could be next</div>
+              <blockquote className="lp-serif">
+                Find work that moves your career forward, with a clearer path from opportunity to application.
+              </blockquote>
+              <Link to="/login" className="mt-7 inline-flex items-center gap-2 text-sm font-extrabold text-[#0B6F9E]">
+                Create your profile <ArrowRight size={16} />
+              </Link>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="py-4 sm:py-7">
+        <div className="lp-final-wrap">
+          <div className="lp-final-grid">
+            <div className="lp-final-copy">
+              <div className="lp-kicker w-fit"><span className="lp-kicker-dot">✳</span> Your future starts now</div>
+              <h2 className="lp-display lp-serif">Your next <em>opportunity</em> could be here.</h2>
+              <p className="lp-section-copy mt-5 max-w-[470px]">
+                Take a look. Finding and applying for the right role should not feel like a second job.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a href="#jobs" className="lp-btn lp-btn-primary">Browse open jobs <ArrowRight size={16} /></a>
+                <Link to="/login" className="lp-btn lp-btn-secondary">Create your profile <ArrowRight size={16} /></Link>
+              </div>
+            </div>
+            <div className="lp-final-art">
+              <FinalWorkspace />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="lp-footer">
+        <div className="lp-shell">
+          <div className="lp-footer-grid">
+            <div>
+              <BrandMark />
+              <p className="mt-4 max-w-[280px] text-sm leading-6 text-[#6C7A82]">
+                Connecting capable professionals with clearer opportunities and a better path forward.
+              </p>
+            </div>
+            <div>
+              <div className="lp-footer-title">For job seekers</div>
+              <div className="lp-footer-links">
+                <a href="#jobs">Find Jobs</a>
+                <a href="#categories">Browse Categories</a>
+                <a href="#process">How It Works</a>
+                <Link to="/login">Sign in</Link>
+              </div>
+            </div>
+            <div>
+              <div className="lp-footer-title">Blithob Pro</div>
+              <div className="lp-footer-links">
+                <a href="#why">Why Blithob Pro</a>
+                <a href="#stories">Success Stories</a>
+                <a href="#jobs">Open Opportunities</a>
+              </div>
+            </div>
+            <div>
+              <div className="lp-footer-title">Get started</div>
+              <div className="lp-footer-links">
+                <Link to="/login">Create your profile</Link>
+                <Link to="/login">Sign in</Link>
+              </div>
+            </div>
+          </div>
+          <div className="lp-footer-bottom">
+            <span>© 2026 Blithob Pro. All rights reserved.</span>
+            <span>Clear opportunities. Better next steps.</span>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import { ToastProvider } from "./components/ToastProvider";
 import "./index.css";
+import "./pages/LandingPage.art.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
