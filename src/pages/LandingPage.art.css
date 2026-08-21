@@ -18,6 +18,24 @@
   .lp-approved-hero-art {
     transform: translateY(10px) rotate(0.2deg);
   }
+
+  .lp-job-board {
+    width: min(100%, 1120px);
+    aspect-ratio: 760 / 501;
+    min-height: 0;
+    margin-inline: auto;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 30px;
+    background: #f7efe5 url('/landing/jobs-board.webp') center / cover no-repeat;
+    box-shadow: 0 28px 70px rgba(84, 62, 37, 0.12);
+  }
+
+  .lp-job-board::after,
+  .lp-job-board .lp-job-grid,
+  .lp-job-board .lp-board-note {
+    display: none;
+  }
 }
 
 @media (max-width: 767px) {
