@@ -1,0 +1,72 @@
+name: Repair landing artwork binaries
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-landing-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Reconstruct exact WebP binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat .asset-seed/hero-mobile.part0 .asset-seed/hero-mobile.part1 .asset-seed/hero-mobile.part2 \
+            | base64 --decode > public/landing/hero-mobile.webp
+          cat .asset-seed/jobs-board.part0 .asset-seed/jobs-board.part1 \
+            | base64 --decode > public/landing/jobs-board.webp
+          cat .asset-repair/process-notebook.part0 .asset-repair/process-notebook.part1 .asset-repair/process-notebook.part2 \
+            | base64 --decode > public/landing/process-notebook.webp
+          cat .asset-repair/final-workspace.part0 .asset-repair/final-workspace.part1 .asset-repair/final-workspace.part2 .asset-repair/final-workspace.part3 \
+            | base64 --decode > public/landing/final-workspace.webp
+
+      - name: Verify exact source bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_blob() {
+            file="$1"
+            expected="$2"
+            actual="$(git hash-object "$file")"
+            echo "$file  $actual"
+            test "$actual" = "$expected"
+            test "$(head -c 4 "$file")" = "RIFF"
+            test "$(dd if="$file" bs=1 skip=8 count=4 status=none)" = "WEBP"
+          }
+
+          check_blob public/landing/hero-mobile.webp 1c4045a47aac80ab107108e81dbac4367d0b529b
+          check_blob public/landing/jobs-board.webp 266e37437ebe94f3ef289d39771aeb7dedff4ddc
+          check_blob public/landing/process-notebook.webp 345ebd2ebdbf79a38f42cc302d4d288df59e982d
+          check_blob public/landing/final-workspace.webp d42fe8febddce6ced4d55db5d865145d779490c6
+
+          test "$(stat -c %s public/landing/hero-mobile.webp)" = "24348"
+          test "$(stat -c %s public/landing/jobs-board.webp)" = "21468"
+          test "$(stat -c %s public/landing/process-notebook.webp)" = "21716"
+          test "$(stat -c %s public/landing/final-workspace.webp)" = "23434"
+
+      - name: Commit verified binary repair to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/landing/hero-mobile.webp public/landing/jobs-board.webp public/landing/process-notebook.webp public/landing/final-workspace.webp
+          if git diff --cached --quiet; then
+            echo "Verified binaries already present."
+            exit 0
+          fi
+          git commit -m "fix: replace corrupt landing artwork binaries"
+          git push origin HEAD:main
