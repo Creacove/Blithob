@@ -117,21 +117,22 @@ describe("application routing", () => {
     expect(
       within(mobileNavigation).getByRole("button", { name: "More" })
     ).toBeInTheDocument();
-  });
 
-  it("keeps Professional phone navigation to four destinations plus More", async () => {
-    const user = userEvent.setup();
-    useProfessionalStore.getState().signIn("professional");
-    renderAppAt("/professional/today");
+    await user.click(
+      within(mobileNavigation).getByRole("button", { name: "More" })
+    );
 
-    const mobileNavigation = screen.getByRole("navigation", {
-      name: "Professional mobile navigation"
+    const moreSheet = screen.getByRole("dialog", {
+      name: "More"
     });
     expect(
-      within(mobileNavigation).getAllByRole("link")
-    ).toHaveLength(4);
+      within(moreSheet).getByRole("link", { name: "Services" })
+    ).toBeInTheDocument();
     expect(
-      within(mobileNavigation).getByRole("button", { name: "More" })
+      within(moreSheet).getByRole("link", { name: "Payments" })
+    ).toBeInTheDocument();
+    expect(
+      within(moreSheet).getByRole("link", { name: "Updates" })
     ).toBeInTheDocument();
   });
 
@@ -141,83 +142,266 @@ describe("application routing", () => {
     renderAppAt("/professional/today");
 
     const mobileNavigation = screen.getByRole("navigation", {
-      name: "Professional mobile navigation"
+      name: "Lead mobile navigation"
     });
     expect(
       within(mobileNavigation).getAllByRole("link")
     ).toHaveLength(4);
-    expect(
+
+    await user.click(
       within(mobileNavigation).getByRole("button", { name: "More" })
+    );
+
+    const moreSheet = screen.getByRole("dialog", {
+      name: "More"
+    });
+    expect(
+      within(moreSheet).getByRole("link", { name: "Training" })
+    ).toBeInTheDocument();
+    expect(
+      within(moreSheet).getByRole("link", { name: "Payments" })
+    ).toBeInTheDocument();
+    expect(
+      within(moreSheet).getByRole("link", { name: "Profile" })
     ).toBeInTheDocument();
   });
 
-  it("opens the mobile More sheet and exposes account actions", async () => {
-    const user = userEvent.setup();
-    useProfessionalStore.getState().signIn("professional");
+  it("recovers from a persisted session whose user no longer exists", () => {
+    useProfessionalStore.setState({
+      session: { persona: "lead", userId: "missing-user" }
+    });
+
     renderAppAt("/professional/today");
 
-    await user.click(screen.getByRole("button", { name: "More" }));
-    expect(screen.getByText("More")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Reset demo data" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Sign out" })
+      screen.getByRole("heading", { name: "Choose a workspace" })
     ).toBeInTheDocument();
   });
 
-  it("keeps compatibility redirects for the old prototype URLs", () => {
-    useProfessionalStore.getState().signIn("professional");
-    renderAppAt("/worker/jobs");
+  it("searches the People directory and opens a Professional record", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/people");
 
-    expect(screen.getByRole("heading", { name: "Work" })).toBeInTheDocument();
+    fireEvent.change(
+      screen.getByPlaceholderText("Search by name, email, or location"),
+      { target: { value: "Nneka" } }
+    );
+
+    expect(screen.getByText("Nneka Eze")).toBeInTheDocument();
+    expect(screen.queryByText("Amara Okafor")).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("link", { name: "Open Nneka Eze" })
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Nneka Eze" })
+    ).toBeInTheDocument();
   });
 
-  it("keeps compatibility redirects for trainer URLs", () => {
-    useProfessionalStore.getState().signIn("lead");
-    renderAppAt("/trainer/trainees");
+  it("filters People by Lead capability", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/people");
 
-    expect(screen.getByRole("heading", { name: "Team" })).toBeInTheDocument();
-  });
-});
+    await user.click(screen.getByRole("button", { name: "Leads" }));
 
-// Keep one interaction-level test outside routing so a regression in a page interaction
-// is visible without coupling it to every route assertion above.
-describe("core workspace interactions", () => {
-  afterEach(() => cleanup());
-
-  beforeEach(() => {
-    useProfessionalStore.getState().resetDemo();
-    useProfessionalStore.getState().signOut();
+    expect(screen.getByText("Nneka Eze")).toBeInTheDocument();
+    expect(screen.queryByText("Amara Okafor")).not.toBeInTheDocument();
   });
 
-  it("lets an Admin create a service", async () => {
+  it("explains the access granted by Lead capability", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/people/professional-amara");
+
+    await user.click(
+      screen.getByRole("button", { name: "Grant Lead capability" })
+    );
+
+    expect(screen.getByRole("alertdialog")).toHaveTextContent(
+      "Team and Reviews"
+    );
+  });
+
+  it("opens one Service and its ordered readiness requirements", async () => {
     const user = userEvent.setup();
     useProfessionalStore.getState().signIn("admin");
     renderAppAt("/admin/services");
 
-    await user.click(screen.getByRole("button", { name: "New service" }));
-    await user.type(screen.getByLabelText("Service name"), "UX Intensive");
-    await user.type(
-      screen.getByLabelText("Summary"),
-      "A focused two-week design training programme."
+    await user.click(
+      screen.getByRole("link", {
+        name: "Open Social Media Management"
+      })
     );
-    await user.click(screen.getByRole("button", { name: "Create service" }));
 
-    expect(screen.getByText("UX Intensive")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Social Media Management" })
+    ).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Portfolio sample")).toBeInTheDocument();
+    expect(screen.queryByText(/training track/i)).not.toBeInTheDocument();
   });
 
-  it("lets a Professional update profile availability", async () => {
+  it("shows a structured Job directory and complete brief", async () => {
     const user = userEvent.setup();
-    useProfessionalStore.getState().signIn("professional");
-    renderAppAt("/professional/profile");
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/jobs");
 
-    await user.click(screen.getByRole("button", { name: "Edit availability" }));
-    fireEvent.change(screen.getByLabelText("Availability"), {
-      target: { value: "15 hours / week" }
+    expect(
+      screen.getByRole("link", { name: "Create job" })
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("link", { name: "Open Launch Social Media Calendar" })
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Launch Social Media Calendar" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Produce a ready-to-schedule campaign plan.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Acceptance criteria" })
+    ).toBeInTheDocument();
+  });
+
+  it("opens eligible Professionals in the Job assignment drawer", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/jobs/job-open-social");
+
+    await user.click(
+      screen.getByRole("button", { name: "Add professionals" })
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Add professionals" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Amara Okafor")).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Approved for Social Media Management/)
+    ).not.toHaveLength(0);
+  });
+
+  it("opens one independent Assignment record", () => {
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/assignments/assignment-approved");
+
+    expect(
+      screen.getByRole("heading", { name: "Campaign Refresh" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("David Mensah")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Submission versions" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Complete assignment" })
+    ).toBeInTheDocument();
+  });
+
+  it("opens a saved Job in the structured editor", () => {
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/jobs/job-open-social/edit");
+
+    expect(
+      screen.getByRole("heading", { name: "Edit job" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue("Launch Social Media Calendar")
+    ).toBeInTheDocument();
+  });
+
+  it("switches between independent Work and readiness review queues", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.setState((state) => ({
+      assignments: state.assignments.map((assignment) =>
+        assignment.id === "assignment-waiting-lead"
+          ? { ...assignment, status: "waiting_for_admin" }
+          : assignment
+      )
+    }));
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/reviews");
+
+    expect(screen.getByRole("tab", { name: /Work/ })).toBeInTheDocument();
+    expect(screen.getAllByText("David Mensah")).not.toHaveLength(0);
+
+    await user.click(screen.getByRole("tab", { name: /Readiness/ }));
+
+    expect(screen.getByText("Zainab Bello")).toBeInTheDocument();
+    expect(screen.getByText("Content Writing")).toBeInTheDocument();
+  });
+
+  it("records a Cash payment without requiring a reference", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/payments");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Record payment for payment-due-cash"
+      })
+    );
+    fireEvent.change(screen.getByLabelText("Payment date"), {
+      target: { value: "2026-06-16T10:00" }
     });
-    await user.click(screen.getByRole("button", { name: "Save availability" }));
+    await user.click(screen.getByRole("button", { name: "Save payment" }));
 
-    expect(screen.getByText("15 hours / week")).toBeInTheDocument();
+    expect(
+      useProfessionalStore
+        .getState()
+        .payments.find((payment) => payment.id === "payment-due-cash")
+        ?.status
+    ).toBe("paid");
+  });
+
+  it("requires a reference for a bank transfer", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/payments");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Record payment for payment-due-transfer"
+      })
+    );
+    expect(screen.getByLabelText("Payment state")).toHaveValue("paid");
+    expect(screen.getByLabelText("Method")).toHaveValue("bank_transfer");
+    const referenceInput = screen.getByLabelText(/^Payment reference/);
+    fireEvent.change(screen.getByLabelText("Payment date"), {
+      target: { value: "2026-06-21T10:00" }
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Save payment" })
+    ).toBeDisabled();
+    await user.type(referenceInput, "TRF-1048");
+    expect(
+      screen.getByRole("button", { name: "Save payment" })
+    ).toBeEnabled();
+  });
+
+  it("completes one Assignment into one due Payment", async () => {
+    const user = userEvent.setup();
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/assignments/assignment-approved");
+
+    await user.click(
+      screen.getByRole("button", { name: "Complete assignment" })
+    );
+    const dialog = screen.getByRole("alertdialog");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Complete assignment" })
+    );
+
+    expect(screen.getByText("Payment due")).toBeInTheDocument();
+    expect(
+      useProfessionalStore
+        .getState()
+        .payments.filter(
+          (payment) => payment.assignmentId === "assignment-approved"
+        )
+    ).toHaveLength(1);
   });
 });
