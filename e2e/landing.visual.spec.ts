@@ -45,6 +45,15 @@ test("captures the approved landing experience", async ({ page }, testInfo) => {
     })
   ).toBeVisible();
 
+  const heroImage = page.getByRole("img", {
+    name: "Blithob Pro workspace with a laptop showing an opportunity"
+  });
+  await expect(heroImage).toBeVisible();
+  await expect.poll(async () => heroImage.evaluate((image) => {
+    const element = image as HTMLImageElement;
+    return element.complete && element.naturalWidth > 0 && element.naturalHeight > 0;
+  })).toBe(true);
+
   const images = page.locator("img");
   const imageCount = await images.count();
   expect(imageCount).toBeGreaterThan(0);
