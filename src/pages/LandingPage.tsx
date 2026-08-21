@@ -16,8 +16,8 @@ import {
   NotebookSteps,
   SearchPanel
 } from "../components/landing/LandingArtwork";
-import { heroDesktopAsset } from "../components/landing/heroDesktopAsset";
-import { proofMainAsset } from "../components/landing/proofMainAsset";
+import { heroDesktopAssetFixed } from "../components/landing/heroDesktopAsset.fixed";
+import { proofMainAssetFixed } from "../components/landing/proofMainAsset.fixed";
 import "./LandingPage.css";
 
 const jobs = [
@@ -149,13 +149,12 @@ export function LandingPage() {
           </div>
 
           <div className="lp-hero-visual">
-            <picture className="lp-approved-hero-art">
-              <source media="(max-width: 767px)" srcSet="/landing/hero-mobile.webp" />
+            <div className="lp-approved-hero-art">
               <img
-                src={heroDesktopAsset}
+                src={heroDesktopAssetFixed}
                 alt="Blithob Pro workspace with a laptop showing an opportunity"
               />
-            </picture>
+            </div>
           </div>
         </div>
       </section>
@@ -261,7 +260,7 @@ export function LandingPage() {
           </div>
 
           <article className="lp-proof-card">
-            <img src={proofMainAsset} alt="Professional working at a laptop" />
+            <img src={proofMainAssetFixed} alt="Professional working at a laptop" />
             <div className="lp-proof-card-copy">
               <div className="lp-eyebrow">Your story could be next</div>
               <blockquote className="lp-serif">
