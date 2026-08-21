@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BrandMark } from "../components/BrandMark";
+import { Base64Artwork } from "../components/landing/Base64Artwork";
 import {
   CategoryFolders,
   FinalWorkspace,
@@ -16,7 +17,6 @@ import {
   NotebookSteps,
   SearchPanel
 } from "../components/landing/LandingArtwork";
-import { heroDesktopAssetFixed } from "../components/landing/heroDesktopAsset.fixed";
 import { proofMainAssetFixed } from "../components/landing/proofMainAsset.fixed";
 import "./LandingPage.css";
 
@@ -150,9 +150,10 @@ export function LandingPage() {
 
           <div className="lp-hero-visual">
             <div className="lp-approved-hero-art">
-              <img
-                src={heroDesktopAssetFixed}
+              <Base64Artwork
+                base64Url="/landing/hero-desktop-repaired.webp.b64"
                 alt="Blithob Pro workspace with a laptop showing an opportunity"
+                className="block h-auto w-full object-contain"
               />
             </div>
           </div>
