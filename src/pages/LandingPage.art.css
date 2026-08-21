@@ -36,6 +36,39 @@
   .lp-job-board .lp-board-note {
     display: none;
   }
+
+  .lp-folder-stage {
+    width: min(100%, 1120px);
+    aspect-ratio: 760 / 244;
+    min-height: 0;
+    margin: 42px auto 0;
+    background: url('/landing/category-folders.webp') center / contain no-repeat;
+  }
+
+  .lp-folder-stage > * {
+    display: none;
+  }
+
+  .lp-process-art {
+    width: min(100%, 1120px);
+    aspect-ratio: 760 / 340;
+    min-height: 0;
+    margin: 48px auto 0;
+    background: url('/landing/process-notebook.webp') center / contain no-repeat;
+  }
+
+  .lp-process-art > * {
+    display: none;
+  }
+
+  .lp-final-art {
+    min-height: 0;
+    background: url('/landing/final-workspace.webp') center / contain no-repeat;
+  }
+
+  .lp-final-art > * {
+    visibility: hidden;
+  }
 }
 
 @media (max-width: 767px) {
