@@ -17,7 +17,6 @@ import {
   NotebookSteps,
   SearchPanel
 } from "../components/landing/LandingArtwork";
-import { proofMainAssetFixed } from "../components/landing/proofMainAsset.fixed";
 import "./LandingPage.css";
 
 const jobs = [
@@ -261,7 +260,11 @@ export function LandingPage() {
           </div>
 
           <article className="lp-proof-card">
-            <img src={proofMainAssetFixed} alt="Professional working at a laptop" />
+            <Base64Artwork
+              base64Url="/landing/proof-main-repaired.webp.b64"
+              alt="Professional working at a laptop"
+              className="block h-auto w-full object-cover"
+            />
             <div className="lp-proof-card-copy">
               <div className="lp-eyebrow">Your story could be next</div>
               <blockquote className="lp-serif">
