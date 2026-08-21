@@ -18,11 +18,11 @@ test("captures the approved landing experience", async ({ page }, testInfo) => {
 
   await expect(
     page.getByRole("heading", {
-      name: "Your next opportunity is closer than you think."
+      name: "Your next opportunity is closer than you think"
     })
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Jobs worth checking out." })
+    page.getByRole("heading", { name: "Jobs worth checking out" })
   ).toBeVisible();
   await expect(
     page.getByRole("heading", {
