@@ -45,6 +45,17 @@ test("captures the approved landing experience", async ({ page }, testInfo) => {
     })
   ).toBeVisible();
 
+  const images = page.locator("img");
+  const imageCount = await images.count();
+  expect(imageCount).toBeGreaterThan(0);
+  for (let index = 0; index < imageCount; index += 1) {
+    const loaded = await images.nth(index).evaluate((image) => {
+      const element = image as HTMLImageElement;
+      return element.complete && element.naturalWidth > 0 && element.naturalHeight > 0;
+    });
+    expect(loaded, `image ${index + 1} should decode successfully`).toBe(true);
+  }
+
   const suffix = testInfo.project.name;
   await page.screenshot({
     path: `${artifactDir}/full-${suffix}.png`,
