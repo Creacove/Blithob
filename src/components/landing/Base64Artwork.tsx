@@ -6,13 +6,19 @@ type Base64ArtworkProps = {
   className?: string;
 };
 
+function resolveArtworkUrl(base64Url: string) {
+  const cleanPath = base64Url.startsWith("/") ? base64Url.slice(1) : base64Url;
+  return `${import.meta.env.BASE_URL}${cleanPath}`;
+}
+
 export function Base64Artwork({ base64Url, alt, className }: Base64ArtworkProps) {
   const [src, setSrc] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    const artworkUrl = resolveArtworkUrl(base64Url);
 
-    fetch(base64Url)
+    fetch(artworkUrl)
       .then((response) => {
         if (!response.ok) {
           throw new Error(`Unable to load artwork: ${response.status}`);
