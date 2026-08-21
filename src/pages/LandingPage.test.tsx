@@ -6,7 +6,7 @@ import { LandingPage } from "./LandingPage";
 describe("LandingPage", () => {
   afterEach(() => cleanup());
 
-  it("presents Blithob Pro as a multi-service company", () => {
+  it("presents Blithob Pro as a candidate-first job platform", () => {
     render(
       <MemoryRouter>
         <LandingPage />
@@ -15,23 +15,26 @@ describe("LandingPage", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: "Practical support for people and businesses on the move."
+        name: "Your next opportunity is closer than you think"
       })
     ).toBeInTheDocument();
 
-    for (const service of [
-      "Travel",
-      "Visa Services",
-      "Recruitment",
-      "Remote Jobs"
-    ]) {
-      expect(
-        screen.getByRole("heading", { name: service })
-      ).toBeInTheDocument();
-    }
+    expect(
+      screen.getByRole("heading", { name: "Jobs worth checking out" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Whatever you’re good at, start there."
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Getting hired shouldn’t be complicated."
+      })
+    ).toBeInTheDocument();
 
     expect(
-      screen.getByRole("link", { name: "Sign in" })
+      screen.getAllByRole("link", { name: "Sign in" })[0]
     ).toHaveAttribute("href", "/login");
   });
 });
