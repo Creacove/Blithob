@@ -9,6 +9,7 @@ import {
   type PublicListingsRepository,
   type PublicService
 } from "../../lib/publicListings";
+import { usePublicAccountNavigation } from "../../lib/accountNavigation";
 import { PublicFooter, PublicHeader } from "./PublicLayout";
 import "./public.css";
 
@@ -51,6 +52,7 @@ function JobCard({ job }: { job: PublicJobSummary }) {
 }
 
 export function PublicJobsPage({ repository = publicListingsRepository }: { repository?: PublicListingsRepository }) {
+  const account = usePublicAccountNavigation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [query, setQuery] = useState(searchParams.get("query") ?? "");
@@ -113,7 +115,7 @@ export function PublicJobsPage({ repository = publicListingsRepository }: { repo
       </section>
 
       <section className="public-shell public-directory-results" aria-label="Open jobs">
-        <div className="public-results-heading"><div><p className="public-eyebrow">The directory</p><h2>{loading ? "Finding the right roles…" : `${total} ${total === 1 ? "role" : "roles"} worth a look`}</h2></div><Link to="/login" className="public-inline-link">Create a profile <ArrowRight size={15} aria-hidden /></Link></div>
+        <div className="public-results-heading"><div><p className="public-eyebrow">The directory</p><h2>{loading ? "Finding the right roles…" : `${total} ${total === 1 ? "role" : "roles"} worth a look`}</h2></div><Link to={account.status === "signedIn" ? account.workspacePath : "/login"} className="public-inline-link">{account.status === "signedIn" ? account.primaryLabel : "Create a profile"} <ArrowRight size={15} aria-hidden /></Link></div>
         {error ? <div role="alert" className="public-alert">{error}</div> : loading ? <div className="public-loading" role="status">Loading published roles…</div> : jobs.length === 0 ? <EmptyState title="No published roles match yet" description="Try another search, or check back as new opportunities are approved." /> : <div className="public-job-grid">{jobs.map((job) => <JobCard job={job} key={job.id} />)}</div>}
       </section>
       <PublicFooter />

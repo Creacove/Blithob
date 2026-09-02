@@ -1,9 +1,16 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { LandingPage } from "./LandingPage";
+import { useProfessionalStore } from "../store/professionalStore";
 
 describe("LandingPage", () => {
+  beforeEach(() => {
+    useProfessionalStore.getState().resetDemo();
+    useProfessionalStore.getState().signOut();
+    useProfessionalStore.setState({ backendMode: "demo", isBootstrapping: false });
+  });
+
   afterEach(() => cleanup());
 
   it("presents Blithob Pro as a candidate-first job platform", () => {
@@ -124,6 +131,25 @@ describe("LandingPage", () => {
       "src",
       "/landing/success-story.webp"
     );
+  });
+
+  it("propagates a signed-in account through marketing actions", () => {
+    render(
+      <MemoryRouter>
+        <LandingPage />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("link", { name: "Open workspace" })).not.toBeInTheDocument();
+
+    act(() => {
+      useProfessionalStore.getState().signIn("professional");
+    });
+
+    expect(screen.queryByRole("link", { name: "Log in" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Get Started" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Open workspace" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "My applications" }).length).toBeGreaterThan(0);
   });
 
   it("renders the Why Blithob Pro reference as a live editorial section", () => {

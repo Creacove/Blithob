@@ -29,6 +29,7 @@ import {
   type PublicJobSummary,
   type PublicListingsRepository
 } from "../lib/publicListings";
+import { usePublicAccountNavigation } from "../lib/accountNavigation";
 import { isDemoMode } from "../lib/supabase";
 import "./LandingPage.css";
 
@@ -97,6 +98,7 @@ function toLandingJob(job: PublicJobSummary, index: number): LandingJob {
 }
 
 export function LandingPage({ repository = publicListingsRepository }: { repository?: PublicListingsRepository }) {
+  const account = usePublicAccountNavigation();
   const [featuredJobs, setFeaturedJobs] = useState<PublicJobSummary[]>(() => isDemoMode ? demoPublicJobs : []);
   const [categories, setCategories] = useState<PublicCategory[]>(() => isDemoMode ? demoPublicCategories : []);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -154,12 +156,27 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
           </nav>
 
           <div className="lp-header-actions">
-            <Link className="lp-btn lp-btn-pill lp-btn-secondary hidden sm:inline-flex" to="/login">
-              Log in
-            </Link>
-            <Link className="lp-btn lp-btn-pill lp-btn-primary hidden sm:inline-flex" to="/login">
-              Get Started
-            </Link>
+            {account.status === "loading" && (
+              <span className="lp-header-account-status hidden sm:inline-flex">Loading account…</span>
+            )}
+            {account.status === "signedOut" && <>
+              <Link className="lp-btn lp-btn-pill lp-btn-secondary hidden sm:inline-flex" to="/login">
+                Log in
+              </Link>
+              <Link className="lp-btn lp-btn-pill lp-btn-primary hidden sm:inline-flex" to="/login">
+                Get Started
+              </Link>
+            </>}
+            {account.status === "signedIn" && <>
+              {account.applicationsPath && (
+                <Link className="lp-btn lp-btn-pill lp-btn-secondary hidden sm:inline-flex" to={account.applicationsPath}>
+                  My applications
+                </Link>
+              )}
+              <Link className="lp-btn lp-btn-pill lp-btn-primary hidden sm:inline-flex" to={account.workspacePath}>
+                {account.primaryLabel} <ArrowRight size={16} aria-hidden />
+              </Link>
+            </>}
             <details className="relative sm:hidden">
               <summary className="grid h-11 w-11 cursor-pointer list-none place-items-center rounded-full border border-[#D8E3E8] bg-white" aria-label="Open navigation">
                 <Menu size={20} />
@@ -169,7 +186,12 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
                 <a href="#categories" className="rounded-xl px-3 py-2">Categories</a>
                 <a href="#process" className="rounded-xl px-3 py-2">How It Works</a>
                 <a href="#why" className="rounded-xl px-3 py-2">Why Blithob Pro</a>
-                <Link to="/login" className="rounded-xl bg-[#E7F5FC] px-3 py-2 text-[#0B6F9E]">Log in</Link>
+                {account.status === "loading" && <span className="rounded-xl bg-[#F3F7F9] px-3 py-2 text-[#6C7A82]">Loading account…</span>}
+                {account.status === "signedOut" && <Link to="/login" className="rounded-xl bg-[#E7F5FC] px-3 py-2 text-[#0B6F9E]">Log in</Link>}
+                {account.status === "signedIn" && <>
+                  {account.applicationsPath && <Link to={account.applicationsPath} className="rounded-xl bg-[#E7F5FC] px-3 py-2 text-[#0B6F9E]">My applications</Link>}
+                  <Link to={account.workspacePath} className="rounded-xl bg-[#0B86D7] px-3 py-2 text-white">{account.primaryLabel}</Link>
+                </>}
               </div>
             </details>
           </div>
@@ -326,8 +348,8 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
               <blockquote className="lp-serif">
                 Find work that moves your career forward, with a clearer path from opportunity to application.
               </blockquote>
-              <Link to="/login" className="mt-7 inline-flex items-center gap-2 text-sm font-extrabold text-[#0B6F9E]">
-                Create your profile <ArrowRight size={16} />
+              <Link to={account.status === "signedIn" ? account.workspacePath : "/login"} className="mt-7 inline-flex items-center gap-2 text-sm font-extrabold text-[#0B6F9E]">
+                {account.status === "signedIn" ? account.primaryLabel : "Create your profile"} <ArrowRight size={16} />
               </Link>
             </div>
           </article>
@@ -345,7 +367,7 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link to="/jobs" className="lp-btn lp-btn-primary">Browse open jobs <ArrowRight size={16} /></Link>
-                <Link to="/login" className="lp-btn lp-btn-secondary">Create your profile <ArrowRight size={16} /></Link>
+                <Link to={account.status === "signedIn" ? account.workspacePath : "/login"} className="lp-btn lp-btn-secondary">{account.status === "signedIn" ? account.primaryLabel : "Create your profile"} <ArrowRight size={16} /></Link>
               </div>
             </div>
             <div className="lp-final-art">
@@ -382,8 +404,15 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
             <div>
               <div className="lp-footer-title">Get started</div>
               <div className="lp-footer-links">
-                <Link to="/login">Create your profile</Link>
-                <Link to="/login">Sign in</Link>
+                {account.status === "loading" && <span>Loading account…</span>}
+                {account.status === "signedOut" && <>
+                  <Link to="/login">Create your profile</Link>
+                  <Link to="/login">Sign in</Link>
+                </>}
+                {account.status === "signedIn" && <>
+                  {account.applicationsPath && <Link to={account.applicationsPath}>My applications</Link>}
+                  <Link to={account.workspacePath}>{account.primaryLabel}</Link>
+                </>}
               </div>
             </div>
           </div>
