@@ -1,5 +1,8 @@
 import type { CSSProperties } from "react";
+import { useState } from "react";
 import { ArrowUpRight, BriefcaseBusiness, ChevronDown, LayoutGrid, MapPin, Search, Sparkles } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import type { PublicCategory } from "../../lib/publicListings";
 
 const blue = "#178FC8";
 const blueDeep = "#0B5F8A";
@@ -122,18 +125,28 @@ export function NotebookSteps() {
   );
 }
 
-export function CategoryFolders() {
-  const folders = [
-    { label: "TECH", tone: "#168FC8", x: "0%", y: "10%", r: "-5deg", dx: "1%", dy: "13%", dr: "-7deg", z: 1 },
-    { label: "DESIGN", tone: "#BFEAF8", x: "20%", y: "1%", r: "3deg", dx: "20%", dy: "4%", dr: "-3deg", z: 2 },
-    { label: "MARKETING", tone: "#FFD85A", x: "41%", y: "12%", r: "-2deg", dx: "40%", dy: "0%", dr: "0deg", z: 5 },
-    { label: "OPERATIONS", tone: "#0B5F8A", x: "61%", y: "3%", r: "4deg", dx: "60%", dy: "4%", dr: "3deg", z: 3 },
-    { label: "SUPPORT", tone: "#BDEBD6", x: "79%", y: "13%", r: "-4deg", dx: "79%", dy: "13%", dr: "7deg", z: 1 }
-  ];
+export function CategoryFolders({ categories = [] }: { categories?: PublicCategory[] }) {
+  const tones = ["#168FC8", "#BFEAF8", "#FFD85A", "#0B5F8A", "#BDEBD6"];
+  const folders = categories.map((category, index) => ({
+    label: category.name.toUpperCase(),
+    slug: category.slug,
+    tone: tones[index % tones.length],
+    x: `${Math.min(index * 20, 80)}%`,
+    y: index % 2 ? "1%" : "10%",
+    r: index % 2 ? "3deg" : "-5deg",
+    dx: `${Math.min(index * 20, 80)}%`,
+    dy: index % 2 ? "4%" : "13%",
+    dr: index % 2 ? "-3deg" : "-7deg",
+    z: index + 1
+  }));
 
   return (
     <div className="lp-category-folders" role="region" aria-label="Job categories">
-      {folders.map((folder) => (
+      {folders.length === 0 ? (
+        <p className="col-span-full rounded-2xl border border-dashed border-white/60 bg-white/30 px-6 py-10 text-center text-sm font-semibold text-[#0B5F8A]">
+          New categories will appear here as opportunities are published.
+        </p>
+      ) : folders.map((folder) => (
         <article
           key={folder.label}
           className={`lp-category-folder${folder.tone === blueDeep ? " lp-category-folder-dark" : ""}`}
@@ -156,7 +169,7 @@ export function CategoryFolders() {
               <div className="lp-category-folder-line lp-category-folder-line-long" />
               <div className="lp-category-folder-line lp-category-folder-line-short" />
               <div className="lp-category-folder-icon">
-                <BriefcaseBusiness size={17} aria-hidden />
+                <Link to={`/jobs?category=${folder.slug}`} aria-label={`Browse ${folder.label} jobs`}><BriefcaseBusiness size={17} aria-hidden /></Link>
               </div>
             </div>
           </div>
@@ -206,6 +219,7 @@ export function FinalWorkspace() {
 
 export type LandingJob = {
   id?: string;
+  href?: string;
   title: string;
   company: string;
   rate: string;
@@ -216,6 +230,7 @@ export type LandingJob = {
 };
 
 export function LiveJobsBoard({ jobs }: { jobs: LandingJob[] }) {
+  const navigate = useNavigate();
   return (
     <div className="lp-job-board-live" role="region" aria-label="Featured job opportunities">
       <picture className="lp-job-board-picture">
@@ -236,7 +251,13 @@ export function LiveJobsBoard({ jobs }: { jobs: LandingJob[] }) {
       </picture>
 
       <div className="lp-job-overlay-layer" aria-label="Featured jobs">
-        {jobs.slice(0, 5).map((job, index) => (
+        {jobs.length === 0 ? (
+          <div className="lp-job-overlay-empty">
+            <strong>New roles are being prepared.</strong>
+            <span>Check back soon or browse the full job directory.</span>
+            <Link to="/jobs" className="lp-job-overlay-action">Browse all jobs <ArrowUpRight size={12} aria-hidden /></Link>
+          </div>
+        ) : jobs.slice(0, 5).map((job, index) => (
           <article
             className={`lp-job-overlay lp-job-overlay-${index + 1}`}
             key={job.id ?? `${job.title}-${index}`}
@@ -253,7 +274,7 @@ export function LiveJobsBoard({ jobs }: { jobs: LandingJob[] }) {
               <p className="lp-job-overlay-description">{job.description}</p>
               <div className="lp-job-overlay-foot">
                 <strong>{job.rate}</strong>
-                <button type="button" className="lp-job-overlay-action" aria-label={`View ${job.title} job`}>
+                <button type="button" className="lp-job-overlay-action" aria-label={`View ${job.title} job`} onClick={() => navigate(job.href ?? "/jobs")}>
                   <span className="lp-job-action-full">View job</span>
                   <span className="lp-job-action-short">View</span>
                   <ArrowUpRight size={12} aria-hidden />
@@ -267,30 +288,50 @@ export function LiveJobsBoard({ jobs }: { jobs: LandingJob[] }) {
   );
 }
 
-export function SearchPanel() {
-  const fields = [
-    { icon: BriefcaseBusiness, label: "Role", value: "e.g. Product Designer" },
-    { icon: LayoutGrid, label: "Category", value: "All Categories" },
-    { icon: MapPin, label: "Location", value: "Anywhere" }
-  ];
-
+export function SearchPanel({ categories = [] }: { categories?: PublicCategory[] }) {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+  const [categorySlug, setCategorySlug] = useState("");
+  const [location, setLocation] = useState("");
   return (
-    <div className="lp-search-panel">
-      {fields.map(({ icon: Icon, label, value }) => (
-        <button key={label} type="button" className="lp-search-field">
-          <Icon size={18} className="lp-search-field-icon" aria-hidden />
-          <span className="lp-search-field-text">
-            <span className="lp-search-field-label">{label}</span>
-            <span className="lp-search-field-value">{value}</span>
-          </span>
-          <ChevronDown size={16} className="lp-search-field-chevron" aria-hidden />
-        </button>
-      ))}
-      <button type="button" className="lp-search-submit">
+    <form className="lp-search-panel" onSubmit={(event) => {
+      event.preventDefault();
+      const params = new URLSearchParams();
+      if (query.trim()) params.set("query", query.trim());
+      if (categorySlug) params.set("category", categorySlug);
+      if (location.trim()) params.set("location", location.trim());
+      navigate(`/jobs${params.toString() ? `?${params.toString()}` : ""}`);
+    }}>
+      <label className="lp-search-field">
+        <BriefcaseBusiness size={18} className="lp-search-field-icon" aria-hidden />
+        <span className="lp-search-field-text">
+          <span className="lp-search-field-label">Role</span>
+          <input aria-label="Search by role" className="lp-search-field-value bg-transparent outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="e.g. Product Designer" />
+        </span>
+      </label>
+      <label className="lp-search-field">
+        <LayoutGrid size={18} className="lp-search-field-icon" aria-hidden />
+        <span className="lp-search-field-text">
+          <span className="lp-search-field-label">Category</span>
+          <select aria-label="Search by category" className="lp-search-field-value appearance-none bg-transparent outline-none" value={categorySlug} onChange={(event) => setCategorySlug(event.target.value)}>
+            <option value="">All categories</option>
+            {categories.map((category) => <option key={category.slug} value={category.slug}>{category.name}</option>)}
+          </select>
+        </span>
+        <ChevronDown size={16} className="lp-search-field-chevron" aria-hidden />
+      </label>
+      <label className="lp-search-field">
+        <MapPin size={18} className="lp-search-field-icon" aria-hidden />
+        <span className="lp-search-field-text">
+          <span className="lp-search-field-label">Location</span>
+          <input aria-label="Search by location" className="lp-search-field-value bg-transparent outline-none" value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Anywhere" />
+        </span>
+      </label>
+      <button type="submit" className="lp-search-submit">
         Search Jobs
         <Search size={16} aria-hidden />
       </button>
-    </div>
+    </form>
   );
 }
 

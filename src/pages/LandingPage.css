@@ -362,6 +362,15 @@
   text-overflow: ellipsis;
 }
 
+.lp-search-field input.lp-search-field-value,
+.lp-search-field select.lp-search-field-value {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  line-height: 1.35;
+}
+
 .lp-search-field-chevron {
   margin-left: auto;
   color: #9aa8b0;
@@ -570,6 +579,29 @@
   z-index: 3;
   pointer-events: none;
 }
+
+.lp-job-overlay-empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  max-width: min(86%, 460px);
+  gap: 8px;
+  justify-items: center;
+  padding: 28px 34px;
+  border: 1px solid rgba(21, 32, 43, .12);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .88);
+  color: #15202b;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 18px 36px rgba(21, 32, 43, .12);
+  pointer-events: auto;
+}
+
+.lp-job-overlay-empty strong { font-size: clamp(16px, 1.6vw, 26px); letter-spacing: -.04em; }
+.lp-job-overlay-empty span { color: #66757d; font-size: clamp(11px, .85vw, 14px); }
+.lp-job-overlay-empty .lp-job-overlay-action { margin-top: 8px; }
 
 .lp-job-overlay {
   position: absolute;

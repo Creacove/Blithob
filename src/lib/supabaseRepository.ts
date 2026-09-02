@@ -75,7 +75,20 @@ function boolValue(row: DbRow, key: string, fallback = false) {
 
 function numberValue(row: DbRow, key: string, fallback = 0) {
   const item = value<unknown>(row, key);
-  return typeof item === "number" ? item : fallback;
+  if (typeof item === "number" && Number.isFinite(item)) return item;
+  if (typeof item === "string" && item.trim() && Number.isFinite(Number(item))) {
+    return Number(item);
+  }
+  return fallback;
+}
+
+function optionalNumber(row: DbRow, key: string) {
+  const item = value<unknown>(row, key);
+  if (typeof item === "number" && Number.isFinite(item)) return item;
+  if (typeof item === "string" && item.trim() && Number.isFinite(Number(item))) {
+    return Number(item);
+  }
+  return undefined;
 }
 
 function stringArray(row: DbRow, key: string) {
@@ -131,6 +144,14 @@ function mapService(row: DbRow, requirements: Service["requirements"]): Service 
     shortName: textValue(row, "short_name"),
     description: textValue(row, "description"),
     active: boolValue(row, "active", true),
+    ...(nullableText(row, "slug") ? { slug: nullableText(row, "slug") } : {}),
+    ...(nullableText(row, "public_label") ? { publicLabel: nullableText(row, "public_label") } : {}),
+    ...(value<boolean>(row, "public_visible") !== undefined
+      ? { publicVisible: boolValue(row, "public_visible") }
+      : {}),
+    ...(value<number>(row, "display_order") !== undefined
+      ? { displayOrder: numberValue(row, "display_order") }
+      : {}),
     requirements,
     createdAt: textValue(row, "created_at"),
     updatedAt: textValue(row, "updated_at", textValue(row, "created_at"))
@@ -198,6 +219,44 @@ function mapJob(row: DbRow, references: Job["references"]): Job {
     id: idValue(row, "id"),
     title: textValue(row, "title"),
     serviceId: idValue(row, "service_id"),
+    ...(nullableText(row, "slug") ? { slug: nullableText(row, "slug") } : {}),
+    ...(nullableText(row, "category_id") ? { categoryId: nullableText(row, "category_id") } : {}),
+    ...(value<boolean>(row, "public_visible") !== undefined
+      ? { publicVisible: boolValue(row, "public_visible") }
+      : {}),
+    ...(value<string>(row, "public_summary") !== undefined
+      ? { publicSummary: textValue(row, "public_summary") }
+      : {}),
+    ...(value<string>(row, "public_company_name") !== undefined
+      ? { publicCompanyName: textValue(row, "public_company_name") }
+      : {}),
+    ...(value<string>(row, "employment_type") !== undefined
+      ? { employmentType: textValue(row, "employment_type") }
+      : {}),
+    ...(value<string>(row, "work_mode") !== undefined
+      ? { workMode: textValue(row, "work_mode") }
+      : {}),
+    ...(value<string>(row, "location_label") !== undefined
+      ? { locationLabel: textValue(row, "location_label") }
+      : {}),
+    ...(optionalNumber(row, "rate_min_minor") !== undefined
+      ? { rateMinMinor: optionalNumber(row, "rate_min_minor") }
+      : {}),
+    ...(optionalNumber(row, "rate_max_minor") !== undefined
+      ? { rateMaxMinor: optionalNumber(row, "rate_max_minor") }
+      : {}),
+    ...(value<string>(row, "rate_currency") !== undefined
+      ? { rateCurrency: textValue(row, "rate_currency", "NGN") }
+      : {}),
+    ...(value<string>(row, "rate_period") !== undefined
+      ? { ratePeriod: textValue(row, "rate_period") }
+      : {}),
+    ...(nullableText(row, "application_deadline")
+      ? { applicationDeadline: nullableText(row, "application_deadline") }
+      : {}),
+    ...(optionalNumber(row, "featured_order") !== undefined
+      ? { featuredOrder: optionalNumber(row, "featured_order") }
+      : {}),
     clientContext: textValue(row, "client_context"),
     objective: textValue(row, "objective"),
     description: textValue(row, "description"),
@@ -539,7 +598,11 @@ export function toServiceInsert(input: CreateServiceInput, id?: string) {
     ...(id ? { id } : {}),
     name: input.name.trim(),
     short_name: input.shortName.trim(),
-    description: input.description.trim()
+    description: input.description.trim(),
+    ...(input.slug?.trim() ? { slug: input.slug.trim() } : {}),
+    ...(input.publicLabel?.trim() ? { public_label: input.publicLabel.trim() } : {}),
+    ...(input.publicVisible === undefined ? {} : { public_visible: input.publicVisible }),
+    ...(input.displayOrder === undefined ? {} : { display_order: input.displayOrder })
   };
 }
 
@@ -567,6 +630,20 @@ export function toJobInsert(
     id,
     title: input.title.trim(),
     service_id: input.serviceId,
+    ...(input.slug?.trim() ? { slug: input.slug.trim() } : {}),
+    ...(input.categoryId ? { category_id: input.categoryId } : {}),
+    ...(input.publicVisible === undefined ? {} : { public_visible: input.publicVisible }),
+    ...(input.publicSummary?.trim() ? { public_summary: input.publicSummary.trim() } : {}),
+    ...(input.publicCompanyName?.trim() ? { public_company_name: input.publicCompanyName.trim() } : {}),
+    ...(input.employmentType?.trim() ? { employment_type: input.employmentType.trim() } : {}),
+    ...(input.workMode?.trim() ? { work_mode: input.workMode.trim() } : {}),
+    ...(input.locationLabel?.trim() ? { location_label: input.locationLabel.trim() } : {}),
+    ...(input.rateMinMinor === undefined ? {} : { rate_min_minor: input.rateMinMinor }),
+    ...(input.rateMaxMinor === undefined ? {} : { rate_max_minor: input.rateMaxMinor }),
+    ...(input.rateCurrency?.trim() ? { rate_currency: input.rateCurrency.trim() } : {}),
+    ...(input.ratePeriod?.trim() ? { rate_period: input.ratePeriod.trim() } : {}),
+    ...(input.applicationDeadline ? { application_deadline: input.applicationDeadline } : {}),
+    ...(input.featuredOrder === undefined ? {} : { featured_order: input.featuredOrder }),
     client_context: input.clientContext.trim(),
     objective: input.objective.trim(),
     description: input.description.trim(),
@@ -754,12 +831,16 @@ export class SupabaseRepository {
 
   async updateService(
     serviceId: string,
-    input: Partial<Pick<Service, "name" | "shortName" | "description">>
+    input: Partial<Pick<Service, "name" | "shortName" | "description" | "slug" | "publicLabel" | "publicVisible" | "displayOrder">>
   ) {
     const patch = {
       ...(input.name === undefined ? {} : { name: input.name.trim() }),
       ...(input.shortName === undefined ? {} : { short_name: input.shortName.trim() }),
-      ...(input.description === undefined ? {} : { description: input.description.trim() })
+      ...(input.description === undefined ? {} : { description: input.description.trim() }),
+      ...(input.slug === undefined ? {} : { slug: input.slug.trim() }),
+      ...(input.publicLabel === undefined ? {} : { public_label: input.publicLabel.trim() }),
+      ...(input.publicVisible === undefined ? {} : { public_visible: input.publicVisible }),
+      ...(input.displayOrder === undefined ? {} : { display_order: input.displayOrder })
     };
     if (Object.keys(patch).length > 0) {
       await this.resolve<DbRow[]>(
@@ -873,6 +954,20 @@ export class SupabaseRepository {
     const patch = {
       ...(input.title === undefined ? {} : { title: input.title.trim() }),
       ...(input.serviceId === undefined ? {} : { service_id: input.serviceId }),
+      ...(input.slug === undefined ? {} : { slug: input.slug?.trim() || null }),
+      ...(input.categoryId === undefined ? {} : { category_id: input.categoryId || null }),
+      ...(input.publicVisible === undefined ? {} : { public_visible: input.publicVisible }),
+      ...(input.publicSummary === undefined ? {} : { public_summary: input.publicSummary.trim() }),
+      ...(input.publicCompanyName === undefined ? {} : { public_company_name: input.publicCompanyName.trim() }),
+      ...(input.employmentType === undefined ? {} : { employment_type: input.employmentType.trim() }),
+      ...(input.workMode === undefined ? {} : { work_mode: input.workMode.trim() }),
+      ...(input.locationLabel === undefined ? {} : { location_label: input.locationLabel.trim() }),
+      ...(input.rateMinMinor === undefined ? {} : { rate_min_minor: input.rateMinMinor }),
+      ...(input.rateMaxMinor === undefined ? {} : { rate_max_minor: input.rateMaxMinor }),
+      ...(input.rateCurrency === undefined ? {} : { rate_currency: input.rateCurrency.trim() }),
+      ...(input.ratePeriod === undefined ? {} : { rate_period: input.ratePeriod.trim() }),
+      ...(input.applicationDeadline === undefined ? {} : { application_deadline: input.applicationDeadline || null }),
+      ...(input.featuredOrder === undefined ? {} : { featured_order: input.featuredOrder }),
       ...(input.clientContext === undefined ? {} : { client_context: input.clientContext.trim() }),
       ...(input.objective === undefined ? {} : { objective: input.objective.trim() }),
       ...(input.description === undefined ? {} : { description: input.description.trim() }),

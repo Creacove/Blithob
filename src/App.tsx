@@ -5,6 +5,12 @@ import type { AccountRole } from "./domain/model";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
+import { PublicJobsPage } from "./pages/public/PublicJobsPage";
+import { PublicJobDetailPage } from "./pages/public/PublicJobDetailPage";
+import { PublicApplyPage } from "./pages/public/PublicApplyPage";
+import { PublicApplicationsPage } from "./pages/public/PublicApplicationsPage";
+import { OnboardingPage } from "./pages/public/OnboardingPage";
+import { AdminApplicationsPage } from "./pages/admin/AdminApplicationsPage";
 import { PeoplePage } from "./pages/admin/PeoplePage";
 import { ProfessionalDetailPage } from "./pages/admin/ProfessionalDetailPage";
 import { AdminAssignmentPage } from "./pages/admin/AdminAssignmentPage";
@@ -80,6 +86,11 @@ export function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/jobs" element={<PublicJobsPage />} />
+      <Route path="/jobs/:slug" element={<PublicJobDetailPage />} />
+      <Route path="/jobs/:slug/apply" element={<PublicApplyPage />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/professional/applications" element={<PublicApplicationsPage />} />
 
       <Route element={<ProtectedAccount role="admin" />}>
         <Route element={<AppShell role="admin" />}>
@@ -118,6 +129,10 @@ export function App() {
           <Route
             path="/admin/jobs/:jobId"
             element={<JobDetailPage />}
+          />
+          <Route
+            path="/admin/applications"
+            element={<AdminApplicationsPage />}
           />
           <Route
             path="/admin/assignments/:assignmentId"

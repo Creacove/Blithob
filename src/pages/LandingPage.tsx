@@ -9,6 +9,7 @@ import {
   SearchCheck,
   Zap
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { BrandMark } from "../components/BrandMark";
 import { HeroAvatarStack } from "../components/landing/HeroAvatarStack";
@@ -20,60 +21,16 @@ import {
   SearchPanel
 } from "../components/landing/LandingArtwork";
 import type { LandingJob } from "../components/landing/LandingArtwork";
+import {
+  publicListingsRepository,
+  demoPublicCategories,
+  demoPublicJobs,
+  type PublicCategory,
+  type PublicJobSummary,
+  type PublicListingsRepository
+} from "../lib/publicListings";
+import { isDemoMode } from "../lib/supabase";
 import "./LandingPage.css";
-
-const jobs: LandingJob[] = [
-  {
-    id: "frontend-developer",
-    title: "Frontend Developer",
-    company: "Skyline Labs",
-    rate: "₦450K – ₦650K",
-    type: "Full-time",
-    location: "New York, NY",
-    description: "Build accessible, responsive product experiences used by growing teams around the world.",
-    accent: "#0B86D7"
-  },
-  {
-    id: "social-media-manager",
-    title: "Social Media Manager",
-    company: "Brightwave",
-    rate: "₦250K – ₦400K",
-    type: "Full-time",
-    location: "Hybrid",
-    description: "Shape social campaigns, grow engaged communities, and turn insights into measurable momentum.",
-    accent: "#70C7ED"
-  },
-  {
-    id: "customer-support-rep",
-    title: "Customer Support Rep",
-    company: "Codeflow Systems",
-    rate: "₦280K – ₦420K",
-    type: "Full-time",
-    location: "Seattle, WA",
-    description: "Help customers solve meaningful problems with clear communication and thoughtful support.",
-    accent: "#CFE8D2"
-  },
-  {
-    id: "operations-manager",
-    title: "Operations Manager",
-    company: "Flowstead",
-    rate: "₦400K – ₦600K",
-    type: "Full-time",
-    location: "Denver, CO",
-    description: "Improve systems, coordinate teams, and keep important work moving with clarity.",
-    accent: "#F2AA2B"
-  },
-  {
-    id: "product-designer",
-    title: "Product Designer",
-    company: "Northstar Studio",
-    rate: "₦400K – ₦650K",
-    type: "Full-time",
-    location: "Remote",
-    description: "Turn complex product ideas into simple, useful experiences for people everywhere.",
-    accent: "#7A8CF0"
-  }
-];
 
 const reasons = [
   {
@@ -108,7 +65,59 @@ const whyProof = [
   { label: "Human support", copy: "Real next-step guidance", icon: ShieldCheck }
 ];
 
-export function LandingPage() {
+const jobAccents = ["#0B86D7", "#70C7ED", "#CFE8D2", "#F2AA2B", "#7A8CF0"];
+
+function formatPublicRate(job: PublicJobSummary) {
+  if (job.rateMinMinor === undefined && job.rateMaxMinor === undefined) return "Pay shared on the role";
+  const format = (value: number | undefined) => {
+    if (value === undefined) return "";
+    const amount = value / 100;
+    if ((job.currency || "NGN") === "NGN" && amount >= 1000) {
+      const thousands = amount / 1000;
+      return `₦${Number.isInteger(thousands) ? thousands : thousands.toFixed(1)}K`;
+    }
+    return new Intl.NumberFormat("en-NG", { style: "currency", currency: job.currency || "NGN", maximumFractionDigits: 0 }).format(amount);
+  };
+  if (job.rateMinMinor !== undefined && job.rateMaxMinor !== undefined) return `${format(job.rateMinMinor)} – ${format(job.rateMaxMinor)}`;
+  return format(job.rateMinMinor ?? job.rateMaxMinor);
+}
+
+function toLandingJob(job: PublicJobSummary, index: number): LandingJob {
+  return {
+    id: job.id,
+    href: `/jobs/${job.slug}`,
+    title: job.title,
+    company: job.companyName,
+    rate: formatPublicRate(job),
+    type: job.employmentType || job.workMode || "Opportunity",
+    location: job.locationLabel || "Location shared on role",
+    description: job.summary,
+    accent: jobAccents[index % jobAccents.length]
+  };
+}
+
+export function LandingPage({ repository = publicListingsRepository }: { repository?: PublicListingsRepository }) {
+  const [featuredJobs, setFeaturedJobs] = useState<PublicJobSummary[]>(() => isDemoMode ? demoPublicJobs : []);
+  const [categories, setCategories] = useState<PublicCategory[]>(() => isDemoMode ? demoPublicCategories : []);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      repository.listJobs({ featuredOnly: true, limit: 5 }),
+      repository.listCategories()
+    ]).then(([jobsResult, categoryRows]) => {
+      if (!active) return;
+      setFeaturedJobs(jobsResult.jobs);
+      setCategories(categoryRows);
+    }).catch((error: unknown) => {
+      if (active) setLoadError(error instanceof Error ? error.message : "Jobs could not be loaded.");
+    });
+    return () => { active = false; };
+  }, [repository]);
+
+  const jobs = useMemo(() => featuredJobs.map(toLandingJob), [featuredJobs]);
+
   return (
     <main className="marketing-page overflow-hidden">
       <section className="lp-hero">
@@ -138,7 +147,7 @@ export function LandingPage() {
           </Link>
 
           <nav className="lp-nav" aria-label="Marketing navigation">
-            <a href="#jobs">Find Jobs</a>
+            <Link to="/jobs">Find Jobs</Link>
             <a href="#categories">Categories</a>
             <a href="#process">How It Works</a>
             <a href="#why">Why Blithob Pro</a>
@@ -156,7 +165,7 @@ export function LandingPage() {
                 <Menu size={20} />
               </summary>
               <div className="absolute right-0 top-14 z-30 grid min-w-48 gap-1 rounded-2xl border border-[#DDE5E8] bg-white p-2 text-sm font-bold shadow-xl">
-                <a href="#jobs" className="rounded-xl px-3 py-2">Find Jobs</a>
+                <Link to="/jobs" className="rounded-xl px-3 py-2">Find Jobs</Link>
                 <a href="#categories" className="rounded-xl px-3 py-2">Categories</a>
                 <a href="#process" className="rounded-xl px-3 py-2">How It Works</a>
                 <a href="#why" className="rounded-xl px-3 py-2">Why Blithob Pro</a>
@@ -193,7 +202,7 @@ export function LandingPage() {
             </p>
 
             <div className="lp-search-wrap">
-              <SearchPanel />
+            <SearchPanel categories={categories} />
             </div>
 
             <div className="lp-hero-proof">
@@ -220,13 +229,17 @@ export function LandingPage() {
                 Explore opportunities with the useful details up front: what the work is,
                 how it works, where it can be done, and what it pays.
               </p>
-              <a href="#categories" className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-[#0B6F9E]">
+              <Link to="/jobs" className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-[#0B6F9E]">
                 View all jobs <ArrowRight size={16} />
-              </a>
+              </Link>
             </div>
           </div>
 
-          <LiveJobsBoard jobs={jobs} />
+          {loadError ? (
+            <p role="status" className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">{loadError}</p>
+          ) : (
+            <LiveJobsBoard jobs={jobs} />
+          )}
         </div>
       </section>
 
@@ -240,7 +253,7 @@ export function LandingPage() {
             </p>
           </div>
           <div className="lp-folder-stage">
-            <CategoryFolders />
+            <CategoryFolders categories={categories} />
           </div>
         </div>
       </section>
@@ -331,7 +344,7 @@ export function LandingPage() {
                 Take a look. Finding and applying for the right role should not feel like a second job.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <a href="#jobs" className="lp-btn lp-btn-primary">Browse open jobs <ArrowRight size={16} /></a>
+                <Link to="/jobs" className="lp-btn lp-btn-primary">Browse open jobs <ArrowRight size={16} /></Link>
                 <Link to="/login" className="lp-btn lp-btn-secondary">Create your profile <ArrowRight size={16} /></Link>
               </div>
             </div>

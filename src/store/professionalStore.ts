@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { migrateLegacyState } from "../domain/migrate";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { SupabaseRepository } from "../lib/supabaseRepository";
+import { publicListingsRepository } from "../lib/publicListings";
 import type {
   DemoPersona,
   DemoState,
@@ -66,6 +67,10 @@ export interface CreateServiceInput {
   shortName: string;
   description: string;
   requirements: ServiceRequirementInput[];
+  slug?: string;
+  publicLabel?: string;
+  publicVisible?: boolean;
+  displayOrder?: number;
 }
 
 export type JobDraftInput = Omit<
@@ -85,6 +90,7 @@ interface ProfessionalActions {
   signIn: (persona: DemoPersona) => void;
   signInWithPassword: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<boolean>;
+  completeProfessionalProfile: (input: { displayName: string; phone: string; location: string }) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   signOut: () => void;
@@ -111,7 +117,7 @@ interface ProfessionalActions {
   createService: (input: CreateServiceInput) => AsyncValue<string>;
   updateService: (
     serviceId: string,
-    input: Partial<Pick<Service, "name" | "shortName" | "description">>
+    input: Partial<Pick<Service, "name" | "shortName" | "description" | "slug" | "publicLabel" | "publicVisible" | "displayOrder">>
   ) => AsyncValue<void>;
   replaceServiceRequirements: (
     serviceId: string,
@@ -266,6 +272,7 @@ export const useProfessionalStore = create<ProfessionalStore>()(
         }),
       signInWithPassword: async () => undefined,
       signUp: async () => false,
+      completeProfessionalProfile: async () => undefined,
       requestPasswordReset: async () => undefined,
       updatePassword: async () => undefined,
       signOut: () => set({ session: null }),
@@ -453,6 +460,10 @@ export const useProfessionalStore = create<ProfessionalStore>()(
                   shortName: input.shortName?.trim() || item.shortName,
                   description:
                     input.description?.trim() ?? item.description,
+                  slug: input.slug?.trim() || item.slug,
+                  publicLabel: input.publicLabel?.trim() || item.publicLabel,
+                  publicVisible: input.publicVisible ?? item.publicVisible,
+                  displayOrder: input.displayOrder ?? item.displayOrder,
                   updatedAt: now()
                 }
               : item
@@ -988,6 +999,30 @@ useProfessionalStore.setState({
         return false;
       }
       return true;
+    } catch (error) {
+      useProfessionalStore.setState({ error: errorMessage(error) });
+      throw error;
+    } finally {
+      useProfessionalStore.setState({ isLoading: false });
+    }
+  },
+  completeProfessionalProfile: async (input) => {
+    const state = useProfessionalStore.getState();
+    if (state.backendMode !== "remote" || !supabase || !state.session) {
+      const professional = state.currentProfessional();
+      if (!professional) throw new Error("Sign in before completing your profile.");
+      await Promise.resolve(state.updateProfessional(professional.id, {
+        name: input.displayName,
+        phone: input.phone,
+        location: input.location
+      }));
+      return;
+    }
+    useProfessionalStore.setState({ isLoading: true, error: null });
+    try {
+      await publicListingsRepository.completeProfessionalProfile(input);
+      const generation = remoteSessionGeneration;
+      await hydrateRemote(state.session.userId, true, generation);
     } catch (error) {
       useProfessionalStore.setState({ error: errorMessage(error) });
       throw error;

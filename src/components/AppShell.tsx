@@ -5,6 +5,7 @@ import {
   BriefcaseBusiness,
   ChevronDown,
   ClipboardCheck,
+  FileText,
   Gauge,
   Layers3,
   LogOut,
@@ -34,6 +35,7 @@ const adminNav: NavigationItem[] = [
   { to: "/admin/people", label: "People", icon: Users },
   { to: "/admin/services", label: "Services", icon: Layers3 },
   { to: "/admin/jobs", label: "Jobs", icon: BriefcaseBusiness },
+  { to: "/admin/applications", label: "Applications", icon: FileText },
   { to: "/admin/reviews", label: "Reviews", icon: ClipboardCheck },
   { to: "/admin/payments", label: "Payments", icon: WalletCards }
 ];
@@ -71,7 +73,7 @@ function phoneItems(role: AccountRole, isLead: boolean) {
   if (role === "admin") {
     return {
       primary: adminNav.filter((item) =>
-        ["Today", "People", "Jobs", "Reviews"].includes(item.label)
+        ["Today", "People", "Jobs", "Applications", "Reviews"].includes(item.label)
       ),
       more: [
         adminNav.find((item) => item.label === "Services"),
@@ -311,7 +313,7 @@ export function AppShell({ role }: { role: AccountRole }) {
       (location.pathname.includes("notifications") ? "Updates" : "Workspace"));
   const isDetail = detailBack(location.pathname, role) !==
     (role === "admin" ? "/admin/today" : "/professional/today") ||
-    /\/(people|services|jobs|assignments|payments|work|training|team)\/[^/]+/.test(
+    /\/(people|services|jobs|applications|assignments|payments|work|training|team)\/[^/]+/.test(
       location.pathname
     );
   const mobileLabel = role === "admin" ? "Admin" : isLead ? "Lead" : "Professional";

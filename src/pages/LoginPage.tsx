@@ -6,7 +6,7 @@ import {
   Users
 } from "lucide-react";
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { BrandMark } from "../components/BrandMark";
 import { Button, Field, Input } from "../components/ui";
 import type { DemoPersona } from "../domain/model";
@@ -41,14 +41,16 @@ const personas = [
 ];
 
 function RemoteAuthPage() {
-  const [mode, setMode] = useState<"signIn" | "reset" | "recovery">("signIn");
+  const [mode, setMode] = useState<"signIn" | "signUp" | "reset" | "recovery">("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const signInWithPassword = useProfessionalStore(
     (state) => state.signInWithPassword
   );
+  const signUp = useProfessionalStore((state) => state.signUp);
   const requestPasswordReset = useProfessionalStore(
     (state) => state.requestPasswordReset
   );
@@ -75,6 +77,12 @@ function RemoteAuthPage() {
       if (activeMode === "recovery") {
         await updatePassword(newPassword);
         setSubmitted(true);
+        return;
+      }
+      if (activeMode === "signUp") {
+        const needsConfirmation = await signUp(email, password, displayName);
+        setSubmitted(needsConfirmation);
+        if (needsConfirmation) setMode("signIn");
         return;
       }
       await signInWithPassword(email, password);
@@ -128,11 +136,25 @@ function RemoteAuthPage() {
               />
             </Field>}
 
-            {activeMode === "signIn" && (
+            {activeMode === "signUp" && (
+              <Field label="Your name">
+                <Input
+                  type="text"
+                  autoComplete="name"
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="Amara Okafor"
+                  minLength={2}
+                  required
+                />
+              </Field>
+            )}
+
+            {(activeMode === "signIn" || activeMode === "signUp") && (
               <Field label="Password">
                 <Input
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete={activeMode === "signUp" ? "new-password" : "current-password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="Enter your password"
@@ -164,8 +186,9 @@ function RemoteAuthPage() {
             )}
             {submitted && (
               <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium leading-5 text-emerald-800">
-                If an account exists for that email, a password reset link is
-                on its way.
+                {activeMode === "signIn"
+                  ? "Your account is ready. Sign in to continue."
+                  : "Check your email to confirm your account, then come back to sign in."}
               </p>
             )}
 
@@ -178,9 +201,11 @@ function RemoteAuthPage() {
                 ? "Working…"
                 : activeMode === "reset"
                   ? "Send reset link"
-                  : activeMode === "recovery"
+                : activeMode === "recovery"
                     ? "Update password"
-                    : "Sign in"}
+                    : activeMode === "signUp"
+                      ? "Create account"
+                      : "Sign in"}
             </Button>
 
             {activeMode !== "recovery" && <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
@@ -190,15 +215,17 @@ function RemoteAuthPage() {
                 onClick={() => {
                   clearError();
                   setSubmitted(false);
-                  setMode((current) =>
-                    current === "signIn" ? "reset" : "signIn"
-                  );
+                  setMode((current) => current === "signIn" ? "reset" : "signIn");
                 }}
               >
                 {activeMode === "signIn" ? "Forgot password?" : "Back to sign in"}
               </button>
               <span className="text-[var(--muted)]">
-                Need access? Ask a Blithob Admin for an invite.
+                {activeMode === "signIn" ? (
+                  <>New here? <button type="button" className="font-semibold text-[var(--blue)] hover:underline" onClick={() => { clearError(); setSubmitted(false); setMode("signUp"); }}>Create an account</button></>
+                ) : (
+                  "Create a free professional account."
+                )}
               </span>
             </div>}
           </form>
@@ -211,17 +238,24 @@ function RemoteAuthPage() {
 export function LoginPage() {
   const session = useProfessionalStore((state) => state.session);
   const currentUser = useProfessionalStore((state) => state.currentUser());
+  const currentProfessional = useProfessionalStore((state) => state.currentProfessional());
   const signIn = useProfessionalStore((state) => state.signIn);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedNext = searchParams.get("next");
+  const next = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
+    ? requestedNext
+    : undefined;
 
   if (session && currentUser) {
+    const defaultDestination = session.persona === "admin"
+      ? "/admin/today"
+      : currentProfessional
+        ? "/professional/today"
+        : "/onboarding";
     return (
       <Navigate
-        to={
-          session.persona === "admin"
-            ? "/admin/today"
-            : "/professional/today"
-        }
+        to={next ?? defaultDestination}
         replace
       />
     );
