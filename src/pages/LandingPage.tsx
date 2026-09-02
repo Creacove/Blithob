@@ -1,109 +1,154 @@
 import {
   ArrowRight,
-  Check,
-  Compass,
-  Globe2,
+  BadgeCheck,
+  FileCheck2,
+  Headphones,
+  House,
   Menu,
   ShieldCheck,
-  Sparkles
+  SearchCheck,
+  Zap
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BrandMark } from "../components/BrandMark";
-import { Base64Artwork } from "../components/landing/Base64Artwork";
+import { HeroAvatarStack } from "../components/landing/HeroAvatarStack";
 import {
   CategoryFolders,
   FinalWorkspace,
-  JobCard,
+  LiveJobsBoard,
   NotebookSteps,
   SearchPanel
 } from "../components/landing/LandingArtwork";
+import type { LandingJob } from "../components/landing/LandingArtwork";
 import "./LandingPage.css";
 
-const jobs = [
+const jobs: LandingJob[] = [
   {
+    id: "frontend-developer",
     title: "Frontend Developer",
-    rate: "£1,500 / project",
-    type: "Contract",
-    location: "Remote",
+    company: "Skyline Labs",
+    rate: "₦450K – ₦650K",
+    type: "Full-time",
+    location: "New York, NY",
+    description: "Build accessible, responsive product experiences used by growing teams around the world.",
     accent: "#0B86D7"
   },
   {
+    id: "social-media-manager",
     title: "Social Media Manager",
-    rate: "£900 / month",
-    type: "Part-time",
-    location: "Remote",
+    company: "Brightwave",
+    rate: "₦250K – ₦400K",
+    type: "Full-time",
+    location: "Hybrid",
+    description: "Shape social campaigns, grow engaged communities, and turn insights into measurable momentum.",
     accent: "#70C7ED"
   },
   {
+    id: "customer-support-rep",
     title: "Customer Support Rep",
-    rate: "£750 / month",
+    company: "Codeflow Systems",
+    rate: "₦280K – ₦420K",
+    type: "Full-time",
+    location: "Seattle, WA",
+    description: "Help customers solve meaningful problems with clear communication and thoughtful support.",
+    accent: "#CFE8D2"
+  },
+  {
+    id: "operations-manager",
+    title: "Operations Manager",
+    company: "Flowstead",
+    rate: "₦400K – ₦600K",
+    type: "Full-time",
+    location: "Denver, CO",
+    description: "Improve systems, coordinate teams, and keep important work moving with clarity.",
+    accent: "#F2AA2B"
+  },
+  {
+    id: "product-designer",
+    title: "Product Designer",
+    company: "Northstar Studio",
+    rate: "₦400K – ₦650K",
     type: "Full-time",
     location: "Remote",
-    accent: "#CFE8D2"
+    description: "Turn complex product ideas into simple, useful experiences for people everywhere.",
+    accent: "#7A8CF0"
   }
 ];
 
 const reasons = [
   {
     title: "Clear job requirements",
-    copy: "Understand the role, expectations, and important details before you apply.",
+    copy: "Every listing gives you the role, must-have skills, and what success looks like—up front.",
     stamp: "No surprises",
-    icon: ShieldCheck
+    icon: SearchCheck
   },
   {
     title: "Straightforward applications",
-    copy: "A simple application experience focused on the information that matters.",
-    stamp: "Apply simply",
-    icon: Compass
+    copy: "Quick, simple, and respectful. Apply with only the information that actually matters.",
+    stamp: "Apply in minutes",
+    icon: FileCheck2
   },
   {
     title: "Remote-friendly opportunities",
-    copy: "Discover flexible roles that can fit how and where you work.",
+    copy: "From anywhere roles to hybrid flexibility, find work that fits your life—not the other way around.",
     stamp: "Work your way",
-    icon: Globe2
+    icon: House
   },
   {
     title: "Real support, real people",
-    copy: "Clear next steps and a human path forward when you need help.",
-    stamp: "We’ve got you",
-    icon: Sparkles
+    copy: "Get career resources, useful guidance, and a human path forward whenever you need it.",
+    stamp: "We’ve got your back",
+    icon: Headphones
   }
+];
+
+const whyProof = [
+  { label: "Verified details", copy: "Role expectations up front", icon: BadgeCheck },
+  { label: "Clear timing", copy: "No hidden application maze", icon: Zap },
+  { label: "Human support", copy: "Real next-step guidance", icon: ShieldCheck }
 ];
 
 export function LandingPage() {
   return (
     <main className="marketing-page overflow-hidden">
-      <div className="lp-ticker" aria-hidden="true">
-        <div className="lp-ticker-track">
-          {[0, 1].map((copy) => (
-            <div className="lp-ticker-row" key={copy}>
-              <span>New opportunities</span><Sparkles size={12} />
-              <span>Remote work</span><Sparkles size={12} />
-              <span>Creative</span><Sparkles size={12} />
-              <span>Tech</span><Sparkles size={12} />
-              <span>Operations</span><Sparkles size={12} />
-              <span>Career growth</span><Sparkles size={12} />
-            </div>
-          ))}
-        </div>
-      </div>
-
       <section className="lp-hero">
+        <div className="lp-hero-media">
+          <picture>
+            <source
+              media="(max-width: 767px)"
+              srcSet="/landing/hero-mobile.webp"
+              width={1440}
+              height={960}
+            />
+            <img
+              src="/landing/hero-desktop.webp"
+              alt="Blithob Pro workspace with a laptop showing an opportunity"
+              className="lp-hero-media-image"
+              width={1440}
+              height={960}
+              fetchPriority="high"
+            />
+          </picture>
+        </div>
+
         <header className="lp-header lp-shell">
-          <BrandMark />
+          <Link to="/" className="lp-brand" aria-label="Blithob Professionals home">
+            <img className="lp-brand-symbol" src="/brand/blithob-mark.png" alt="" width={512} height={512} />
+            <img className="lp-brand-wordmark" src="/brand/blithob-wordmark.png" alt="" width={333} height={60} />
+          </Link>
 
           <nav className="lp-nav" aria-label="Marketing navigation">
             <a href="#jobs">Find Jobs</a>
-            <a href="#categories">Browse Categories</a>
+            <a href="#categories">Categories</a>
             <a href="#process">How It Works</a>
             <a href="#why">Why Blithob Pro</a>
           </nav>
 
           <div className="lp-header-actions">
-            <Link className="lp-btn lp-btn-secondary hidden sm:inline-flex" to="/login">
-              Sign in
+            <Link className="lp-btn lp-btn-pill lp-btn-secondary hidden sm:inline-flex" to="/login">
+              Log in
             </Link>
-            <Link className="lp-btn lp-btn-primary hidden sm:inline-flex" to="/login">
+            <Link className="lp-btn lp-btn-pill lp-btn-primary hidden sm:inline-flex" to="/login">
               Get Started
             </Link>
             <details className="relative sm:hidden">
@@ -114,7 +159,8 @@ export function LandingPage() {
                 <a href="#jobs" className="rounded-xl px-3 py-2">Find Jobs</a>
                 <a href="#categories" className="rounded-xl px-3 py-2">Categories</a>
                 <a href="#process" className="rounded-xl px-3 py-2">How It Works</a>
-                <Link to="/login" className="rounded-xl bg-[#E7F5FC] px-3 py-2 text-[#0B6F9E]">Sign in</Link>
+                <a href="#why" className="rounded-xl px-3 py-2">Why Blithob Pro</a>
+                <Link to="/login" className="rounded-xl bg-[#E7F5FC] px-3 py-2 text-[#0B6F9E]">Log in</Link>
               </div>
             </details>
           </div>
@@ -128,12 +174,22 @@ export function LandingPage() {
             </div>
 
             <h1 className="lp-serif">
-              Your next <em>opportunity</em> is <em>closer</em> than you think
+              <span className="lp-headline-line">Your next</span><br className="lp-headline-break" />{" "}
+              <span className="lp-headline-line"><em className="lp-hero-emphasis">opportunity</em> is</span><br className="lp-headline-break" />{" "}
+              <span className="lp-headline-line">
+                <span className="lp-underline-word">
+                  <em className="lp-hero-emphasis">closer</em>
+                  <svg className="lp-underline-squiggle" viewBox="0 0 220 22" fill="none" aria-hidden="true" preserveAspectRatio="none">
+                    <path d="M4 16C48 7 96 5 140 8c26 2 50 6 76 4" stroke="var(--lp-blue)" strokeWidth="5" strokeLinecap="round" />
+                  </svg>
+                </span>{" "}
+                than you think
+              </span>
             </h1>
 
             <p className="lp-hero-copy">
-              Discover handpicked opportunities, understand what the work involves,
-              and find the role that fits where you want to go next.
+              Discover handpicked jobs from top companies
+              and find the role that fits your future.
             </p>
 
             <div className="lp-search-wrap">
@@ -141,22 +197,15 @@ export function LandingPage() {
             </div>
 
             <div className="lp-hero-proof">
-              <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#0B86D7]" /> Clear role details</span>
-              <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#0B86D7]" /> Remote-friendly work</span>
-              <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#0B86D7]" /> Straightforward applications</span>
-            </div>
-          </div>
-
-          <div className="lp-hero-visual">
-            <div className="lp-approved-hero-art">
-              <Base64Artwork
-                base64Url="/landing/hero-desktop-repaired.webp.b64"
-                alt="Blithob Pro workspace with a laptop showing an opportunity"
-                className="block h-auto w-full object-contain"
-              />
+              <HeroAvatarStack />
+              <p className="lp-hero-proof-copy">
+                <strong>Join 150K+ job seekers</strong>
+                <span>finding better opportunities</span>
+              </p>
             </div>
           </div>
         </div>
+
       </section>
 
       <section id="jobs" className="lp-section lp-section-white">
@@ -177,12 +226,7 @@ export function LandingPage() {
             </div>
           </div>
 
-          <div className="lp-job-board">
-            <div className="lp-job-grid">
-              {jobs.map((job) => <JobCard key={job.title} {...job} />)}
-            </div>
-            <div className="lp-board-note lp-script">New skills<br />New doors<br />☆</div>
-          </div>
+          <LiveJobsBoard jobs={jobs} />
         </div>
       </section>
 
@@ -201,39 +245,37 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="process" className="lp-section lp-section-cream">
-        <div className="lp-shell">
-          <div className="lp-process-head">
-            <div className="lp-kicker"><span className="lp-kicker-dot">✳</span> How it works</div>
-            <h2 className="lp-display lp-serif">Getting hired shouldn’t be <em>complicated.</em></h2>
-            <p className="lp-section-copy mx-auto mt-5 max-w-[620px]">
-              Find the right opportunity, apply clearly, and know what the next step is.
-            </p>
-          </div>
-          <div className="lp-process-art">
-            <NotebookSteps />
-          </div>
-        </div>
+      <section id="process" className="lp-process-section">
+        <NotebookSteps />
       </section>
 
-      <section id="why" className="lp-section lp-section-white">
-        <div className="lp-shell lp-why-grid">
+      <section id="why" className="lp-section lp-why-section">
+        <div className="lp-shell lp-why-grid" role="region" aria-label="Why Blithob Pro">
           <div className="lp-why-copy">
             <div className="lp-kicker"><span className="lp-kicker-dot">✳</span> Why Blithob Pro?</div>
             <h2 className="lp-display lp-serif">
-              Good jobs.<br />Clear details.<br /><strong>No noise.</strong>
+              Good jobs. <br />Clear details. <br /><strong>No bullshit.</strong>
             </h2>
             <p className="lp-section-copy mt-6 max-w-[480px]">
-              Blithob Pro is designed to cut through unnecessary friction so you can focus on opportunities that actually fit.
+              Blithob Pro cuts through the noise so you can focus on opportunities that actually fit.
             </p>
+            <ul className="lp-why-proof" aria-label="Blithob Pro commitments">
+              {whyProof.map(({ label, copy, icon: Icon }) => (
+                <li key={label}>
+                  <span className="lp-why-proof-icon"><Icon size={18} aria-hidden /></span>
+                  <span><strong>{label}</strong><small>{copy}</small></span>
+                </li>
+              ))}
+            </ul>
             <div className="lp-script mt-9 max-w-[340px] rotate-[-2deg] text-2xl text-[#0B86D7]">
-              Built for real people who want real opportunities.
+              ♡ Built for real people who want real opportunities.
             </div>
           </div>
 
           <div className="lp-reasons">
-            {reasons.map(({ title, copy, stamp, icon: Icon }) => (
+            {reasons.map(({ title, copy, stamp, icon: Icon }, index) => (
               <article className="lp-reason" key={title}>
+                <span className="lp-reason-index" aria-hidden>{String(index + 1).padStart(2, "0")}</span>
                 <div className="lp-reason-icon"><Icon size={24} /></div>
                 <div>
                   <h3>{title}</h3>
@@ -254,16 +296,17 @@ export function LandingPage() {
             <p className="lp-section-copy mt-5 max-w-[450px]">
               This is where verified candidate stories will live as Blithob Pro places more professionals into new opportunities.
             </p>
-            <div className="lp-proof-note">
-              We are keeping this section intentionally honest: no invented placement numbers and no fake testimonials.
-            </div>
           </div>
 
           <article className="lp-proof-card">
-            <Base64Artwork
-              base64Url="/landing/proof-main-repaired.webp.b64"
+            <img
+              src="/landing/success-story.webp"
               alt="Professional working at a laptop"
               className="block h-auto w-full object-cover"
+              width={1254}
+              height={1254}
+              loading="lazy"
+              decoding="async"
             />
             <div className="lp-proof-card-copy">
               <div className="lp-eyebrow">Your story could be next</div>
@@ -314,7 +357,6 @@ export function LandingPage() {
                 <a href="#jobs">Find Jobs</a>
                 <a href="#categories">Browse Categories</a>
                 <a href="#process">How It Works</a>
-                <Link to="/login">Sign in</Link>
               </div>
             </div>
             <div>
@@ -322,7 +364,6 @@ export function LandingPage() {
               <div className="lp-footer-links">
                 <a href="#why">Why Blithob Pro</a>
                 <a href="#stories">Success Stories</a>
-                <a href="#jobs">Open Opportunities</a>
               </div>
             </div>
             <div>

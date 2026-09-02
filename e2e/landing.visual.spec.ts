@@ -3,6 +3,8 @@ import { mkdirSync } from "node:fs";
 
 const artifactDir = "artifacts/landing";
 
+test.setTimeout(60_000);
+
 async function ready(page: import("@playwright/test").Page) {
   await page.goto("/");
   await page.evaluate(() => document.fonts.ready);
@@ -36,7 +38,7 @@ test("captures the approved landing experience", async ({ page }, testInfo) => {
   ).toBeVisible();
   await expect(
     page.getByRole("heading", {
-      name: "Good jobs. Clear details. No noise."
+      name: "Good jobs. Clear details. No bullshit."
     })
   ).toBeVisible();
   await expect(
@@ -58,11 +60,12 @@ test("captures the approved landing experience", async ({ page }, testInfo) => {
   const imageCount = await images.count();
   expect(imageCount).toBeGreaterThan(0);
   for (let index = 0; index < imageCount; index += 1) {
-    const loaded = await images.nth(index).evaluate((image) => {
-      const element = image as HTMLImageElement;
-      return element.complete && element.naturalWidth > 0 && element.naturalHeight > 0;
-    });
-    expect(loaded, `image ${index + 1} should decode successfully`).toBe(true);
+    const image = images.nth(index);
+    await image.scrollIntoViewIfNeeded();
+    await expect.poll(async () => image.evaluate((element) => {
+      const image = element as HTMLImageElement;
+      return image.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+    }), { message: `image ${index + 1} should decode successfully` }).toBe(true);
   }
 
   const suffix = testInfo.project.name;

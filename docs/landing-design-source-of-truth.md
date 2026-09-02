@@ -36,7 +36,7 @@ This document freezes the approved candidate-first marketing direction for the p
    - Three steps: Find → Apply → Move forward.
    - Hand-drawn blue path/annotations.
 
-5. Why Blithob Pro — `Good jobs. Clear details. No noise.`
+5. Why Blithob Pro — `Good jobs. Clear details. No bullshit.`
    - Strong editorial split composition.
    - Clear requirements, straightforward applications, remote-friendly opportunities, real support.
    - Never invent company metrics.

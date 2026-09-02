@@ -1,4 +1,5 @@
-import { BriefcaseBusiness, Clock3, MapPin, Search, Sparkles } from "lucide-react";
+import type { CSSProperties } from "react";
+import { ArrowUpRight, BriefcaseBusiness, ChevronDown, LayoutGrid, MapPin, Search, Sparkles } from "lucide-react";
 
 const blue = "#178FC8";
 const blueDeep = "#0B5F8A";
@@ -57,7 +58,7 @@ export function HeroWorkspace() {
               <div className="mt-[7%] h-2 w-[80%] rounded bg-[#E7EEF1]" />
               <div className="mt-[3%] h-2 w-[58%] rounded bg-[#E7EEF1]" />
               <div className="mt-[8%] flex items-center justify-between rounded-lg bg-[#F5F8FA] p-[5%]">
-                <span className="text-[8px] font-semibold text-[#5D6A74]">£1,200 – £1,600</span>
+                <span className="text-[8px] font-semibold text-[#5D6A74]">₦450K – ₦650K</span>
                 <span className="rounded-full bg-[#178FC8] px-3 py-1.5 text-[8px] font-extrabold text-white">Apply</span>
               </div>
             </div>
@@ -86,32 +87,36 @@ export function HeroWorkspace() {
 
 export function NotebookSteps() {
   const steps = [
-    ["01", "Find", "Browse opportunities that fit your skills."],
-    ["02", "Apply", "Send your application without unnecessary friction."],
-    ["03", "Move forward", "If you’re selected, take the next step."]
+    { number: "01", title: "Find", copy: "Discover curated job opportunities that match your skills, goals, and what matters most to you.", action: "Done ✓" },
+    { number: "02", title: "Apply", copy: "Apply in minutes with a smarter, streamlined process that helps you stand out.", action: "Sent ↗" },
+    { number: "03", title: "Move forward", copy: "Track your applications, get real-time updates, and take the next step with clarity and confidence.", action: "Next move →" }
   ];
 
   return (
-    <div className="relative mx-auto w-full max-w-[920px]">
-      <div className="absolute -left-[3%] top-[15%] h-24 w-20 rotate-[-8deg] rounded-xl bg-[#FFD85A] shadow-md sm:h-28 sm:w-24" />
-      <div className="absolute -right-[2%] bottom-[12%] h-20 w-20 rotate-6 rounded-full bg-[#BDEBD6] shadow-md" />
-      <div className="relative rotate-[-1deg] rounded-[2rem] border border-[#D9D0C1] bg-[#FFFDF7] p-5 shadow-[0_28px_70px_rgba(80,64,42,0.16)] sm:p-8">
-        <div className="absolute left-1/2 top-0 h-full w-px bg-[#E7DDCF]" />
-        <div className="grid gap-6 md:grid-cols-3">
-          {steps.map(([n, title, copy], index) => (
-            <div key={title} className="relative rounded-[1.4rem] bg-[#F8F4EA] p-6">
-              <div className="font-[cursive] text-lg font-bold text-[#178FC8]">{n}</div>
-              <div className="mt-3 text-2xl font-extrabold tracking-[-0.04em] text-[#15202B]">{title}</div>
-              <p className="mt-2 text-sm leading-6 text-[#65727E]">{copy}</p>
-              {index < 2 && (
-                <div className="absolute -right-5 top-1/2 hidden h-1 w-10 -translate-y-1/2 bg-[#178FC8] md:block" />
-              )}
-            </div>
+    <div className="lp-process-notebook" role="region" aria-label="How Blithob Pro works">
+      <picture className="lp-process-picture">
+        <source media="(max-width: 1100px)" srcSet="/landing/process-mobile.webp" width={941} height={1672} />
+        <img src="/landing/process-desktop.webp" alt="Blank notebook on a warm desk" width={1672} height={941} loading="lazy" decoding="async" />
+      </picture>
+      <div className="lp-process-overlay">
+        <div className="lp-process-heading">
+          <div className="lp-process-kicker">How it works</div>
+          <h2 className="lp-display lp-serif">Getting hired <br />shouldn’t be <em>complicated.</em></h2>
+          <p className="lp-section-copy">Blithob Pro makes it simple to find the right opportunities, apply with confidence, and move your career forward.</p>
+        </div>
+        <div className="lp-process-note lp-process-note-blue">Progress<br />over<br />perfection<br />♡</div>
+        <div className="lp-process-note lp-process-note-yellow">New skills<br />New doors<br />☆</div>
+        <div className="lp-process-steps">
+          {steps.map((step) => (
+            <article className="lp-process-step" key={step.title}>
+              <div className="lp-process-step-number">{step.number}</div>
+              <h3 className="lp-serif">{step.title}</h3>
+              <div className="lp-process-step-rule" aria-hidden />
+              <p>{step.copy}</p>
+              <span className="lp-process-step-action">{step.action}</span>
+            </article>
           ))}
         </div>
-        <svg className="pointer-events-none absolute inset-x-[8%] bottom-[8%] hidden h-10 w-[84%] md:block" viewBox="0 0 1000 80" aria-hidden="true">
-          <path d="M15 52 C160 6, 265 74, 410 38 S670 16, 820 45 S935 53,985 24" fill="none" stroke="#178FC8" strokeWidth="7" strokeLinecap="round" strokeDasharray="1 16" />
-        </svg>
       </div>
     </div>
   );
@@ -119,36 +124,43 @@ export function NotebookSteps() {
 
 export function CategoryFolders() {
   const folders = [
-    { label: "TECH", tone: "#168FC8", x: "0%", y: "10%", r: "-5deg" },
-    { label: "DESIGN", tone: "#BFEAF8", x: "20%", y: "1%", r: "3deg" },
-    { label: "MARKETING", tone: "#FFD85A", x: "41%", y: "12%", r: "-2deg" },
-    { label: "OPERATIONS", tone: "#0B5F8A", x: "61%", y: "3%", r: "4deg" },
-    { label: "SUPPORT", tone: "#BDEBD6", x: "79%", y: "13%", r: "-4deg" }
+    { label: "TECH", tone: "#168FC8", x: "0%", y: "10%", r: "-5deg", dx: "1%", dy: "13%", dr: "-7deg", z: 1 },
+    { label: "DESIGN", tone: "#BFEAF8", x: "20%", y: "1%", r: "3deg", dx: "20%", dy: "4%", dr: "-3deg", z: 2 },
+    { label: "MARKETING", tone: "#FFD85A", x: "41%", y: "12%", r: "-2deg", dx: "40%", dy: "0%", dr: "0deg", z: 5 },
+    { label: "OPERATIONS", tone: "#0B5F8A", x: "61%", y: "3%", r: "4deg", dx: "60%", dy: "4%", dr: "3deg", z: 3 },
+    { label: "SUPPORT", tone: "#BDEBD6", x: "79%", y: "13%", r: "-4deg", dx: "79%", dy: "13%", dr: "7deg", z: 1 }
   ];
 
   return (
-    <div className="relative h-[330px] w-full sm:h-[390px]">
+    <div className="lp-category-folders" role="region" aria-label="Job categories">
       {folders.map((folder) => (
-        <div
+        <article
           key={folder.label}
-          className="absolute top-0 w-[25%] min-w-[112px] transition duration-300 hover:-translate-y-3"
-          style={{ left: folder.x, top: folder.y, transform: `rotate(${folder.r})` }}
+          className={`lp-category-folder${folder.tone === blueDeep ? " lp-category-folder-dark" : ""}`}
+          style={{
+            "--folder-tone": folder.tone,
+            "--folder-x": folder.x,
+            "--folder-y": folder.y,
+            "--folder-r": folder.r,
+            "--folder-desktop-x": folder.dx,
+            "--folder-desktop-y": folder.dy,
+            "--folder-desktop-r": folder.dr,
+            "--folder-z": folder.z
+          } as CSSProperties}
         >
-          <div className="h-10 w-[58%] rounded-t-2xl" style={{ background: folder.tone }} />
-          <div
-            className="relative -mt-1 aspect-[0.82/1] rounded-[0_1.4rem_1.4rem_1.4rem] p-4 shadow-[0_18px_35px_rgba(21,32,43,0.16)] sm:p-5"
-            style={{ background: folder.tone }}
-          >
-            <div className={`text-[10px] font-black tracking-[0.18em] ${folder.tone === blueDeep ? "text-white" : "text-[#15202B]"}`}>
-              {folder.label}
-            </div>
-            <div className={`mt-5 h-2 w-3/4 rounded-full ${folder.tone === blueDeep ? "bg-white/30" : "bg-white/60"}`} />
-            <div className={`mt-2 h-2 w-1/2 rounded-full ${folder.tone === blueDeep ? "bg-white/25" : "bg-white/50"}`} />
-            <div className={`absolute bottom-4 right-4 rounded-full p-2 ${folder.tone === blueDeep ? "bg-white text-[#0B5F8A]" : "bg-white/80 text-[#15202B]"}`}>
-              <BriefcaseBusiness size={16} />
+          <div className="lp-category-folder-paper">
+            <div className="lp-category-folder-tab" />
+            <div className="lp-category-folder-body">
+              <div className="lp-category-folder-label">{folder.label}</div>
+              <div className="lp-category-folder-copy">Browse open roles</div>
+              <div className="lp-category-folder-line lp-category-folder-line-long" />
+              <div className="lp-category-folder-line lp-category-folder-line-short" />
+              <div className="lp-category-folder-icon">
+                <BriefcaseBusiness size={17} aria-hidden />
+              </div>
             </div>
           </div>
-        </div>
+        </article>
       ))}
     </div>
   );
@@ -192,71 +204,92 @@ export function FinalWorkspace() {
   );
 }
 
-export function JobCard({
-  title,
-  rate,
-  type,
-  location,
-  accent = blue
-}: {
+export type LandingJob = {
+  id?: string;
   title: string;
+  company: string;
   rate: string;
   type: string;
   location: string;
+  description: string;
   accent?: string;
-}) {
+};
+
+export function LiveJobsBoard({ jobs }: { jobs: LandingJob[] }) {
   return (
-    <article className="group relative overflow-hidden rounded-[1.7rem] border border-[#DCE6EA] bg-white p-5 shadow-[0_14px_40px_rgba(30,78,104,0.08)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_22px_50px_rgba(30,78,104,0.14)] sm:p-6">
-      <div className="absolute inset-x-0 top-0 h-1.5" style={{ background: accent }} />
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="inline-flex rounded-full bg-[#ECF7FB] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#0B6F9E]">
-            Featured
-          </div>
-          <h3 className="mt-4 text-xl font-extrabold tracking-[-0.04em] text-[#15202B]">{title}</h3>
-        </div>
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#F2F7F9] text-[#178FC8]">
-          <BriefcaseBusiness size={19} />
-        </div>
+    <div className="lp-job-board-live" role="region" aria-label="Featured job opportunities">
+      <picture className="lp-job-board-picture">
+        <source
+          media="(max-width: 1100px)"
+          srcSet="/landing/jobs-board-mobile.webp"
+          width={864}
+          height={1821}
+        />
+        <img
+          src="/landing/jobs-board-desktop.webp"
+          alt="Blank job clips on a workspace board"
+          width={1672}
+          height={941}
+          loading="lazy"
+          decoding="async"
+        />
+      </picture>
+
+      <div className="lp-job-overlay-layer" aria-label="Featured jobs">
+        {jobs.slice(0, 5).map((job, index) => (
+          <article
+            className={`lp-job-overlay lp-job-overlay-${index + 1}`}
+            key={job.id ?? `${job.title}-${index}`}
+            style={{ "--job-accent": job.accent ?? blue } as CSSProperties}
+          >
+            <div className="lp-job-overlay-inner">
+              <span className="lp-job-overlay-eyebrow">Featured role</span>
+              <h3>{job.title}</h3>
+              <p className="lp-job-overlay-company">{job.company}</p>
+              <div className="lp-job-overlay-meta">
+                <span>{job.type}</span>
+                <span>{job.location}</span>
+              </div>
+              <p className="lp-job-overlay-description">{job.description}</p>
+              <div className="lp-job-overlay-foot">
+                <strong>{job.rate}</strong>
+                <button type="button" className="lp-job-overlay-action" aria-label={`View ${job.title} job`}>
+                  <span className="lp-job-action-full">View job</span>
+                  <span className="lp-job-action-short">View</span>
+                  <ArrowUpRight size={12} aria-hidden />
+                </button>
+              </div>
+            </div>
+          </article>
+        ))}
       </div>
-      <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold text-[#5D6A74]">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F6F7F4] px-3 py-2">
-          <MapPin size={13} /> {location}
-        </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F6F7F4] px-3 py-2">
-          <Clock3 size={13} /> {type}
-        </span>
-      </div>
-      <div className="mt-6 flex items-end justify-between gap-4 border-t border-[#E7ECEE] pt-5">
-        <div>
-          <div className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#89949C]">Pay</div>
-          <div className="mt-1 font-extrabold text-[#15202B]">{rate}</div>
-        </div>
-        <button type="button" className="rounded-full bg-[#15202B] px-4 py-2.5 text-xs font-extrabold text-white transition group-hover:bg-[#178FC8]">
-          View role
-        </button>
-      </div>
-    </article>
+    </div>
   );
 }
 
 export function SearchPanel() {
+  const fields = [
+    { icon: BriefcaseBusiness, label: "Role", value: "e.g. Product Designer" },
+    { icon: LayoutGrid, label: "Category", value: "All Categories" },
+    { icon: MapPin, label: "Location", value: "Anywhere" }
+  ];
+
   return (
-    <div className="rounded-[1.5rem] border border-white/70 bg-white/95 p-3 shadow-[0_20px_55px_rgba(16,74,101,0.14)] backdrop-blur sm:p-4">
-      <div className="grid gap-2 sm:grid-cols-[1fr_.75fr_auto]">
-        <label className="flex min-h-14 items-center gap-3 rounded-xl bg-[#F4F7F8] px-4">
-          <Search size={18} className="shrink-0 text-[#178FC8]" />
-          <span className="text-sm font-semibold text-[#7C8992]">Role or skill</span>
-        </label>
-        <label className="flex min-h-14 items-center gap-3 rounded-xl bg-[#F4F7F8] px-4">
-          <MapPin size={18} className="shrink-0 text-[#178FC8]" />
-          <span className="text-sm font-semibold text-[#7C8992]">Remote</span>
-        </label>
-        <button type="button" className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl bg-[#178FC8] px-5 text-sm font-extrabold text-white transition hover:bg-[#0B6F9E]">
-          Find jobs
-          <Search size={16} />
+    <div className="lp-search-panel">
+      {fields.map(({ icon: Icon, label, value }) => (
+        <button key={label} type="button" className="lp-search-field">
+          <Icon size={18} className="lp-search-field-icon" aria-hidden />
+          <span className="lp-search-field-text">
+            <span className="lp-search-field-label">{label}</span>
+            <span className="lp-search-field-value">{value}</span>
+          </span>
+          <ChevronDown size={16} className="lp-search-field-chevron" aria-hidden />
         </button>
-      </div>
+      ))}
+      <button type="button" className="lp-search-submit">
+        Search Jobs
+        <Search size={16} aria-hidden />
+      </button>
     </div>
   );
 }
