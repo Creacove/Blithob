@@ -225,6 +225,27 @@ describe("Supabase write mapping", () => {
     });
 
     expect(
+      toServiceInsert(
+        {
+          name: "Content Creation",
+          shortName: "Content",
+          description: "Editorial delivery",
+          requirements: [],
+          slug: "content-creation",
+          publicLabel: "Content creation",
+          publicVisible: true,
+          displayOrder: 2
+        },
+        "service-public"
+      )
+    ).toMatchObject({
+      slug: "content-creation",
+      public_label: "Content creation",
+      public_visible: true,
+      display_order: 2
+    });
+
+    expect(
       toJobInsert(
         {
           title: "Campaign refresh",
@@ -248,6 +269,57 @@ describe("Supabase write mapping", () => {
       acceptance_criteria: ["On brief"],
       submission_evidence_required: true,
       created_by: "profile-admin"
+    });
+  });
+
+  it("persists the public catalog fields used by the website", () => {
+    expect(
+      toJobInsert(
+        {
+          title: "Product Designer",
+          serviceId: "service-content",
+          slug: "product-designer",
+          categoryId: "category-design",
+          publicVisible: true,
+          publicSummary: "Turn complex ideas into simple experiences.",
+          publicCompanyName: "Northstar Studio",
+          employmentType: "Full-time",
+          workMode: "Remote",
+          locationLabel: "Lagos",
+          rateMinMinor: 40000000,
+          rateMaxMinor: 65000000,
+          rateCurrency: "NGN",
+          ratePeriod: "month",
+          applicationDeadline: "2026-10-01T00:00:00.000Z",
+          featuredOrder: 1,
+          clientContext: "A client",
+          objective: "Improve the product experience",
+          description: "Deliver the refresh.",
+          steps: ["Plan"],
+          deliverables: ["Direction"],
+          acceptanceCriteria: ["On brief"],
+          references: [],
+          submissionEvidenceRequired: true,
+          deadline: "2026-10-01T00:00:00.000Z"
+        },
+        "job-public",
+        "profile-admin"
+      )
+    ).toMatchObject({
+      slug: "product-designer",
+      category_id: "category-design",
+      public_visible: true,
+      public_summary: "Turn complex ideas into simple experiences.",
+      public_company_name: "Northstar Studio",
+      employment_type: "Full-time",
+      work_mode: "Remote",
+      location_label: "Lagos",
+      rate_min_minor: 40000000,
+      rate_max_minor: 65000000,
+      rate_currency: "NGN",
+      rate_period: "month",
+      application_deadline: "2026-10-01T00:00:00.000Z",
+      featured_order: 1
     });
   });
 });

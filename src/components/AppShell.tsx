@@ -73,10 +73,11 @@ function phoneItems(role: AccountRole, isLead: boolean) {
   if (role === "admin") {
     return {
       primary: adminNav.filter((item) =>
-        ["Today", "People", "Jobs", "Applications", "Reviews"].includes(item.label)
+        ["Today", "People", "Jobs", "Reviews"].includes(item.label)
       ),
       more: [
         adminNav.find((item) => item.label === "Services"),
+        adminNav.find((item) => item.label === "Applications"),
         adminNav.find((item) => item.label === "Payments")
       ].filter(Boolean) as NavigationItem[]
     };
@@ -110,6 +111,7 @@ function detailBack(pathname: string, role: AccountRole) {
     [/^\/admin\/jobs\/new$/, "/admin/jobs"],
     [/^\/admin\/jobs\/[^/]+\/edit$/, pathname.replace(/\/edit$/, "")],
     [/^\/admin\/jobs\/[^/]+$/, "/admin/jobs"],
+    [/^\/admin\/applications$/, "/admin/applications"],
     [/^\/admin\/assignments\/[^/]+$/, "/admin/jobs"],
     [/^\/admin\/payments\/[^/]+$/, "/admin/payments"],
     [/^\/professional\/work\/[^/]+$/, "/professional/work"],

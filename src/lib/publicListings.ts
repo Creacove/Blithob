@@ -1,4 +1,4 @@
-import { isSupabaseConfigured, supabase } from "./supabase";
+import { isDemoMode, isSupabaseConfigured, supabase } from "./supabase";
 
 export interface PublicListingsClient {
   rpc: (
@@ -131,7 +131,7 @@ export interface PublicListingsRepository {
   }): Promise<string>;
   convertApplication(input: {
     applicationId: string;
-    agreedPayMinor: number;
+    agreedPay: number;
     deadline?: string;
     leadReviewerId?: string;
   }): Promise<string>;
@@ -337,7 +337,7 @@ export function createPublicListingsRepository(client: PublicListingsClient): Pu
     async convertApplication(input) {
       const data = await resolve<unknown>(client.rpc("convert_job_application_to_assignment", {
         p_application_id: input.applicationId,
-        p_agreed_pay: input.agreedPayMinor,
+        p_agreed_pay: input.agreedPay,
         p_deadline: input.deadline ?? null,
         p_lead_reviewer_id: input.leadReviewerId ?? null
       }));
@@ -362,7 +362,153 @@ export function createEmptyPublicListingsRepository(): PublicListingsRepository 
   };
 }
 
+const demoCategories: PublicCategory[] = [
+  { id: "category-tech", slug: "tech", name: "Tech", description: "Product and engineering roles.", displayOrder: 1 },
+  { id: "category-design", slug: "design", name: "Design", description: "Make useful things feel clear.", displayOrder: 2 },
+  { id: "category-marketing", slug: "marketing", name: "Marketing", description: "Build demand and community.", displayOrder: 3 },
+  { id: "category-operations", slug: "operations", name: "Operations", description: "Keep important work moving.", displayOrder: 4 },
+  { id: "category-support", slug: "support", name: "Support", description: "Help people make progress.", displayOrder: 5 }
+];
+export const demoPublicCategories = demoCategories;
+
+const demoJobs: PublicJobSummary[] = [
+  {
+    id: "frontend-developer",
+    slug: "frontend-developer",
+    title: "Frontend Developer",
+    summary: "Build accessible, responsive product experiences used by growing teams around the world.",
+    companyName: "Skyline Labs",
+    serviceSlug: "web-development",
+    serviceName: "Web development",
+    categorySlug: "tech",
+    categoryName: "Tech",
+    employmentType: "Full-time",
+    workMode: "Remote",
+    locationLabel: "Lagos",
+    rateMinMinor: 45000000,
+    rateMaxMinor: 65000000,
+    currency: "NGN",
+    ratePeriod: "month",
+    featuredOrder: 1,
+    createdAt: "2026-09-02T10:00:00.000Z"
+  },
+  {
+    id: "social-media-manager",
+    slug: "social-media-manager",
+    title: "Social Media Manager",
+    summary: "Shape social campaigns, grow engaged communities, and turn insights into measurable momentum.",
+    companyName: "Brightwave",
+    serviceSlug: "social-media",
+    serviceName: "Social media",
+    categorySlug: "marketing",
+    categoryName: "Marketing",
+    employmentType: "Full-time",
+    workMode: "Hybrid",
+    locationLabel: "Lagos",
+    rateMinMinor: 25000000,
+    rateMaxMinor: 40000000,
+    currency: "NGN",
+    ratePeriod: "month",
+    featuredOrder: 2,
+    createdAt: "2026-09-01T10:00:00.000Z"
+  },
+  {
+    id: "customer-support-rep",
+    slug: "customer-support-rep",
+    title: "Customer Support Rep",
+    summary: "Help customers solve meaningful problems with clear communication and thoughtful support.",
+    companyName: "Codeflow Systems",
+    serviceSlug: "customer-support",
+    serviceName: "Customer support",
+    categorySlug: "support",
+    categoryName: "Support",
+    employmentType: "Full-time",
+    workMode: "Remote",
+    locationLabel: "Lagos",
+    rateMinMinor: 28000000,
+    rateMaxMinor: 42000000,
+    currency: "NGN",
+    ratePeriod: "month",
+    featuredOrder: 3,
+    createdAt: "2026-08-31T10:00:00.000Z"
+  },
+  {
+    id: "operations-manager",
+    slug: "operations-manager",
+    title: "Operations Manager",
+    summary: "Improve systems, coordinate teams, and keep important work moving with clarity.",
+    companyName: "Flowstead",
+    serviceSlug: "operations",
+    serviceName: "Operations",
+    categorySlug: "operations",
+    categoryName: "Operations",
+    employmentType: "Full-time",
+    workMode: "Hybrid",
+    locationLabel: "Lagos",
+    rateMinMinor: 40000000,
+    rateMaxMinor: 60000000,
+    currency: "NGN",
+    ratePeriod: "month",
+    featuredOrder: 4,
+    createdAt: "2026-08-30T10:00:00.000Z"
+  },
+  {
+    id: "product-designer",
+    slug: "product-designer",
+    title: "Product Designer",
+    summary: "Turn complex product ideas into simple, useful experiences for people everywhere.",
+    companyName: "Northstar Studio",
+    serviceSlug: "product-design",
+    serviceName: "Product design",
+    categorySlug: "design",
+    categoryName: "Design",
+    employmentType: "Full-time",
+    workMode: "Remote",
+    locationLabel: "Lagos",
+    rateMinMinor: 40000000,
+    rateMaxMinor: 65000000,
+    currency: "NGN",
+    ratePeriod: "month",
+    featuredOrder: 5,
+    createdAt: "2026-08-29T10:00:00.000Z"
+  }
+];
+export const demoPublicJobs = demoJobs;
+
+export function createDemoPublicListingsRepository(): PublicListingsRepository {
+  const empty = createEmptyPublicListingsRepository();
+  return {
+    ...empty,
+    async listServices() { return []; },
+    async listCategories() { return demoCategories; },
+    async listJobs(filters = {}) {
+      const query = filters.query?.trim().toLowerCase();
+      const jobs = demoJobs.filter((job) => {
+        if (filters.featuredOnly && !job.featuredOrder) return false;
+        if (filters.categorySlug && job.categorySlug !== filters.categorySlug) return false;
+        if (filters.serviceSlug && job.serviceSlug !== filters.serviceSlug) return false;
+        if (filters.workMode && job.workMode.toLowerCase() !== filters.workMode.toLowerCase()) return false;
+        if (filters.location && !job.locationLabel.toLowerCase().includes(filters.location.toLowerCase())) return false;
+        return !query || `${job.title} ${job.summary} ${job.companyName}`.toLowerCase().includes(query);
+      });
+      const offset = filters.offset ?? 0;
+      return { jobs: jobs.slice(offset, offset + (filters.limit ?? 12)), total: jobs.length };
+    },
+    async getJob(slug) {
+      const job = demoJobs.find((item) => item.slug === slug);
+      return job ? {
+        ...job,
+        description: job.summary,
+        deliverables: ["A clear, documented outcome"],
+        references: []
+      } : null;
+    }
+  };
+}
+
 export const publicListingsRepository: PublicListingsRepository =
   isSupabaseConfigured && supabase
     ? createPublicListingsRepository(supabase)
-    : createEmptyPublicListingsRepository();
+    : isDemoMode
+      ? createDemoPublicListingsRepository()
+      : createEmptyPublicListingsRepository();

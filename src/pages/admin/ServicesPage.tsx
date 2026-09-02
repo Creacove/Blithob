@@ -28,6 +28,10 @@ export function ServicesPage() {
   const [name, setName] = useState("");
   const [shortName, setShortName] = useState("");
   const [description, setDescription] = useState("");
+  const [slug, setSlug] = useState("");
+  const [publicLabel, setPublicLabel] = useState("");
+  const [publicVisible, setPublicVisible] = useState(true);
+  const [displayOrder, setDisplayOrder] = useState("");
   const [requirements, setRequirements] = useState([emptyRequirement()]);
   const navigate = useNavigate();
   const { success, error } = useToast();
@@ -58,10 +62,22 @@ export function ServicesPage() {
         name,
         shortName,
         description,
+        slug,
+        publicLabel,
+        publicVisible,
+        displayOrder: displayOrder.trim() ? Number(displayOrder) : undefined,
         requirements: validRequirements
       });
       success("Service created");
       setDrawerOpen(false);
+      setName("");
+      setShortName("");
+      setDescription("");
+      setSlug("");
+      setPublicLabel("");
+      setPublicVisible(true);
+      setDisplayOrder("");
+      setRequirements([emptyRequirement()]);
       navigate(`/admin/services/${id}`);
     } catch (caught) {
       error(caught instanceof Error ? caught.message : "Service could not be created");
@@ -239,6 +255,42 @@ export function ServicesPage() {
               onChange={(event) => setDescription(event.target.value)}
             />
           </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Public slug" hint="Used for public filters and search.">
+              <Input
+                value={slug}
+                onChange={(event) => setSlug(event.target.value)}
+                placeholder="content-creation"
+              />
+            </Field>
+            <Field label="Public label" hint="Optional shorter label for the website.">
+              <Input
+                value={publicLabel}
+                onChange={(event) => setPublicLabel(event.target.value)}
+                placeholder="Content creation"
+              />
+            </Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex items-center gap-3 rounded-xl border border-[var(--border)] px-4 py-3 text-sm font-medium text-[var(--ink)]">
+              <input
+                type="checkbox"
+                checked={publicVisible}
+                onChange={(event) => setPublicVisible(event.target.checked)}
+              />
+              Show this Service in public filters
+            </label>
+            <Field label="Public display order" hint="Lower numbers appear first.">
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={displayOrder}
+                onChange={(event) => setDisplayOrder(event.target.value)}
+                placeholder="1"
+              />
+            </Field>
+          </div>
           <div>
             <div className="flex items-center justify-between gap-4">
               <div>

@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, Check, Clock3, Link2 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
-import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { Button, Field, Input, Textarea } from "../../components/ui";
 import {
   publicListingsRepository,
@@ -24,8 +24,8 @@ const statusCopy: Record<JobApplicationStatus, { label: string; body: string }> 
 
 export function PublicApplyPage({ repository = publicListingsRepository }: { repository?: PublicListingsRepository }) {
   const { slug = "" } = useParams();
-  const navigate = useNavigate();
   const session = useProfessionalStore((state) => state.session);
+  const isBootstrapping = useProfessionalStore((state) => state.isBootstrapping);
   const currentUser = useProfessionalStore((state) => state.currentUser());
   const currentProfessional = useProfessionalStore((state) => state.currentProfessional());
   const [job, setJob] = useState<PublicJob | null>(null);
@@ -42,7 +42,6 @@ export function PublicApplyPage({ repository = publicListingsRepository }: { rep
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
     repository.getJob(slug).then(async (result) => {
       if (!active) return;
       setJob(result);
@@ -67,6 +66,10 @@ export function PublicApplyPage({ repository = publicListingsRepository }: { rep
       setError(caught instanceof Error ? caught.message : "Your application could not be submitted.");
     } finally { setSaving(false); }
   };
+
+  if (isBootstrapping) {
+    return <main className="public-page"><PublicHeader /><section className="public-shell public-apply-page"><div className="public-loading" role="status">Loading your account…</div></section><PublicFooter /></main>;
+  }
 
   if (!session) {
     return <main className="public-page"><PublicHeader /><section className="public-shell public-apply-page"><Link to={`/jobs/${slug}`} className="public-back-link"><ArrowLeft size={16} aria-hidden /> Back to role</Link>{loading ? <div className="public-loading" role="status">Loading this role…</div> : !job ? <div role="alert" className="public-alert">This role is no longer available.</div> : <div className="public-apply-gate"><p className="public-eyebrow">{job.categoryName || job.serviceName}</p><h1>Apply for <em>{job.title}.</em></h1><p className="public-lede">Create a free professional account so your application has a clear place to go and you can track what happens next.</p><Link to={loginHref} className="public-detail-apply">Sign in to apply <ArrowRight size={17} aria-hidden /></Link><p className="public-apply-note">New to Blithob? You can create your account on the next screen.</p></div>}</section><PublicFooter /></main>;

@@ -89,7 +89,12 @@ interface ProfessionalActions {
   error: string | null;
   signIn: (persona: DemoPersona) => void;
   signInWithPassword: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string) => Promise<boolean>;
+  signUp: (
+    email: string,
+    password: string,
+    displayName: string,
+    emailRedirectTo?: string
+  ) => Promise<boolean>;
   completeProfessionalProfile: (input: { displayName: string; phone: string; location: string }) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
@@ -435,6 +440,16 @@ export const useProfessionalStore = create<ProfessionalStore>()(
               shortName: input.shortName.trim(),
               description: input.description.trim(),
               active: true,
+              ...(input.slug?.trim() ? { slug: input.slug.trim() } : {}),
+              ...(input.publicLabel?.trim()
+                ? { publicLabel: input.publicLabel.trim() }
+                : {}),
+              ...(input.publicVisible === undefined
+                ? {}
+                : { publicVisible: input.publicVisible }),
+              ...(input.displayOrder === undefined
+                ? {}
+                : { displayOrder: input.displayOrder }),
               requirements: input.requirements.map((requirement, order) => ({
                 id: requirement.id ?? makeId("requirement"),
                 title: requirement.title.trim(),
@@ -981,7 +996,7 @@ useProfessionalStore.setState({
       useProfessionalStore.setState({ isLoading: false });
     }
   },
-  signUp: async (email, password, displayName) => {
+  signUp: async (email, password, displayName, emailRedirectTo) => {
     if (!supabase) throw new Error("Supabase is not configured.");
     useProfessionalStore.setState({ isLoading: true, error: null });
     try {
@@ -989,7 +1004,8 @@ useProfessionalStore.setState({
         email: email.trim(),
         password,
         options: {
-          data: { display_name: displayName.trim() }
+          data: { display_name: displayName.trim() },
+          ...(emailRedirectTo ? { emailRedirectTo } : {})
         }
       });
       if (error) throw new Error(error.message);

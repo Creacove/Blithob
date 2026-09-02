@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type Control,
   useFieldArray,
@@ -21,6 +21,10 @@ import {
   Textarea
 } from "../../components/ui";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
+import {
+  publicListingsRepository,
+  type PublicCategory
+} from "../../lib/publicListings";
 import { useProfessionalStore } from "../../store/professionalStore";
 
 const rowSchema = z.object({ value: z.string() });
@@ -41,7 +45,20 @@ const draftSchema = z.object({
   acceptanceCriteria: z.array(rowSchema),
   references: z.array(referenceSchema),
   submissionEvidenceRequired: z.boolean(),
-  deadline: z.string()
+  deadline: z.string(),
+  slug: z.string(),
+  categoryId: z.string(),
+  publicVisible: z.boolean(),
+  publicSummary: z.string(),
+  publicCompanyName: z.string(),
+  employmentType: z.string(),
+  workMode: z.string(),
+  locationLabel: z.string(),
+  rateMinNaira: z.string(),
+  rateMaxNaira: z.string(),
+  ratePeriod: z.string(),
+  applicationDeadline: z.string(),
+  featuredOrder: z.string()
 });
 
 type JobFormValues = z.infer<typeof draftSchema>;
@@ -57,7 +74,20 @@ const emptyValues: JobFormValues = {
   acceptanceCriteria: [{ value: "" }],
   references: [],
   submissionEvidenceRequired: false,
-  deadline: ""
+  deadline: "",
+  slug: "",
+  categoryId: "",
+  publicVisible: false,
+  publicSummary: "",
+  publicCompanyName: "",
+  employmentType: "Full-time",
+  workMode: "Remote",
+  locationLabel: "",
+  rateMinNaira: "",
+  rateMaxNaira: "",
+  ratePeriod: "month",
+  applicationDeadline: "",
+  featuredOrder: ""
 };
 
 const mobileStages = [
@@ -74,6 +104,8 @@ export function JobEditorPage() {
   );
   const allServices = useProfessionalStore((state) => state.services);
   const services = allServices.filter((service) => service.active);
+  const jobs = useProfessionalStore((state) => state.jobs);
+  const [categories, setCategories] = useState<PublicCategory[]>([]);
   const createJob = useProfessionalStore((state) => state.createJob);
   const updateJob = useProfessionalStore((state) => state.updateJob);
   const publishJob = useProfessionalStore((state) => state.publishJob);
@@ -115,7 +147,23 @@ export function JobEditorPage() {
           })),
           submissionEvidenceRequired:
             existingJob.submissionEvidenceRequired,
-          deadline: toLocalDateTime(existingJob.deadline)
+          deadline: toLocalDateTime(existingJob.deadline),
+          slug: existingJob.slug ?? "",
+          categoryId: existingJob.categoryId ?? "",
+          publicVisible: existingJob.publicVisible ?? false,
+          publicSummary: existingJob.publicSummary ?? "",
+          publicCompanyName: existingJob.publicCompanyName ?? "",
+          employmentType: existingJob.employmentType ?? "Full-time",
+          workMode: existingJob.workMode ?? "Remote",
+          locationLabel: existingJob.locationLabel ?? "",
+          rateMinNaira: toNairaInput(existingJob.rateMinMinor),
+          rateMaxNaira: toNairaInput(existingJob.rateMaxMinor),
+          ratePeriod: existingJob.ratePeriod ?? "month",
+          applicationDeadline: toLocalDateTime(existingJob.applicationDeadline),
+          featuredOrder:
+            existingJob.featuredOrder === undefined
+              ? ""
+              : String(existingJob.featuredOrder)
         }
       : {
           ...emptyValues,
@@ -131,6 +179,21 @@ export function JobEditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const savingRef = useRef(false);
   const saveCompletedRef = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+    publicListingsRepository
+      .listCategories()
+      .then((rows) => {
+        if (active) setCategories(rows);
+      })
+      .catch(() => {
+        // The public catalog is optional while an admin is working offline.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const save = async (publish: boolean) => {
     if (savingRef.current || saveCompletedRef.current) return;
@@ -211,9 +274,109 @@ export function JobEditorPage() {
         }
       }
 
+      if (publish) {
+        let invalid = false;
+        const publicRequired: Array<[keyof JobFormValues, string]> = [
+          ["slug", "Add the public URL slug"],
+          ["categoryId", "Choose a public category"],
+          ["publicSummary", "Add the short public summary"],
+          ["publicCompanyName", "Add the company name shown publicly"],
+          ["employmentType", "Add the employment type"],
+          ["workMode", "Add the work mode"],
+          ["locationLabel", "Add the public location"]
+        ];
+        if (!values.publicVisible) {
+          setError("publicVisible", {
+            message: "Turn on website visibility before publishing"
+          });
+          invalid = true;
+        }
+        publicRequired.forEach(([field, message]) => {
+          if (!String(values[field]).trim()) {
+            setError(field, { message });
+            invalid = true;
+          }
+        });
+        if (invalid) {
+          error("Complete the website listing fields before publishing");
+          return;
+        }
+      }
+
+      let featuredOrder: number | undefined;
+      if (values.featuredOrder.trim()) {
+        const parsedFeaturedOrder = Number(values.featuredOrder);
+        const hasValidFeaturedOrder =
+          Number.isInteger(parsedFeaturedOrder) &&
+          parsedFeaturedOrder >= 1 &&
+          parsedFeaturedOrder <= 5;
+        if (!hasValidFeaturedOrder) {
+          setError("featuredOrder", {
+            message: "Use a featured position from 1 to 5"
+          });
+          error("Featured positions run from 1 to 5");
+          return;
+        }
+        const occupied = jobs.some(
+          (item) =>
+            item.id !== existingJob?.id &&
+            item.featuredOrder === parsedFeaturedOrder
+        );
+        if (occupied) {
+          setError("featuredOrder", {
+            message: "That featured position is already in use"
+          });
+          error("Choose an open featured position");
+          return;
+        }
+        featuredOrder = parsedFeaturedOrder;
+      }
+
+      const rateMinMinor = toMinorUnits(values.rateMinNaira);
+      const rateMaxMinor = toMinorUnits(values.rateMaxNaira);
+      const hasRateMin = Boolean(values.rateMinNaira.trim());
+      const hasRateMax = Boolean(values.rateMaxNaira.trim());
+      if ((hasRateMin && rateMinMinor === undefined) || (hasRateMax && rateMaxMinor === undefined)) {
+        if (hasRateMin && rateMinMinor === undefined) {
+          setError("rateMinNaira", { message: "Enter a valid naira amount" });
+        }
+        if (hasRateMax && rateMaxMinor === undefined) {
+          setError("rateMaxNaira", { message: "Enter a valid naira amount" });
+        }
+        error("Enter valid rate amounts in naira");
+        return;
+      }
+      if ((hasRateMin && !hasRateMax) || (!hasRateMin && hasRateMax)) {
+        setError("rateMinNaira", { message: "Add both ends of the rate range" });
+        setError("rateMaxNaira", { message: "Add both ends of the rate range" });
+        error("Add both ends of the rate range");
+        return;
+      }
+      if (rateMinMinor !== undefined && rateMaxMinor !== undefined && rateMaxMinor < rateMinMinor) {
+        setError("rateMaxNaira", { message: "Maximum rate must be at least the minimum" });
+        error("Maximum rate must be at least the minimum");
+        return;
+      }
+
       const input = {
         title: values.title.trim(),
         serviceId: values.serviceId,
+        slug: values.slug.trim(),
+        categoryId: values.categoryId,
+        publicVisible: values.publicVisible,
+        publicSummary: values.publicSummary.trim(),
+        publicCompanyName: values.publicCompanyName.trim(),
+        employmentType: values.employmentType.trim(),
+        workMode: values.workMode.trim(),
+        locationLabel: values.locationLabel.trim(),
+        rateMinMinor,
+        rateMaxMinor,
+        rateCurrency: "NGN",
+        ratePeriod: values.ratePeriod,
+        applicationDeadline: values.applicationDeadline
+          ? new Date(values.applicationDeadline).toISOString()
+          : "",
+        featuredOrder,
         clientContext: values.clientContext.trim(),
         objective: values.objective.trim(),
         description: values.description.trim(),
@@ -326,6 +489,7 @@ export function JobEditorPage() {
 
       <div className="mt-6 grid gap-5">
         {(!isMobile || mobileStep === 0) && (
+        <>
         <Section title="Basics" description="Name the work and connect it to one Service.">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Job title" error={errors.title?.message}>
@@ -351,6 +515,128 @@ export function JobEditorPage() {
             </Field>
           </div>
         </Section>
+        <Section
+          title="Website listing"
+          description="These fields power the public jobs directory. Keep them factual, concise, and ready for a candidate to act on."
+        >
+          <label className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-sm font-medium text-[var(--ink)]">
+            <input
+              type="checkbox"
+              {...register("publicVisible")}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="block">Show this role on the public website</span>
+              <span className="mt-1 block text-xs font-normal text-[var(--muted)]">
+                Publishing still requires a complete internal brief and an open Job state.
+              </span>
+            </span>
+          </label>
+          {errors.publicVisible?.message && (
+            <p className="mt-2 text-sm font-medium text-[var(--critical)]">
+              {errors.publicVisible.message}
+            </p>
+          )}
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Public URL slug"
+              hint="Lowercase words separated by hyphens."
+              error={errors.slug?.message}
+            >
+              <Input {...register("slug")} placeholder="product-designer" />
+            </Field>
+            <Field label="Category" error={errors.categoryId?.message}>
+              <Select {...register("categoryId")}>
+                <option value="">Choose a category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <div className="mt-4">
+            <Field
+              label="Public summary"
+              hint="One or two sentences shown on cards and search results."
+              error={errors.publicSummary?.message}
+            >
+              <Textarea
+                {...register("publicSummary")}
+                className="min-h-24"
+                placeholder="Turn complex product ideas into simple, useful experiences."
+              />
+            </Field>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label="Company name" error={errors.publicCompanyName?.message}>
+              <Input
+                {...register("publicCompanyName")}
+                placeholder="Northstar Studio"
+              />
+            </Field>
+            <Field label="Employment type" error={errors.employmentType?.message}>
+              <Select {...register("employmentType")}>
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Contract">Contract</option>
+                <option value="Freelance">Freelance</option>
+              </Select>
+            </Field>
+            <Field label="Work mode" error={errors.workMode?.message}>
+              <Select {...register("workMode")}>
+                <option value="Remote">Remote</option>
+                <option value="Hybrid">Hybrid</option>
+                <option value="On-site">On-site</option>
+              </Select>
+            </Field>
+            <Field label="Location" error={errors.locationLabel?.message}>
+              <Input {...register("locationLabel")} placeholder="Lagos" />
+            </Field>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label="Minimum rate (₦)" error={errors.rateMinNaira?.message}>
+              <Input
+                type="number"
+                min="0"
+                step="1000"
+                {...register("rateMinNaira")}
+                placeholder="400000"
+              />
+            </Field>
+            <Field label="Maximum rate (₦)" error={errors.rateMaxNaira?.message}>
+              <Input
+                type="number"
+                min="0"
+                step="1000"
+                {...register("rateMaxNaira")}
+                placeholder="650000"
+              />
+            </Field>
+            <Field label="Rate period">
+              <Select {...register("ratePeriod")}>
+                <option value="hour">Per hour</option>
+                <option value="project">Per project</option>
+                <option value="month">Per month</option>
+              </Select>
+            </Field>
+            <Field
+              label="Featured position"
+              hint="Optional. Use a unique position from 1 to 5."
+              error={errors.featuredOrder?.message}
+            >
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                {...register("featuredOrder")}
+                placeholder="1"
+              />
+            </Field>
+          </div>
+        </Section>
+        </>
         )}
 
         {(!isMobile || mobileStep === 1) && (
@@ -481,6 +767,12 @@ export function JobEditorPage() {
             <Field label="Deadline" error={errors.deadline?.message}>
               <Input type="datetime-local" {...register("deadline")} />
             </Field>
+            <Field
+              label="Public application deadline"
+              hint="Optional. Leave blank for an open-ended listing."
+            >
+              <Input type="datetime-local" {...register("applicationDeadline")} />
+            </Field>
             <label className="flex items-center gap-3 self-end rounded-xl border border-[var(--border)] px-4 py-3 text-sm font-medium text-[var(--ink)]">
               <input
                 type="checkbox"
@@ -565,11 +857,22 @@ export function JobEditorPage() {
   );
 }
 
-function toLocalDateTime(value: string) {
+function toLocalDateTime(value?: string) {
   if (!value) return "";
   const date = new Date(value);
   const offset = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function toNairaInput(minor?: number) {
+  return minor === undefined ? "" : String(minor / 100);
+}
+
+function toMinorUnits(value: string) {
+  const amount = Number(value);
+  return value.trim() && Number.isFinite(amount) && amount >= 0
+    ? Math.round(amount * 100)
+    : undefined;
 }
 
 function ListEditor({

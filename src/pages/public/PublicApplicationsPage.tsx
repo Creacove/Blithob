@@ -13,6 +13,7 @@ const statusLabels: Record<JobApplicationStatus, string> = {
 
 export function PublicApplicationsPage({ repository = publicListingsRepository }: { repository?: PublicListingsRepository }) {
   const session = useProfessionalStore((state) => state.session);
+  const isBootstrapping = useProfessionalStore((state) => state.isBootstrapping);
   const currentProfessional = useProfessionalStore((state) => state.currentProfessional());
   const [applications, setApplications] = useState<PublicApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +23,33 @@ export function PublicApplicationsPage({ repository = publicListingsRepository }
     setLoading(true);
     repository.listMyApplications().then(setApplications).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : "Applications could not be loaded.")).finally(() => setLoading(false));
   };
-  useEffect(() => { if (session && currentProfessional) reload(); }, [repository, session, currentProfessional]);
+  useEffect(() => {
+    if (!session || !currentProfessional) return;
+    let active = true;
+    repository
+      .listMyApplications()
+      .then((rows) => {
+        if (active) {
+          setApplications(rows);
+          setError(null);
+        }
+      })
+      .catch((caught: unknown) => {
+        if (active) {
+          setError(caught instanceof Error ? caught.message : "Applications could not be loaded.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [repository, session, currentProfessional]);
+
+  if (isBootstrapping) {
+    return <main className="public-page"><PublicHeader /><section className="public-shell public-apply-page"><div className="public-loading" role="status">Loading your account…</div></section><PublicFooter /></main>;
+  }
 
   if (!session) return <Navigate to="/login?next=%2Fprofessional%2Fapplications" replace />;
   if (!currentProfessional) return <Navigate to="/onboarding?next=%2Fprofessional%2Fapplications" replace />;

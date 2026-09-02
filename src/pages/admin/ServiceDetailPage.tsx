@@ -54,7 +54,11 @@ export function ServiceDetailPage() {
   const [overview, setOverview] = useState(() => ({
     name: service?.name ?? "",
     shortName: service?.shortName ?? "",
-    description: service?.description ?? ""
+    description: service?.description ?? "",
+    slug: service?.slug ?? "",
+    publicLabel: service?.publicLabel ?? "",
+    publicVisible: service?.publicVisible ?? false,
+    displayOrder: service?.displayOrder === undefined ? "" : String(service.displayOrder)
   }));
   const [requirements, setRequirements] = useState<ServiceRequirementInput[]>(
     () =>
@@ -86,7 +90,17 @@ export function ServiceDetailPage() {
   const saveOverview = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      await updateService(service.id, overview);
+      await updateService(service.id, {
+        name: overview.name,
+        shortName: overview.shortName,
+        description: overview.description,
+        slug: overview.slug,
+        publicLabel: overview.publicLabel,
+        publicVisible: overview.publicVisible,
+        displayOrder: overview.displayOrder.trim()
+          ? Number(overview.displayOrder)
+          : undefined
+      });
       success("Service overview saved");
     } catch (caught) {
       error(caught instanceof Error ? caught.message : "Service overview could not be saved");
@@ -194,6 +208,58 @@ export function ServiceDetailPage() {
                   }))
                 }
                 className="min-h-32"
+              />
+            </Field>
+            <Field label="Public slug" hint="Used for public filters and search.">
+              <Input
+                value={overview.slug}
+                onChange={(event) =>
+                  setOverview((current) => ({
+                    ...current,
+                    slug: event.target.value
+                  }))
+                }
+                placeholder="content-creation"
+              />
+            </Field>
+            <Field label="Public label" hint="Optional shorter label for the website.">
+              <Input
+                value={overview.publicLabel}
+                onChange={(event) =>
+                  setOverview((current) => ({
+                    ...current,
+                    publicLabel: event.target.value
+                  }))
+                }
+                placeholder="Content creation"
+              />
+            </Field>
+            <label className="flex items-center gap-3 rounded-xl border border-[var(--border)] px-4 py-3 text-sm font-medium text-[var(--ink)]">
+              <input
+                type="checkbox"
+                checked={overview.publicVisible}
+                onChange={(event) =>
+                  setOverview((current) => ({
+                    ...current,
+                    publicVisible: event.target.checked
+                  }))
+                }
+              />
+              Show this Service in public filters
+            </label>
+            <Field label="Public display order" hint="Lower numbers appear first.">
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={overview.displayOrder}
+                onChange={(event) =>
+                  setOverview((current) => ({
+                    ...current,
+                    displayOrder: event.target.value
+                  }))
+                }
+                placeholder="1"
               />
             </Field>
             <div className="sm:col-span-2 sm:text-right">

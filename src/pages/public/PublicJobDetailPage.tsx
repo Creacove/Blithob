@@ -28,7 +28,6 @@ export function PublicJobDetailPage({ repository = publicListingsRepository }: {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
     repository.getJob(slug).then((result) => {
       if (active) setJob(result);
     }).catch((caught: unknown) => {

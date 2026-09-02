@@ -6,12 +6,6 @@ import type { PublicCategory } from "../../lib/publicListings";
 
 const blue = "#178FC8";
 const blueDeep = "#0B5F8A";
-const blueSoft = "#DDF4FF";
-const cream = "#F8F4EA";
-const ink = "#15202B";
-const yellow = "#FFD85A";
-const coral = "#F28B67";
-const mint = "#BDEBD6";
 
 export function HeroWorkspace() {
   return (
@@ -87,7 +81,6 @@ export function HeroWorkspace() {
     </div>
   );
 }
-
 export function NotebookSteps() {
   const steps = [
     { number: "01", title: "Find", copy: "Discover curated job opportunities that match your skills, goals, and what matters most to you.", action: "Done ✓" },
@@ -124,7 +117,6 @@ export function NotebookSteps() {
     </div>
   );
 }
-
 export function CategoryFolders({ categories = [] }: { categories?: PublicCategory[] }) {
   const tones = ["#168FC8", "#BFEAF8", "#FFD85A", "#0B5F8A", "#BDEBD6"];
   const folders = categories.map((category, index) => ({
@@ -178,7 +170,6 @@ export function CategoryFolders({ categories = [] }: { categories?: PublicCatego
     </div>
   );
 }
-
 export function FinalWorkspace() {
   return (
     <div className="relative min-h-[360px] overflow-hidden rounded-[2.2rem] bg-[#CDEEFF]">
@@ -335,4 +326,3 @@ export function SearchPanel({ categories = [] }: { categories?: PublicCategory[]
   );
 }
 
-export const palette = { blue, blueDeep, blueSoft, cream, ink, yellow, coral, mint };

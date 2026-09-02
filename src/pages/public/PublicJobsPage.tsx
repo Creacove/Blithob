@@ -67,7 +67,6 @@ export function PublicJobsPage({ repository = publicListingsRepository }: { repo
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
     Promise.all([
       repository.listServices(),
       repository.listCategories(),

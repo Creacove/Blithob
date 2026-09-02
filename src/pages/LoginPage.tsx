@@ -40,13 +40,14 @@ const personas = [
   }
 ];
 
-function RemoteAuthPage() {
+function RemoteAuthPage({ next }: { next?: string }) {
   const [mode, setMode] = useState<"signIn" | "signUp" | "reset" | "recovery">("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submittedMode, setSubmittedMode] = useState<typeof mode | null>(null);
   const signInWithPassword = useProfessionalStore(
     (state) => state.signInWithPassword
   );
@@ -68,21 +69,35 @@ function RemoteAuthPage() {
     event.preventDefault();
     clearError();
     setSubmitted(false);
+    setSubmittedMode(null);
     try {
       if (activeMode === "reset") {
         await requestPasswordReset(email);
         setSubmitted(true);
+        setSubmittedMode(activeMode);
         return;
       }
       if (activeMode === "recovery") {
         await updatePassword(newPassword);
         setSubmitted(true);
+        setSubmittedMode(activeMode);
         return;
       }
       if (activeMode === "signUp") {
-        const needsConfirmation = await signUp(email, password, displayName);
+        const emailRedirectTo = next
+          ? `${window.location.origin}/login?next=${encodeURIComponent(next)}`
+          : undefined;
+        const needsConfirmation = await signUp(
+          email,
+          password,
+          displayName,
+          emailRedirectTo
+        );
         setSubmitted(needsConfirmation);
-        if (needsConfirmation) setMode("signIn");
+        if (needsConfirmation) {
+          setSubmittedMode("signUp");
+          setMode("signIn");
+        }
         return;
       }
       await signInWithPassword(email, password);
@@ -186,9 +201,11 @@ function RemoteAuthPage() {
             )}
             {submitted && (
               <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium leading-5 text-emerald-800">
-                {activeMode === "signIn"
-                  ? "Your account is ready. Sign in to continue."
-                  : "Check your email to confirm your account, then come back to sign in."}
+                {submittedMode === "signUp"
+                  ? "Check your email to confirm your account, then come back to sign in."
+                  : submittedMode === "reset"
+                    ? "If an account exists for that email, a reset link is on its way."
+                    : "Your password has been updated. Sign in to continue."}
               </p>
             )}
 
@@ -215,6 +232,7 @@ function RemoteAuthPage() {
                 onClick={() => {
                   clearError();
                   setSubmitted(false);
+                  setSubmittedMode(null);
                   setMode((current) => current === "signIn" ? "reset" : "signIn");
                 }}
               >
@@ -222,7 +240,7 @@ function RemoteAuthPage() {
               </button>
               <span className="text-[var(--muted)]">
                 {activeMode === "signIn" ? (
-                  <>New here? <button type="button" className="font-semibold text-[var(--blue)] hover:underline" onClick={() => { clearError(); setSubmitted(false); setMode("signUp"); }}>Create an account</button></>
+                  <>New here? <button type="button" className="font-semibold text-[var(--blue)] hover:underline" onClick={() => { clearError(); setSubmitted(false); setSubmittedMode(null); setMode("signUp"); }}>Create an account</button></>
                 ) : (
                   "Create a free professional account."
                 )}
@@ -261,7 +279,7 @@ export function LoginPage() {
     );
   }
 
-  if (isSupabaseConfigured) return <RemoteAuthPage />;
+  if (isSupabaseConfigured) return <RemoteAuthPage next={next} />;
 
   if (!isDemoMode) {
     return (

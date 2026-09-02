@@ -208,6 +208,28 @@ describe("professional store", () => {
     expect(service?.requirements.map((item) => item.order)).toEqual([0, 1]);
   });
 
+  it("keeps public Service metadata in the local contract", () => {
+    const id = useProfessionalStore.getState().createService({
+      name: "Research support",
+      shortName: "Research",
+      description: "Structured desk research and summaries.",
+      slug: "research-support",
+      publicLabel: "Research support",
+      publicVisible: true,
+      displayOrder: 6,
+      requirements: []
+    });
+
+    expect(
+      useProfessionalStore.getState().services.find((item) => item.id === id)
+    ).toMatchObject({
+      slug: "research-support",
+      publicLabel: "Research support",
+      publicVisible: true,
+      displayOrder: 6
+    });
+  });
+
   it("prevents inactive Services from receiving enrolments or Jobs", () => {
     useProfessionalStore.setState((state) => ({
       services: state.services.map((service) =>
