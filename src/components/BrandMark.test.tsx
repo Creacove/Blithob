@@ -6,7 +6,7 @@ import { BrandMark } from "./BrandMark";
 describe("BrandMark", () => {
   afterEach(() => cleanup());
 
-  it("renders the supplied Blithob Pro lockup as the home link", () => {
+  it("renders the butterfly mark as the home link", () => {
     render(
       <MemoryRouter>
         <BrandMark />
@@ -17,14 +17,14 @@ describe("BrandMark", () => {
 
     expect(logo).toHaveAttribute(
       "src",
-      "/brand/blithob-pro-lockup.png"
+      "/brand/blithob-mark.png"
     );
     expect(
       screen.getByRole("link", { name: "Blithob Professionals home" })
     ).toHaveAttribute("href", "/");
   });
 
-  it("uses the compact brand symbol when space is constrained", () => {
+  it("also uses the butterfly mark in compact mode", () => {
     render(
       <MemoryRouter>
         <BrandMark compact />

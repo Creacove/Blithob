@@ -16,19 +16,11 @@ export function BrandMark({
       aria-label="Blithob Professionals home"
     >
       <img
-        src={
-          compact
-            ? "/brand/blithob-mark.png"
-            : "/brand/blithob-pro-lockup.png"
-        }
+        src="/brand/blithob-mark.png"
         alt="Blithob Pro"
-        width={compact ? 512 : 360}
-        height={compact ? 512 : 302}
-        className={
-          compact
-            ? "h-10 w-10 object-contain"
-            : "h-12 w-auto object-contain sm:h-14"
-        }
+        width={512}
+        height={512}
+        className="h-10 w-10 object-contain"
       />
     </Link>
   );
