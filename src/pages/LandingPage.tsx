@@ -36,7 +36,7 @@ import "./LandingPage.css";
 const reasons = [
   {
     title: "Clear job requirements",
-    copy: "Every listing gives you the role, must-have skills, and what success looks like—up front.",
+    copy: "Every listing gives you the role, must-have skills, and what success looks like, up front.",
     stamp: "No surprises",
     icon: SearchCheck
   },
@@ -48,7 +48,7 @@ const reasons = [
   },
   {
     title: "Remote-friendly opportunities",
-    copy: "From anywhere roles to hybrid flexibility, find work that fits your life—not the other way around.",
+    copy: "From anywhere roles to hybrid flexibility, find work that fits your life, not the other way around.",
     stamp: "Work your way",
     icon: House
   },
@@ -79,7 +79,7 @@ function formatPublicRate(job: PublicJobSummary) {
     }
     return new Intl.NumberFormat("en-NG", { style: "currency", currency: job.currency || "NGN", maximumFractionDigits: 0 }).format(amount);
   };
-  if (job.rateMinMinor !== undefined && job.rateMaxMinor !== undefined) return `${format(job.rateMinMinor)} – ${format(job.rateMaxMinor)}`;
+  if (job.rateMinMinor !== undefined && job.rateMaxMinor !== undefined) return `${format(job.rateMinMinor)} - ${format(job.rateMaxMinor)}`;
   return format(job.rateMinMinor ?? job.rateMaxMinor);
 }
 
@@ -323,26 +323,29 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
         </div>
       </section>
 
-      <section id="stories" className="lp-section lp-section-cream">
+      <section id="stories" className="lp-section lp-section-cream lp-story-section">
         <div className="lp-shell lp-proof-grid">
-          <div>
+          <div className="lp-proof-intro">
             <div className="lp-kicker"><span className="lp-kicker-dot">✳</span> Success stories</div>
             <h2 className="lp-display lp-serif">People finding their <em>next move.</em></h2>
             <p className="lp-section-copy mt-5 max-w-[450px]">
-              This is where verified candidate stories will live as Blithob Pro places more professionals into new opportunities.
+              Verified candidate stories are coming as Blithob Pro places more professionals into new opportunities.
             </p>
           </div>
 
-          <article className="lp-proof-card">
-            <img
-              src="/landing/success-story.webp"
-              alt="Professional working at a laptop"
-              className="block h-auto w-full object-cover"
-              width={1254}
-              height={1254}
-              loading="lazy"
-              decoding="async"
-            />
+          <article className="lp-proof-card" aria-label="Success story preview">
+            <div className="lp-proof-card-media">
+              <span className="lp-proof-card-tape" aria-hidden="true" />
+              <img
+                src="/landing/success-story.webp"
+                alt="Professional working at a laptop"
+                className="block h-auto w-full object-cover"
+                width={1254}
+                height={1254}
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
             <div className="lp-proof-card-copy">
               <div className="lp-eyebrow">Your story could be next</div>
               <blockquote className="lp-serif">
@@ -356,7 +359,7 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
         </div>
       </section>
 
-      <section className="py-4 sm:py-7">
+      <section className="lp-final-section py-4 sm:py-7">
         <div className="lp-final-wrap">
           <div className="lp-final-grid">
             <div className="lp-final-copy">
@@ -370,7 +373,7 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
                 <Link to={account.status === "signedIn" ? account.workspacePath : "/login"} className="lp-btn lp-btn-secondary">{account.status === "signedIn" ? account.primaryLabel : "Create your profile"} <ArrowRight size={16} /></Link>
               </div>
             </div>
-            <div className="lp-final-art">
+            <div className="lp-final-art" role="img" aria-label="Sunlit workspace with a laptop, notebooks, and a plant">
               <FinalWorkspace />
             </div>
           </div>

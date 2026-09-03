@@ -1,16 +1,131 @@
 .lp-final-art {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: transparent;
+}
+
+.lp-final-art::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 22px -6% 22px 0;
   background: url('/landing/final-workspace.webp') center / cover no-repeat;
-  border-radius: 1.75rem;
+  border-radius: 54% 0 0 46% / 28% 0 0 36%;
+  clip-path: ellipse(79% 74% at 58% 50%);
+  box-shadow: -20px 22px 0 rgba(181,224,245,.42), -12px 24px 42px rgba(37,72,89,.14);
+  filter: saturate(.98) contrast(.97);
+}
+
+.lp-final-art::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(223,243,255,.9) 0%, rgba(223,243,255,.18) 25%, transparent 56%, rgba(223,243,255,.08) 100%),
+    radial-gradient(circle at 20% 72%, rgba(255,253,248,.28), transparent 33%);
 }
 
 .lp-final-art > * {
-  visibility: hidden;
+  position: relative;
+  z-index: 2;
+  visibility: visible;
 }
 
 @media (min-width: 1101px) {
   .lp-final-art {
-    min-height: 0;
-    background-size: contain;
-    border-radius: 0;
+    min-height: 620px;
+  }
+}
+
+@media (max-width: 767px) {
+  .lp-final-art {
+    min-height: 390px;
+  }
+
+  .lp-final-art::before {
+    inset: 0 -7% 14px -7%;
+    border-radius: 42% 12% 18% 24% / 18% 12% 20% 24%;
+    clip-path: ellipse(86% 74% at 50% 48%);
+    box-shadow: 0 18px 0 rgba(181,224,245,.38), 0 20px 35px rgba(37,72,89,.13);
+  }
+
+  .lp-final-art::after {
+    background:
+      linear-gradient(180deg, rgba(223,243,255,.22), transparent 28%, rgba(223,243,255,.08) 100%),
+      radial-gradient(circle at 16% 70%, rgba(255,253,248,.24), transparent 34%);
+  }
+}
+
+.lp-final-workspace-decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lp-final-workspace-sun {
+  position: absolute;
+  top: 10%;
+  left: 17%;
+  width: 9rem;
+  height: 9rem;
+  border-radius: 50%;
+  background: rgba(255,255,255,.22);
+  filter: blur(12px);
+}
+
+.lp-final-workspace-note {
+  position: absolute;
+  display: block;
+  box-shadow: 0 14px 25px rgba(37,72,89,.14);
+}
+
+.lp-final-workspace-note-yellow {
+  top: 15%;
+  left: 12%;
+  padding: 10px 14px;
+  color: #604b00;
+  background: #ffd85a;
+  font-family: "Caveat", cursive;
+  font-size: clamp(15px, 1.25vw, 20px);
+  font-weight: 700;
+  transform: rotate(-5deg);
+}
+
+.lp-final-workspace-note-blue {
+  right: 11%;
+  bottom: 17%;
+  width: 58px;
+  height: 44px;
+  background: rgba(125,207,238,.76);
+  transform: rotate(7deg);
+}
+
+.lp-final-workspace-doodle {
+  position: absolute;
+  right: 22%;
+  top: 17%;
+  width: 68px;
+  height: 34px;
+  border-top: 2px solid rgba(11,95,138,.58);
+  border-radius: 50%;
+  transform: rotate(-12deg);
+}
+
+@media (max-width: 767px) {
+  .lp-final-workspace-note-yellow {
+    top: 12%;
+    left: 9%;
+    padding: 8px 12px;
+    font-size: 15px;
+  }
+
+  .lp-final-workspace-note-blue {
+    right: 9%;
+    bottom: 16%;
+    width: 46px;
+    height: 36px;
   }
 }

@@ -95,7 +95,7 @@ describe("LandingPage", () => {
     expect(
       screen.getByText(/Build accessible, responsive product experiences/)
     ).toHaveClass("lp-job-overlay-description");
-    expect(screen.getByText("₦450K – ₦650K")).toBeInTheDocument();
+    expect(screen.getByText("₦450K - ₦650K")).toBeInTheDocument();
     expect(screen.queryByText(/[$£]/)).not.toBeInTheDocument();
     expect(
       screen.getAllByRole("button", { name: /^View .+ job$/ })
@@ -131,6 +131,8 @@ describe("LandingPage", () => {
       "src",
       "/landing/success-story.webp"
     );
+    expect(screen.getByRole("article", { name: "Success story preview" })).toHaveClass("lp-proof-card");
+    expect(screen.getByRole("img", { name: "Sunlit workspace with a laptop, notebooks, and a plant" })).toHaveClass("lp-final-art");
   });
 
   it("propagates a signed-in account through marketing actions", () => {

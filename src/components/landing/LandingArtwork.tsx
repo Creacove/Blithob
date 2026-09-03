@@ -55,7 +55,7 @@ export function HeroWorkspace() {
               <div className="mt-[7%] h-2 w-[80%] rounded bg-[#E7EEF1]" />
               <div className="mt-[3%] h-2 w-[58%] rounded bg-[#E7EEF1]" />
               <div className="mt-[8%] flex items-center justify-between rounded-lg bg-[#F5F8FA] p-[5%]">
-                <span className="text-[8px] font-semibold text-[#5D6A74]">₦450K – ₦650K</span>
+                <span className="text-[8px] font-semibold text-[#5D6A74]">₦450K - ₦650K</span>
                 <span className="rounded-full bg-[#178FC8] px-3 py-1.5 text-[8px] font-extrabold text-white">Apply</span>
               </div>
             </div>
@@ -172,38 +172,11 @@ export function CategoryFolders({ categories = [] }: { categories?: PublicCatego
 }
 export function FinalWorkspace() {
   return (
-    <div className="relative min-h-[360px] overflow-hidden rounded-[2.2rem] bg-[#CDEEFF]">
-      <div className="absolute inset-x-0 top-0 h-[44%] bg-[#E0F5FF]" />
-      <div className="absolute inset-x-0 bottom-0 h-[36%] bg-[#DDBF98]" />
-      <div className="absolute right-[6%] top-[7%] h-[31%] w-[30%] rounded-2xl border-[8px] border-white/80 bg-[#B9E2F4]">
-        <div className="absolute left-1/2 top-0 h-full w-2 bg-white/70" />
-        <div className="absolute left-0 top-1/2 h-2 w-full bg-white/70" />
-      </div>
-      <div className="absolute bottom-[9%] left-[6%] right-[6%] h-[16%] rounded-2xl bg-[#B98D62]" />
-      <div className="absolute bottom-[19%] left-[34%] h-[51%] w-[45%] rotate-[-2deg] rounded-[1.2rem] border-[8px] border-[#0B5F8A] bg-[#178FC8] shadow-[0_20px_35px_rgba(11,95,138,0.28)]">
-        <div className="absolute inset-[6%] rounded-lg bg-white p-[6%]">
-          <div className="text-[11px] font-black tracking-tight text-[#15202B]">Open opportunities</div>
-          <div className="mt-[7%] space-y-2">
-            <div className="rounded-lg bg-[#F1F7F9] p-2">
-              <div className="h-2 w-[70%] rounded bg-[#9ED7EB]" />
-              <div className="mt-2 h-1.5 w-[42%] rounded bg-[#D8E5E9]" />
-            </div>
-            <div className="rounded-lg bg-[#F1F7F9] p-2">
-              <div className="h-2 w-[58%] rounded bg-[#9ED7EB]" />
-              <div className="mt-2 h-1.5 w-[48%] rounded bg-[#D8E5E9]" />
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="absolute bottom-[16%] left-[9%] h-[42%] w-[18%]">
-        <div className="absolute bottom-0 left-[18%] h-[35%] w-[63%] rounded-xl bg-[#EEF6F4]" />
-        <div className="absolute bottom-[25%] left-[46%] h-[58%] w-[9%] rounded-full bg-[#3F7D5F]" />
-        <div className="absolute bottom-[42%] left-[4%] h-[24%] w-[48%] -rotate-[28deg] rounded-[100%_0] bg-[#72BE7C]" />
-        <div className="absolute bottom-[58%] right-[2%] h-[20%] w-[46%] rotate-[25deg] rounded-[0_100%] bg-[#72BE7C]" />
-      </div>
-      <div className="absolute left-[12%] top-[13%] -rotate-3 rounded-xl bg-[#FFD85A] px-4 py-3 font-[cursive] text-sm font-bold text-[#604B00] shadow-md">
-        next move →
-      </div>
+    <div className="lp-final-workspace-decor" aria-hidden="true">
+      <span className="lp-final-workspace-sun" />
+      <span className="lp-final-workspace-note lp-final-workspace-note-yellow">next move →</span>
+      <span className="lp-final-workspace-note lp-final-workspace-note-blue" />
+      <span className="lp-final-workspace-doodle" />
     </div>
   );
 }
