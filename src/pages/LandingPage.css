@@ -165,8 +165,9 @@
 
 .lp-hero {
   position: relative;
-  isolation: isolate;
-  overflow: hidden;
+  z-index: 20;
+  overflow-x: clip;
+  overflow-y: visible;
   display: flex;
   min-height: clamp(820px, 100svh, 940px);
   flex-direction: column;
@@ -271,7 +272,7 @@
 
 .lp-search-wrap {
   position: relative;
-  z-index: 4;
+  z-index: 50;
   width: min(820px, 100%);
   margin-top: 28px;
 }
@@ -366,6 +367,8 @@
 }
 
 .lp-search-field-text {
+  flex: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -380,9 +383,10 @@
 }
 
 .lp-search-field-value {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  color: #5f707c;
+  color: #15202b;
+  width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -394,15 +398,18 @@
 }
 
 .lp-search-field:focus-within {
-  background: #f4f8fa;
-  box-shadow: inset 0 0 0 2px rgba(11,134,215,.2);
+  background: #f1f7fa;
 }
 
 .lp-search-field input.lp-search-field-value,
-.lp-search-field select.lp-search-field-value {
+.lp-search-field select.lp-search-field-value,
+.lp-search-field button.lp-search-field-value {
   width: 100%;
   min-width: 0;
   border: 0;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent;
   padding: 0;
   line-height: 1.35;
 }
@@ -1722,8 +1729,8 @@
   .lp-search-field,
   .lp-search-submit { width: 100%; }
   .lp-search-field { flex: none; min-height: 44px; padding-inline: 11px; }
-  .lp-search-field-label { font-size: 10px; }
-  .lp-search-field-value { font-size: 12px; }
+  .lp-search-field-label { font-size: 11px; }
+  .lp-search-field-value { font-size: 16px; }
   .lp-search-submit { min-height: 50px; }
   .lp-hero-proof { margin-top: 14px; gap: 10px; }
   .lp-avatar { width: 38px; height: 38px; }

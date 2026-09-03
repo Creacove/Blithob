@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
-import { useState } from "react";
-import { ArrowUpRight, BriefcaseBusiness, ChevronDown, LayoutGrid, MapPin, Search, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowUpRight, BriefcaseBusiness, Check, ChevronDown, LayoutGrid, MapPin, Search, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import type { PublicCategory } from "../../lib/publicListings";
 
@@ -257,6 +257,45 @@ export function SearchPanel({ categories = [] }: { categories?: PublicCategory[]
   const [query, setQuery] = useState("");
   const [categorySlug, setCategorySlug] = useState("");
   const [location, setLocation] = useState("");
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [placement, setPlacement] = useState<"down" | "up">("down");
+  const categoryRef = useRef<HTMLDivElement>(null);
+
+  const toggleCategory = () => {
+    if (!categoryOpen && categoryRef.current) {
+      const rect = categoryRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 220 && rect.top > spaceBelow) {
+        setPlacement("up");
+      } else {
+        setPlacement("down");
+      }
+    }
+    setCategoryOpen((prev) => !prev);
+  };
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
+        setCategoryOpen(false);
+      }
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setCategoryOpen(false);
+    }
+    if (categoryOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [categoryOpen]);
+
+  const selectedCategory = categories.find((c) => c.slug === categorySlug);
+  const categoryLabel = selectedCategory ? selectedCategory.name : "All categories";
+
   return (
     <form className="lp-search-panel" onSubmit={(event) => {
       event.preventDefault();
@@ -270,25 +309,90 @@ export function SearchPanel({ categories = [] }: { categories?: PublicCategory[]
         <BriefcaseBusiness size={18} className="lp-search-field-icon" aria-hidden />
         <span className="lp-search-field-text">
           <span className="lp-search-field-label">Role</span>
-          <input aria-label="Search by role" className="lp-search-field-value bg-transparent outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="e.g. Product Designer" />
+          <input aria-label="Search by role" className="lp-search-field-value bg-transparent outline-none w-full" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="e.g. Product Designer" />
         </span>
       </label>
-      <label className="lp-search-field">
+      <div
+        ref={categoryRef}
+        className="lp-search-field relative cursor-pointer"
+        onClick={toggleCategory}
+        role="button"
+        tabIndex={0}
+        aria-haspopup="listbox"
+        aria-expanded={categoryOpen}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleCategory();
+          }
+        }}
+      >
         <LayoutGrid size={18} className="lp-search-field-icon" aria-hidden />
-        <span className="lp-search-field-text">
+        <div className="lp-search-field-text">
           <span className="lp-search-field-label">Category</span>
-          <select aria-label="Search by category" className="lp-search-field-value appearance-none bg-transparent outline-none" value={categorySlug} onChange={(event) => setCategorySlug(event.target.value)}>
-            <option value="">All categories</option>
-            {categories.map((category) => <option key={category.slug} value={category.slug}>{category.name}</option>)}
-          </select>
-        </span>
-        <ChevronDown size={16} className="lp-search-field-chevron" aria-hidden />
-      </label>
+          <div className="lp-search-field-value select-none flex items-center justify-between w-full">
+            <span className="truncate">{categoryLabel}</span>
+          </div>
+        </div>
+        <ChevronDown size={16} className={`lp-search-field-chevron transition-transform duration-200 ${categoryOpen ? "rotate-180 text-[#0b86d7]" : ""}`} aria-hidden />
+
+        {categoryOpen && (
+          <div
+            role="listbox"
+            aria-label="Filter by category"
+            onClick={(e) => e.stopPropagation()}
+            className={`absolute left-0 ${
+              placement === "up" ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]"
+            } z-[9999] min-w-[220px] max-h-56 w-full overflow-y-auto rounded-2xl border border-[#e2e8ea] bg-white p-1.5 shadow-[0_20px_50px_rgba(15,35,55,0.18),0_4px_12px_rgba(0,0,0,0.08)] outline-none animate-in fade-in duration-100`}
+          >
+            <button
+              type="button"
+              role="option"
+              aria-selected={categorySlug === ""}
+              onClick={() => {
+                setCategorySlug("");
+                setCategoryOpen(false);
+              }}
+              className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-medium transition-colors outline-none ${
+                categorySlug === ""
+                  ? "bg-[#e7f4fb] text-[#0b86d7] font-semibold"
+                  : "text-[#2c3e4c] hover:bg-[#f2f7fa] hover:text-[#0b86d7]"
+              }`}
+            >
+              <span>All categories</span>
+              {categorySlug === "" && <Check size={15} className="ml-2 shrink-0 text-[#0b86d7]" aria-hidden />}
+            </button>
+            {categories.map((category) => {
+              const isSelected = categorySlug === category.slug;
+              return (
+                <button
+                  key={category.slug}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => {
+                    setCategorySlug(category.slug);
+                    setCategoryOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-medium transition-colors outline-none ${
+                    isSelected
+                      ? "bg-[#e7f4fb] text-[#0b86d7] font-semibold"
+                      : "text-[#2c3e4c] hover:bg-[#f2f7fa] hover:text-[#0b86d7]"
+                  }`}
+                >
+                  <span className="truncate">{category.name}</span>
+                  {isSelected && <Check size={15} className="ml-2 shrink-0 text-[#0b86d7]" aria-hidden />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
       <label className="lp-search-field">
         <MapPin size={18} className="lp-search-field-icon" aria-hidden />
         <span className="lp-search-field-text">
           <span className="lp-search-field-label">Location</span>
-          <input aria-label="Search by location" className="lp-search-field-value bg-transparent outline-none" value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Anywhere" />
+          <input aria-label="Search by location" className="lp-search-field-value bg-transparent outline-none w-full" value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Anywhere" />
         </span>
       </label>
       <button type="submit" className="lp-search-submit">

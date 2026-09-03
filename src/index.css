@@ -47,6 +47,14 @@ textarea {
   font: inherit;
 }
 
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
@@ -66,6 +74,34 @@ h4 {
 
 ::selection {
   background: rgba(17, 142, 207, 0.2);
+}
+
+/* Sleek custom scrollbar for dropdown menus */
+[role="listbox"],
+.custom-dropdown-menu {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(11, 134, 215, 0.25) transparent;
+}
+
+[role="listbox"]::-webkit-scrollbar,
+.custom-dropdown-menu::-webkit-scrollbar {
+  width: 5px;
+}
+
+[role="listbox"]::-webkit-scrollbar-track,
+.custom-dropdown-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[role="listbox"]::-webkit-scrollbar-thumb,
+.custom-dropdown-menu::-webkit-scrollbar-thumb {
+  background: rgba(11, 134, 215, 0.25);
+  border-radius: 999px;
+}
+
+[role="listbox"]::-webkit-scrollbar-thumb:hover,
+.custom-dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(11, 134, 215, 0.45);
 }
 
 .app-grid {

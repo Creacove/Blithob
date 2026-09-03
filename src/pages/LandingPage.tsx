@@ -199,11 +199,6 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
 
         <div className="lp-hero-grid lp-shell">
           <div className="lp-hero-copy-wrap">
-            <div className="lp-kicker">
-              <span className="lp-kicker-dot">✳</span>
-              Curated jobs. Real opportunities.
-            </div>
-
             <h1 className="lp-serif">
               <span className="lp-headline-line">Your next</span><br className="lp-headline-break" />{" "}
               <span className="lp-headline-line"><em className="lp-hero-emphasis">opportunity</em> is</span><br className="lp-headline-break" />{" "}
@@ -243,7 +238,6 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
         <div className="lp-shell">
           <div className="lp-jobs-head">
             <div>
-              <div className="lp-kicker"><span className="lp-kicker-dot">✳</span> Fresh opportunities, handpicked for you.</div>
               <h2 className="lp-display lp-serif">Jobs worth <em>checking out</em></h2>
             </div>
             <div>
@@ -268,7 +262,6 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
       <section id="categories" className="lp-section lp-section-blue">
         <div className="lp-shell">
           <div className="mx-auto max-w-[900px] text-center">
-            <div className="lp-kicker"><span className="lp-kicker-dot">✳</span> Find your lane</div>
             <h2 className="lp-display lp-serif">Whatever you’re good at, <em>start there.</em></h2>
             <p className="lp-section-copy mx-auto mt-5 max-w-[620px]">
               Explore the kinds of work that match the skills you already have, then keep growing from there.
@@ -287,7 +280,6 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
       <section id="why" className="lp-section lp-why-section">
         <div className="lp-shell lp-why-grid" role="region" aria-label="Why Blithob Pro">
           <div className="lp-why-copy">
-            <div className="lp-kicker"><span className="lp-kicker-dot">✳</span> Why Blithob Pro?</div>
             <h2 className="lp-display lp-serif">
               Good jobs. <br />Clear details. <br /><strong>No bullshit.</strong>
             </h2>
@@ -326,7 +318,6 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
       <section id="stories" className="lp-section lp-section-cream lp-story-section">
         <div className="lp-shell lp-proof-grid">
           <div className="lp-proof-intro">
-            <div className="lp-kicker"><span className="lp-kicker-dot">✳</span> Success stories</div>
             <h2 className="lp-display lp-serif">People finding their <em>next move.</em></h2>
             <p className="lp-section-copy mt-5 max-w-[450px]">
               Verified candidate stories are coming as Blithob Pro places more professionals into new opportunities.
@@ -347,7 +338,6 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
               />
             </div>
             <div className="lp-proof-card-copy">
-              <div className="lp-eyebrow">Your story could be next</div>
               <blockquote className="lp-serif">
                 Find work that moves your career forward, with a clearer path from opportunity to application.
               </blockquote>
@@ -363,7 +353,6 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
         <div className="lp-final-wrap">
           <div className="lp-final-grid">
             <div className="lp-final-copy">
-              <div className="lp-kicker w-fit"><span className="lp-kicker-dot">✳</span> Your future starts now</div>
               <h2 className="lp-display lp-serif">Your next <em>opportunity</em> could be here.</h2>
               <p className="lp-section-copy mt-5 max-w-[470px]">
                 Take a look. Finding and applying for the right role should not feel like a second job.
