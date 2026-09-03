@@ -265,7 +265,7 @@ export function SearchPanel({ categories = [] }: { categories?: PublicCategory[]
     if (!categoryOpen && categoryRef.current) {
       const rect = categoryRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      if (spaceBelow < 220 && rect.top > spaceBelow) {
+      if (spaceBelow < 240 && rect.top > spaceBelow) {
         setPlacement("up");
       } else {
         setPlacement("down");
@@ -294,112 +294,145 @@ export function SearchPanel({ categories = [] }: { categories?: PublicCategory[]
   }, [categoryOpen]);
 
   const selectedCategory = categories.find((c) => c.slug === categorySlug);
-  const categoryLabel = selectedCategory ? selectedCategory.name : "All categories";
+  const categoryLabel = selectedCategory ? selectedCategory.name : "All Categories";
+
+  const handleSearch = (overrideQuery?: string, overrideCategory?: string) => {
+    const q = overrideQuery !== undefined ? overrideQuery : query;
+    const cat = overrideCategory !== undefined ? overrideCategory : categorySlug;
+    const params = new URLSearchParams();
+    if (q.trim()) params.set("query", q.trim());
+    if (cat) params.set("category", cat);
+    if (location.trim()) params.set("location", location.trim());
+    navigate(`/jobs${params.toString() ? `?${params.toString()}` : ""}`);
+  };
 
   return (
-    <form className="lp-search-panel" onSubmit={(event) => {
-      event.preventDefault();
-      const params = new URLSearchParams();
-      if (query.trim()) params.set("query", query.trim());
-      if (categorySlug) params.set("category", categorySlug);
-      if (location.trim()) params.set("location", location.trim());
-      navigate(`/jobs${params.toString() ? `?${params.toString()}` : ""}`);
-    }}>
-      <label className="lp-search-field">
-        <BriefcaseBusiness size={18} className="lp-search-field-icon" aria-hidden />
-        <span className="lp-search-field-text">
-          <span className="lp-search-field-label">Role</span>
-          <input aria-label="Search by role" className="lp-search-field-value bg-transparent outline-none w-full" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="e.g. Product Designer" />
-        </span>
-      </label>
-      <div
-        ref={categoryRef}
-        className="lp-search-field relative cursor-pointer"
-        onClick={toggleCategory}
-        role="button"
-        tabIndex={0}
-        aria-haspopup="listbox"
-        aria-expanded={categoryOpen}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            toggleCategory();
-          }
+    <div className="lp-search-container">
+      <form
+        className="lp-search-bar"
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSearch();
         }}
       >
-        <LayoutGrid size={18} className="lp-search-field-icon" aria-hidden />
-        <div className="lp-search-field-text">
-          <span className="lp-search-field-label">Category</span>
-          <div className="lp-search-field-value select-none flex items-center justify-between w-full">
-            <span className="truncate">{categoryLabel}</span>
-          </div>
+        {/* Primary Role / Keyword Search Zone */}
+        <div className="lp-search-zone lp-search-zone-main">
+          <Search size={19} className="lp-search-icon" aria-hidden="true" />
+          <input
+            type="text"
+            aria-label="Search by job title, skills, or company"
+            className="lp-search-input"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Job title, skills, or company..."
+          />
         </div>
-        <ChevronDown size={16} className={`lp-search-field-chevron transition-transform duration-200 ${categoryOpen ? "rotate-180 text-[#0b86d7]" : ""}`} aria-hidden />
 
-        {categoryOpen && (
+        {/* Hairline Divider (desktop) */}
+        <div className="lp-search-divider" aria-hidden="true" />
+
+        {/* Mobile Middle Row Container (groups Category & Location on small screens) */}
+        <div className="lp-search-mobile-row">
+          {/* Category Filter Zone */}
           <div
-            role="listbox"
+            ref={categoryRef}
+            className="lp-search-zone lp-search-zone-category"
+            onClick={toggleCategory}
+            role="button"
+            tabIndex={0}
+            aria-haspopup="listbox"
+            aria-expanded={categoryOpen}
             aria-label="Filter by category"
-            onClick={(e) => e.stopPropagation()}
-            className={`absolute left-0 ${
-              placement === "up" ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]"
-            } z-[9999] min-w-[220px] max-h-56 w-full overflow-y-auto rounded-2xl border border-[#e2e8ea] bg-white p-1.5 shadow-[0_20px_50px_rgba(15,35,55,0.18),0_4px_12px_rgba(0,0,0,0.08)] outline-none animate-in fade-in duration-100`}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                toggleCategory();
+              }
+            }}
           >
-            <button
-              type="button"
-              role="option"
-              aria-selected={categorySlug === ""}
-              onClick={() => {
-                setCategorySlug("");
-                setCategoryOpen(false);
-              }}
-              className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-medium transition-colors outline-none ${
-                categorySlug === ""
-                  ? "bg-[#e7f4fb] text-[#0b86d7] font-semibold"
-                  : "text-[#2c3e4c] hover:bg-[#f2f7fa] hover:text-[#0b86d7]"
+            <div className="flex items-center gap-2.5 min-w-0">
+              <LayoutGrid size={17} className="lp-search-icon-muted" aria-hidden="true" />
+              <span className={`lp-search-category-text truncate ${categorySlug ? "lp-search-has-value" : ""}`}>
+                {categoryLabel}
+              </span>
+            </div>
+            <ChevronDown
+              size={15}
+              className={`lp-search-chevron transition-transform duration-200 ${
+                categoryOpen ? "rotate-180 text-[#0b86d7]" : ""
               }`}
-            >
-              <span>All categories</span>
-              {categorySlug === "" && <Check size={15} className="ml-2 shrink-0 text-[#0b86d7]" aria-hidden />}
-            </button>
-            {categories.map((category) => {
-              const isSelected = categorySlug === category.slug;
-              return (
+              aria-hidden="true"
+            />
+
+            {categoryOpen && (
+              <div
+                role="listbox"
+                aria-label="Select category"
+                onClick={(e) => e.stopPropagation()}
+                className={`lp-search-dropdown-menu ${
+                  placement === "up" ? "lp-dropdown-up" : "lp-dropdown-down"
+                }`}
+              >
                 <button
-                  key={category.slug}
                   type="button"
                   role="option"
-                  aria-selected={isSelected}
+                  aria-selected={categorySlug === ""}
                   onClick={() => {
-                    setCategorySlug(category.slug);
+                    setCategorySlug("");
                     setCategoryOpen(false);
                   }}
-                  className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-medium transition-colors outline-none ${
-                    isSelected
-                      ? "bg-[#e7f4fb] text-[#0b86d7] font-semibold"
-                      : "text-[#2c3e4c] hover:bg-[#f2f7fa] hover:text-[#0b86d7]"
-                  }`}
+                  className={`lp-dropdown-item ${categorySlug === "" ? "is-selected" : ""}`}
                 >
-                  <span className="truncate">{category.name}</span>
-                  {isSelected && <Check size={15} className="ml-2 shrink-0 text-[#0b86d7]" aria-hidden />}
+                  <span>All Categories</span>
+                  {categorySlug === "" && <Check size={15} className="shrink-0 text-[#0b86d7]" aria-hidden />}
                 </button>
-              );
-            })}
+                {categories.map((category) => {
+                  const isSelected = categorySlug === category.slug;
+                  return (
+                    <button
+                      key={category.slug}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      onClick={() => {
+                        setCategorySlug(category.slug);
+                        setCategoryOpen(false);
+                      }}
+                      className={`lp-dropdown-item ${isSelected ? "is-selected" : ""}`}
+                    >
+                      <span className="truncate">{category.name}</span>
+                      {isSelected && <Check size={15} className="shrink-0 text-[#0b86d7]" aria-hidden />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      <label className="lp-search-field">
-        <MapPin size={18} className="lp-search-field-icon" aria-hidden />
-        <span className="lp-search-field-text">
-          <span className="lp-search-field-label">Location</span>
-          <input aria-label="Search by location" className="lp-search-field-value bg-transparent outline-none w-full" value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Anywhere" />
-        </span>
-      </label>
-      <button type="submit" className="lp-search-submit">
-        Search Jobs
-        <Search size={16} aria-hidden />
-      </button>
-    </form>
+
+          {/* Hairline Divider (desktop) */}
+          <div className="lp-search-divider lp-search-divider-secondary" aria-hidden="true" />
+
+          {/* Location Zone */}
+          <div className="lp-search-zone lp-search-zone-location">
+            <MapPin size={17} className="lp-search-icon-muted" aria-hidden="true" />
+            <input
+              type="text"
+              aria-label="Location or remote"
+              className="lp-search-input lp-search-location-input"
+              value={location}
+              onChange={(event) => setLocation(event.target.value)}
+              placeholder="Any location"
+            />
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <button type="submit" className="lp-search-btn">
+          <Search size={16} className="lp-search-btn-icon" aria-hidden="true" />
+          <span>Search Jobs</span>
+        </button>
+      </form>
+    </div>
   );
 }
 

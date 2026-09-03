@@ -1,7 +1,7 @@
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, Laptop, LayoutGrid, MapPin, Search } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { EmptyState, Input } from "../../components/ui";
+import { EmptyState } from "../../components/ui";
 import { CustomDropdown } from "../../components/CustomDropdown";
 import {
   publicListingsRepository,
@@ -46,7 +46,9 @@ function JobCard({ job }: { job: PublicJobSummary }) {
       </div>
       <div className="public-job-card-foot">
         <strong>{formatRate(job)}</strong>
-        <span>View role</span>
+        <span className="public-job-card-cta">
+          View role <ArrowRight size={12} aria-hidden />
+        </span>
       </div>
     </Link>
   );
@@ -105,50 +107,105 @@ export function PublicJobsPage({ repository = publicListingsRepository }: { repo
         <h1>Find work that <em>fits.</em></h1>
         <p className="public-lede">Useful details up front, a clearer application path, and roles selected for people who want to do good work.</p>
         <form className="public-filter-bar" onSubmit={submit}>
-          <label><span>Role or keyword</span><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try “designer”" /></label>
+          {/* Role search */}
+          <label>
+            <span>Role or keyword</span>
+            <div className="public-filter-zone">
+              <Search size={17} className="public-filter-zone-icon" aria-hidden="true" />
+              <input
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder='Job title, skills, or company…'
+                aria-label="Search by role or keyword"
+              />
+            </div>
+          </label>
+
+          <div className="public-filter-divider" aria-hidden="true" />
+
+          {/* Category */}
           <label>
             <span>Category</span>
-            <CustomDropdown
-              value={categorySlug}
-              onChange={setCategorySlug}
-              placeholder="All categories"
-              ariaLabel="Filter by category"
-              options={[
-                { value: "", label: "All categories" },
-                ...categories.map((category) => ({ value: category.slug, label: category.name }))
-              ]}
-            />
+            <div className="public-filter-dropdown-wrap">
+              <CustomDropdown
+                value={categorySlug}
+                onChange={setCategorySlug}
+                placeholder="Category"
+                ariaLabel="Filter by category"
+                icon={<LayoutGrid size={16} />}
+                options={[
+                  { value: "", label: "All categories" },
+                  ...categories.map((category) => ({ value: category.slug, label: category.name }))
+                ]}
+              />
+            </div>
           </label>
+
+          <div className="public-filter-divider" aria-hidden="true" />
+
+          {/* Service */}
           <label>
             <span>Service</span>
-            <CustomDropdown
-              value={serviceSlug}
-              onChange={setServiceSlug}
-              placeholder="All services"
-              ariaLabel="Filter by service"
-              options={[
-                { value: "", label: "All services" },
-                ...services.map((service) => ({ value: service.slug, label: service.label }))
-              ]}
-            />
+            <div className="public-filter-dropdown-wrap">
+              <CustomDropdown
+                value={serviceSlug}
+                onChange={setServiceSlug}
+                placeholder="Service"
+                ariaLabel="Filter by service"
+                icon={<BriefcaseBusiness size={16} />}
+                options={[
+                  { value: "", label: "All services" },
+                  ...services.map((service) => ({ value: service.slug, label: service.label }))
+                ]}
+              />
+            </div>
           </label>
+
+          <div className="public-filter-divider" aria-hidden="true" />
+
+          {/* Work mode */}
           <label>
             <span>Work mode</span>
-            <CustomDropdown
-              value={workMode}
-              onChange={setWorkMode}
-              placeholder="Any mode"
-              ariaLabel="Filter by work mode"
-              options={[
-                { value: "", label: "Any mode" },
-                { value: "Remote", label: "Remote" },
-                { value: "Hybrid", label: "Hybrid" },
-                { value: "On-site", label: "On-site" }
-              ]}
-            />
+            <div className="public-filter-dropdown-wrap">
+              <CustomDropdown
+                value={workMode}
+                onChange={setWorkMode}
+                placeholder="Work mode"
+                ariaLabel="Filter by work mode"
+                icon={<Laptop size={16} />}
+                options={[
+                  { value: "", label: "Any mode" },
+                  { value: "Remote", label: "Remote" },
+                  { value: "Hybrid", label: "Hybrid" },
+                  { value: "On-site", label: "On-site" }
+                ]}
+              />
+            </div>
           </label>
-          <label><span>Location</span><Input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Anywhere" /></label>
-          <button type="submit" className="public-filter-submit"><Search size={17} aria-hidden /> Search</button>
+
+          <div className="public-filter-divider" aria-hidden="true" />
+
+          {/* Location */}
+          <label>
+            <span>Location</span>
+            <div className="public-filter-zone">
+              <MapPin size={17} className="public-filter-zone-icon" aria-hidden="true" />
+              <input
+                type="text"
+                value={location}
+                onChange={(event) => setLocation(event.target.value)}
+                placeholder="Location or Remote"
+                aria-label="Search by location"
+              />
+            </div>
+          </label>
+
+          {/* Submit */}
+          <button type="submit" className="public-filter-submit">
+            <Search size={16} aria-hidden="true" />
+            Search
+          </button>
         </form>
       </section>
 

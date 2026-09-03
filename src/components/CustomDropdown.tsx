@@ -1,5 +1,5 @@
 import { Check, ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export interface DropdownOption {
   value: string;
@@ -12,6 +12,7 @@ export function CustomDropdown({
   options,
   placeholder = "Select...",
   ariaLabel,
+  icon,
   className = "",
   buttonClassName = "",
   menuClassName = ""
@@ -21,6 +22,7 @@ export function CustomDropdown({
   options: DropdownOption[];
   placeholder?: string;
   ariaLabel?: string;
+  icon?: React.ReactNode;
   className?: string;
   buttonClassName?: string;
   menuClassName?: string;
@@ -79,13 +81,16 @@ export function CustomDropdown({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={ariaLabel}
-        className={`flex w-full min-h-[47px] items-center justify-between gap-2 rounded-xl border border-[#e2e8ea] bg-white px-3.5 py-2 text-left text-sm font-medium text-[#15202b] outline-none transition-all duration-200 hover:border-[#b8c9d1] focus:border-[#0b86d7] ${buttonClassName}`}
+        className={`flex w-full min-h-[47px] items-center justify-between gap-2.5 rounded-xl border border-[#e2e8ea] bg-white px-3.5 py-2 text-left text-sm font-medium text-[#15202b] outline-none transition-all duration-200 hover:border-[#b8c9d1] focus:border-[#0b86d7] ${buttonClassName}`}
       >
-        <span className={`block truncate ${!selectedOption && value === "" ? "text-[#7a8c98]" : "text-[#15202b]"}`}>
-          {displayLabel}
-        </span>
+        <div className="flex items-center gap-2 min-w-0">
+          {icon && <span className="shrink-0 text-[#8a9ba5]">{icon}</span>}
+          <span className={`block truncate ${!selectedOption && value === "" ? "text-[#7a8c98]" : "text-[#15202b] font-medium"}`}>
+            {displayLabel}
+          </span>
+        </div>
         <ChevronDown
-          size={16}
+          size={15}
           className={`shrink-0 text-[#8c9ca6] transition-transform duration-200 ${
             isOpen ? "rotate-180 text-[#0b86d7]" : ""
           }`}

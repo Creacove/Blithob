@@ -225,7 +225,7 @@ export function LandingPage({ repository = publicListingsRepository }: { reposit
             <div className="lp-hero-proof">
               <HeroAvatarStack />
               <p className="lp-hero-proof-copy">
-                <strong>Join 150K+ job seekers</strong>
+                <strong>Join 5K+ job seekers</strong>
                 <span>finding better opportunities</span>
               </p>
             </div>
