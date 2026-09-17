@@ -79,11 +79,6 @@ create policy candidate_documents_storage_insert on storage.objects
 
 revoke all on table public.candidate_documents from anon, authenticated;
 grant select on table public.candidate_documents to authenticated;
-revoke all on function public.create_candidate_document(text, text, text, bigint) from public;
-revoke all on function public.list_my_candidate_documents() from public;
-revoke all on function public.archive_my_candidate_document(uuid) from public;
-revoke all on function public.list_application_documents(uuid) from public;
-revoke all on function public.submit_job_application_with_cv(uuid, uuid, text, text) from public;
 
 create or replace function public.create_candidate_document(
   p_document_type text,
@@ -281,6 +276,12 @@ begin
   return v_application_id;
 end;
 $$;
+
+revoke all on function public.create_candidate_document(text, text, text, bigint) from public;
+revoke all on function public.list_my_candidate_documents() from public;
+revoke all on function public.archive_my_candidate_document(uuid) from public;
+revoke all on function public.list_application_documents(uuid) from public;
+revoke all on function public.submit_job_application_with_cv(uuid, uuid, text, text) from public;
 
 grant execute on function public.create_candidate_document(text, text, text, bigint) to authenticated;
 grant execute on function public.list_my_candidate_documents() to authenticated;
