@@ -39,7 +39,8 @@ declare
     array['job_applications', 'professional_id'],
     array['job_applications', 'status'],
     array['job_applications', 'cover_note'],
-    array['job_applications', 'assignment_id']
+    array['job_applications', 'assignment_id'],
+    array['job_applications', 'cv_document_id']
   ];
   item text[];
 begin
@@ -70,6 +71,7 @@ begin
     'public.list_admin_applications(uuid,text)',
     'public.complete_my_professional_profile(text,text,text)',
     'public.submit_job_application(uuid,text,text)',
+    'public.submit_job_application_with_cv(uuid,uuid,text,text)',
     'public.withdraw_job_application(uuid)',
     'public.review_job_application(uuid,public.job_application_status,text)',
     'public.convert_job_application_to_assignment(uuid,bigint,timestamptz,uuid)'
