@@ -21,6 +21,25 @@ describe("professional store", () => {
     ).toBe(true);
   });
 
+  it("keeps demo candidate documents in memory with completed upload state", async () => {
+    useProfessionalStore.getState().signIn("professional");
+    const file = new File(["pdf"], "resume.pdf", { type: "application/pdf" });
+
+    await useProfessionalStore.getState().uploadCandidateDocument({ type: "cv", file });
+
+    expect(useProfessionalStore.getState().candidateDocuments).toHaveLength(1);
+    expect(useProfessionalStore.getState().candidateDocuments[0]).toMatchObject({
+      documentType: "cv",
+      displayName: "resume.pdf",
+      uploadComplete: true
+    });
+
+    await useProfessionalStore.getState().archiveCandidateDocument(
+      useProfessionalStore.getState().candidateDocuments[0].id
+    );
+    expect(useProfessionalStore.getState().candidateDocuments).toHaveLength(0);
+  });
+
   it("promotes a Professional without changing account role", () => {
     useProfessionalStore
       .getState()
