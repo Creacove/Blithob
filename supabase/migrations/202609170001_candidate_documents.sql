@@ -97,6 +97,7 @@ declare
   v_old_cv_id uuid;
   v_document_id uuid := gen_random_uuid();
   v_extension text;
+  v_display_name text := trim(coalesce(p_display_name, ''));
 begin
   if auth.uid() is null or v_professional_id is null then
     raise exception 'Sign in with a professional account';
@@ -110,14 +111,24 @@ begin
   if p_document_type not in ('cv', 'supporting') then
     raise exception 'Document type must be cv or supporting';
   end if;
-  if length(trim(coalesce(p_display_name, ''))) not between 1 and 160 then
+  if length(v_display_name) not between 1 and 160 then
     raise exception 'Document name must be between 1 and 160 characters';
+  end if;
+  if v_display_name ~ '[[:cntrl:]]'
+     or position('/' in v_display_name) > 0
+     or position(chr(92) in v_display_name) > 0
+     or v_display_name !~* '^[^.]+[.](pdf|docx)$' then
+    raise exception 'Document name must be a single PDF or DOCX filename';
   end if;
   if p_mime_type not in (
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ) then
     raise exception 'Only PDF and DOCX files are accepted';
+  end if;
+  if (right(lower(v_display_name), 4) = '.pdf' and p_mime_type <> 'application/pdf')
+     or (right(lower(v_display_name), 5) = '.docx' and p_mime_type <> 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') then
+    raise exception 'File extension and MIME type do not match';
   end if;
   if p_size_bytes is null or p_size_bytes not between 1 and 10485760 then
     raise exception 'Document must be between 1 byte and 10 MiB';
@@ -149,7 +160,7 @@ begin
   insert into public.candidate_documents (
     id, professional_id, document_type, display_name, storage_path, mime_type, size_bytes
   ) values (
-    v_document_id, v_professional_id, p_document_type, trim(p_display_name),
+    v_document_id, v_professional_id, p_document_type, v_display_name,
     v_professional_id::text || '/' || v_document_id::text || '.' || v_extension,
     p_mime_type, p_size_bytes
   ) returning * into v_document;
@@ -159,15 +170,21 @@ $$;
 
 create or replace function public.list_my_candidate_documents()
 returns setof public.candidate_documents
-language sql
+language plpgsql
 security definer
 set search_path = public, extensions
 as $$
-  select d.*
-  from public.candidate_documents d
-  where d.professional_id = public.current_professional_id()
-    and d.is_active
-  order by d.document_type, d.created_at desc;
+begin
+  if auth.uid() is null then
+    raise exception 'Sign in with a professional account';
+  end if;
+  return query
+    select d.*
+    from public.candidate_documents d
+    where d.professional_id = public.current_professional_id()
+      and d.is_active
+    order by d.document_type, d.created_at desc;
+end;
 $$;
 
 create or replace function public.archive_my_candidate_document(p_document_id uuid)
@@ -215,16 +232,22 @@ returns table (
   updated_at timestamptz,
   archived_at timestamptz
 )
-language sql
+language plpgsql
 security definer
 set search_path = public, extensions
 as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Sign in with a professional account';
+  end if;
+  return query
   select d.id, d.professional_id, d.document_type, d.display_name, d.storage_path,
     d.mime_type, d.size_bytes, d.is_active, d.created_at, d.updated_at, d.archived_at
   from public.candidate_documents d
   join public.job_applications a on a.cv_document_id = d.id
   where a.id = p_application_id
     and (public.is_admin() or a.professional_id = public.current_professional_id());
+end;
 $$;
 
 create or replace function public.submit_job_application_with_cv(

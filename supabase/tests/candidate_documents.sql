@@ -7,6 +7,10 @@ select throws_ok(
   'unauthenticated or invalid document creation is rejected'
 );
 
+select set_config('request.jwt.claim.sub', '', true);
+select throws_ok($$select * from public.list_my_candidate_documents()$$, 'anonymous document listing is rejected');
+select throws_ok($$select * from public.list_application_documents('00000000-0000-4000-8000-000000000001')$$, 'anonymous application document listing is rejected');
+
 do $$
 begin
   if not exists (select 1 from pg_catalog.pg_tables where schemaname = 'public' and tablename = 'candidate_documents') then
@@ -43,6 +47,9 @@ begin
   end if;
   if not has_function_privilege('authenticated', 'public.create_candidate_document(text,text,text,bigint)', 'execute') then
     raise exception 'Authenticated document creation privilege is missing';
+  end if;
+  if has_table_privilege('anon', 'public.candidate_documents', 'select') then
+    raise exception 'Anonymous direct table select must be denied';
   end if;
 end;
 $$;
@@ -94,6 +101,30 @@ begin
   on conflict (id) do nothing;
 
   perform set_config('request.jwt.claim.sub', candidate_one::text, true);
+  begin
+    perform public.create_candidate_document('cv', 'resume.exe.pdf', 'application/pdf', 100);
+    raise exception 'double extension was accepted';
+  exception when others then
+    if sqlerrm not like '%single PDF or DOCX filename%' then raise; end if;
+  end;
+  begin
+    perform public.create_candidate_document('cv', 'resume.doc', 'application/pdf', 100);
+    raise exception 'unsupported extension was accepted';
+  exception when others then
+    if sqlerrm not like '%single PDF or DOCX filename%' then raise; end if;
+  end;
+  begin
+    perform public.create_candidate_document('cv', 'resume.pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 100);
+    raise exception 'MIME mismatch was accepted';
+  exception when others then
+    if sqlerrm not like '%extension and MIME%' then raise; end if;
+  end;
+  begin
+    perform public.create_candidate_document('cv', 'resume.pdf', 'application/pdf', 10485761);
+    raise exception 'oversized document was accepted';
+  exception when others then
+    if sqlerrm not like '%10 MiB%' then raise; end if;
+  end;
   select * into cv_one from public.create_candidate_document('cv', 'one.pdf', 'application/pdf', 100);
   select * into cv_two from public.create_candidate_document('cv', 'replacement.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 200);
   if exists (select 1 from public.candidate_documents where id = cv_two.id and is_active and document_type = 'cv') is not true
@@ -152,6 +183,8 @@ do $$
 declare
   storage_policy text;
   archive_function text;
+  create_function text;
+  list_function text;
 begin
   if not has_table_privilege('authenticated', 'public.candidate_documents', 'select') then
     raise exception 'Authenticated Admin repository cannot select candidate_documents';
@@ -160,7 +193,12 @@ begin
   from pg_policy
   where polname = 'candidate_documents_storage_insert'
     and polrelid = 'storage.objects'::regclass;
-  if storage_policy is null or storage_policy not like '%candidate_documents%' then
+  if storage_policy is null
+     or storage_policy not like '%candidate_documents%'
+     or storage_policy not like '%mimetype%'
+     or storage_policy not like '%size%'
+     or storage_policy not like '%storage_path%'
+     or storage_policy not like '%is_active%' then
     raise exception 'Storage insert must be bound to a registered candidate document';
   end if;
   select pg_get_functiondef('public.archive_my_candidate_document(uuid)'::regprocedure)
@@ -171,7 +209,22 @@ begin
   if archive_function not like '%pg_advisory_xact_lock%' then
     raise exception 'Supporting-document count must be serialized';
   end if;
-end;
+  select pg_get_functiondef('public.create_candidate_document(text,text,text,bigint)'::regprocedure)
+    into create_function;
+  if create_function not like '%[:cntrl:]%' or create_function not like '%application/pdf%' then
+    raise exception 'Create RPC must validate safe names and MIME values';
+  end if;
+  select pg_get_functiondef('public.list_my_candidate_documents()'::regprocedure)
+    into list_function;
+  if list_function not like '%auth.uid() is null%' then
+    raise exception 'Candidate listing RPC must explicitly guard anonymous callers';
+  end if;
+  select pg_get_functiondef('public.list_application_documents(uuid)'::regprocedure)
+    into list_function;
+  if list_function not like '%auth.uid() is null%' then
+    raise exception 'Application listing RPC must explicitly guard anonymous callers';
+  end if;
+  end;
 $$;
 
 do $$
