@@ -178,6 +178,16 @@ begin
 end;
 $$;
 
+select set_config('request.jwt.claim.sub', '90000000-0000-4000-8000-000000000002', true);
+select throws_ok($$
+  select public.submit_job_application_with_cv(
+    '93000000-0000-4000-8000-000000000001'::uuid,
+    null,
+    repeat('valid application cover note ', 2),
+    null
+  )
+$$, 'otherwise valid candidate cannot submit without a CV document');
+
 -- Execute Storage RLS as authenticated users, rather than inspecting policy
 -- text only. All objects are rolled back with the fixture transaction.
 set local role authenticated;
@@ -226,6 +236,17 @@ $$, 'registered path with mismatched size is denied');
 select set_config('request.jwt.claim.sub', '90000000-0000-4000-8000-000000000001', true);
 select is((select count(*)::integer from storage.objects where bucket_id = 'candidate-documents'), 1, 'Admin can read candidate objects');
 reset role;
+
+set local role anon;
+select set_config('request.jwt.claim.sub', '', true);
+select throws_ok($$
+  select count(*) from storage.objects where bucket_id = 'candidate-documents'
+$$, 'anonymous cannot read candidate objects');
+select throws_ok($$
+  insert into storage.objects (bucket_id, name, metadata)
+  values ('candidate-documents', '91000000-0000-4000-8000-000000000001/anonymous.pdf', jsonb_build_object('mimetype', 'application/pdf', 'size', 100))
+$$, 'anonymous cannot insert candidate objects');
+reset role;
 rollback;
 
 do $$
@@ -237,6 +258,19 @@ declare
 begin
   if not has_table_privilege('authenticated', 'public.candidate_documents', 'select') then
     raise exception 'Authenticated Admin repository cannot select candidate_documents';
+  end if;
+  if has_table_privilege('anon', 'storage.objects', 'select')
+     or has_table_privilege('anon', 'storage.objects', 'insert') then
+    raise exception 'Anonymous Storage table access must be denied';
+  end if;
+  if exists (
+    select 1
+    from pg_policy p
+    join pg_roles r on r.rolname = 'anon' and r.oid = any(p.polroles)
+    where p.polrelid = 'storage.objects'::regclass
+      and p.polname in ('candidate_documents_storage_select', 'candidate_documents_storage_insert')
+  ) then
+    raise exception 'Candidate Storage policies must not target anon';
   end if;
   select pg_get_expr(polwithcheck, polrelid) into storage_policy
   from pg_policy
