@@ -177,6 +177,55 @@ begin
   end if;
 end;
 $$;
+
+-- Execute Storage RLS as authenticated users, rather than inspecting policy
+-- text only. All objects are rolled back with the fixture transaction.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '90000000-0000-4000-8000-000000000002', true);
+select lives_ok($$
+  insert into storage.objects (bucket_id, name, metadata)
+  select 'candidate-documents', d.storage_path,
+    jsonb_build_object('mimetype', d.mime_type, 'size', d.size_bytes)
+  from public.candidate_documents d
+  where d.professional_id = '91000000-0000-4000-8000-000000000001'
+    and d.document_type = 'cv' and d.is_active
+  limit 1
+$$, 'candidate can insert a registered owned document path');
+select is((select count(*)::integer from storage.objects where bucket_id = 'candidate-documents' and name like '91000000-0000-4000-8000-000000000001/%'), 1, 'candidate can select the owned object');
+select throws_ok($$
+  insert into storage.objects (bucket_id, name, metadata)
+  select 'candidate-documents', d.storage_path,
+    jsonb_build_object('mimetype', d.mime_type, 'size', d.size_bytes)
+  from public.candidate_documents d
+  where d.professional_id = '91000000-0000-4000-8000-000000000002'
+    and d.document_type = 'cv' and d.is_active
+  limit 1
+$$, 'foreign candidate storage path is denied');
+select throws_ok($$
+  insert into storage.objects (bucket_id, name, metadata)
+  values ('candidate-documents', '91000000-0000-4000-8000-000000000001/unregistered.pdf', jsonb_build_object('mimetype', 'application/pdf', 'size', 100))
+$$, 'unregistered storage path is denied');
+select throws_ok($$
+  insert into storage.objects (bucket_id, name, metadata)
+  select 'candidate-documents', d.storage_path,
+    jsonb_build_object('mimetype', 'application/pdf', 'size', d.size_bytes)
+  from public.candidate_documents d
+  where d.professional_id = '91000000-0000-4000-8000-000000000001'
+    and d.document_type = 'supporting' and d.is_active
+  limit 1
+$$, 'registered path with mismatched MIME is denied');
+select throws_ok($$
+  insert into storage.objects (bucket_id, name, metadata)
+  select 'candidate-documents', d.storage_path,
+    jsonb_build_object('mimetype', d.mime_type, 'size', 10485761)
+  from public.candidate_documents d
+  where d.professional_id = '91000000-0000-4000-8000-000000000001'
+    and d.document_type = 'supporting' and d.is_active
+  limit 1
+$$, 'registered path with mismatched size is denied');
+select set_config('request.jwt.claim.sub', '90000000-0000-4000-8000-000000000001', true);
+select is((select count(*)::integer from storage.objects where bucket_id = 'candidate-documents'), 1, 'Admin can read candidate objects');
+reset role;
 rollback;
 
 do $$
@@ -224,7 +273,12 @@ begin
   if list_function not like '%auth.uid() is null%' then
     raise exception 'Application listing RPC must explicitly guard anonymous callers';
   end if;
-  end;
+  select pg_get_functiondef('public.submit_job_application_with_cv(uuid,uuid,text,text)'::regprocedure)
+    into list_function;
+  if list_function not like '%for share%' and list_function not like '%for update%' then
+    raise exception 'CV-aware submission must lock the selected CV row';
+  end if;
+end;
 $$;
 
 do $$

@@ -265,6 +265,7 @@ declare
   v_professional_id uuid := public.current_professional_id();
   v_cover_note text := trim(coalesce(p_cover_note, ''));
   v_portfolio_url text := nullif(trim(coalesce(p_portfolio_url, '')), '');
+  v_cv public.candidate_documents%rowtype;
   v_application_id uuid;
 begin
   if auth.uid() is null then raise exception 'Sign in to apply'; end if;
@@ -272,10 +273,16 @@ begin
   if not exists (select 1 from public.professionals where id = v_professional_id and account_status = 'active') then
     raise exception 'Professional account is inactive';
   end if;
-  if not exists (
-    select 1 from public.candidate_documents
-    where id = p_cv_document_id and professional_id = v_professional_id and document_type = 'cv' and is_active
-  ) then raise exception 'Select an active primary CV'; end if;
+  select * into v_cv
+  from public.candidate_documents
+  where id = p_cv_document_id
+  for share;
+  if not found
+     or v_cv.professional_id <> v_professional_id
+     or v_cv.document_type <> 'cv'
+     or not v_cv.is_active then
+    raise exception 'Select an active primary CV';
+  end if;
   if char_length(v_cover_note) < 20 then raise exception 'Cover note must be at least 20 characters'; end if;
   if char_length(v_cover_note) > 4000 then raise exception 'Cover note must be 4,000 characters or fewer'; end if;
   if v_portfolio_url is not null and (char_length(v_portfolio_url) > 500 or v_portfolio_url !~* '^https?://[^[:space:]]+$') then
