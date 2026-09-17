@@ -60,9 +60,25 @@ create policy candidate_documents_storage_insert on storage.objects
   with check (
     bucket_id = 'candidate-documents'
     and (storage.foldername(name))[1] = public.current_professional_id()::text
+    and coalesce((metadata ->> 'mimetype'), '') in (
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+    and (metadata ->> 'size') ~ '^[0-9]+$'
+    and (metadata ->> 'size')::bigint between 1 and 10485760
+    and exists (
+      select 1
+      from public.candidate_documents d
+      where d.professional_id = public.current_professional_id()
+        and d.storage_path = name
+        and d.is_active
+        and d.mime_type = metadata ->> 'mimetype'
+        and d.size_bytes = (metadata ->> 'size')::bigint
+    )
   );
 
 revoke all on table public.candidate_documents from anon, authenticated;
+grant select on table public.candidate_documents to authenticated;
 revoke all on function public.create_candidate_document(text, text, text, bigint) from public;
 revoke all on function public.list_my_candidate_documents() from public;
 revoke all on function public.archive_my_candidate_document(uuid) from public;
@@ -110,6 +126,9 @@ begin
   end if;
   if p_size_bytes is null or p_size_bytes not between 1 and 10485760 then
     raise exception 'Document must be between 1 byte and 10 MiB';
+  end if;
+  if p_document_type = 'supporting' then
+    perform pg_advisory_xact_lock(hashtextextended(v_professional_id::text, 0));
   end if;
   if p_document_type = 'supporting' and (
     select count(*) from public.candidate_documents
@@ -175,12 +194,11 @@ begin
     and is_active
   for update;
   if not found then raise exception 'Document not found'; end if;
-  if v_document.document_type = 'cv' and exists (
+  if exists (
     select 1 from public.job_applications
     where cv_document_id = p_document_id
-      and status in ('submitted', 'under_review', 'shortlisted')
   ) then
-    raise exception 'Active CV is required for current applications';
+    raise exception 'Document is retained because it is referenced by an application';
   end if;
   update public.candidate_documents
   set is_active = false, archived_at = now(), updated_at = now()
