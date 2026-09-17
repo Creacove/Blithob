@@ -13,14 +13,21 @@ create table if not exists public.candidate_documents (
   )),
   size_bytes bigint not null check (size_bytes between 1 and 10485760),
   is_active boolean not null default true,
+  upload_complete boolean not null default false,
+  uploaded_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   archived_at timestamptz
 );
 
-create unique index if not exists candidate_documents_one_active_cv
+alter table public.candidate_documents
+  add column if not exists upload_complete boolean not null default false,
+  add column if not exists uploaded_at timestamptz;
+
+drop index if exists public.candidate_documents_one_active_cv;
+create unique index candidate_documents_one_active_cv
   on public.candidate_documents (professional_id)
-  where document_type = 'cv' and is_active;
+  where document_type = 'cv' and is_active and upload_complete;
 
 alter table public.job_applications
   add column if not exists cv_document_id uuid references public.candidate_documents(id) on delete restrict;
@@ -94,7 +101,6 @@ as $$
 declare
   v_professional_id uuid := public.current_professional_id();
   v_document public.candidate_documents;
-  v_old_cv_id uuid;
   v_document_id uuid := gen_random_uuid();
   v_extension text;
   v_display_name text := trim(coalesce(p_display_name, ''));
@@ -133,7 +139,7 @@ begin
   if p_size_bytes is null or p_size_bytes not between 1 and 10485760 then
     raise exception 'Document must be between 1 byte and 10 MiB';
   end if;
-  if p_document_type = 'supporting' then
+  if p_document_type in ('cv', 'supporting') then
     perform pg_advisory_xact_lock(hashtextextended(v_professional_id::text, 0));
   end if;
   if p_document_type = 'supporting' and (
@@ -146,15 +152,12 @@ begin
   if p_mime_type = 'application/pdf' then v_extension := 'pdf'; else v_extension := 'docx'; end if;
 
   if p_document_type = 'cv' then
-    select id into v_old_cv_id
-    from public.candidate_documents
-    where professional_id = v_professional_id and document_type = 'cv' and is_active
-    for update;
-    if v_old_cv_id is not null then
-      update public.candidate_documents
-      set is_active = false, archived_at = now(), updated_at = now()
-      where id = v_old_cv_id;
-    end if;
+    update public.candidate_documents
+    set is_active = false, archived_at = now(), updated_at = now()
+    where professional_id = v_professional_id
+      and document_type = 'cv'
+      and is_active
+      and not upload_complete;
   end if;
 
   insert into public.candidate_documents (
@@ -164,6 +167,77 @@ begin
     v_professional_id::text || '/' || v_document_id::text || '.' || v_extension,
     p_mime_type, p_size_bytes
   ) returning * into v_document;
+  return v_document;
+end;
+$$;
+
+create or replace function public.complete_candidate_document(p_document_id uuid)
+returns public.candidate_documents
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_professional_id uuid := public.current_professional_id();
+  v_document public.candidate_documents;
+  v_previous_cv public.candidate_documents;
+begin
+  if auth.uid() is null or v_professional_id is null then
+    raise exception 'Sign in with a professional account';
+  end if;
+  if not exists (
+    select 1 from public.professionals
+    where id = v_professional_id and account_status = 'active'
+  ) then
+    raise exception 'Professional account is inactive';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended(v_professional_id::text, 0));
+
+  select * into v_document
+  from public.candidate_documents
+  where id = p_document_id
+    and professional_id = v_professional_id
+    and is_active
+  for update;
+  if not found then raise exception 'Document not found'; end if;
+  if exists (select 1 from public.job_applications where cv_document_id = p_document_id) then
+    raise exception 'Document is already referenced by an application';
+  end if;
+  if not exists (
+    select 1
+    from storage.objects o
+    where o.bucket_id = 'candidate-documents'
+      and o.name = v_document.storage_path
+      and o.metadata ->> 'mimetype' = v_document.mime_type
+      and (o.metadata ->> 'size') ~ '^[0-9]+$'
+      and (o.metadata ->> 'size')::bigint = v_document.size_bytes
+  ) then
+    raise exception 'Matching Storage object is required before completion';
+  end if;
+
+  if v_document.document_type = 'cv' and not v_document.upload_complete then
+    select * into v_previous_cv
+    from public.candidate_documents
+    where professional_id = v_professional_id
+      and document_type = 'cv'
+      and is_active
+      and upload_complete
+      and id <> p_document_id
+    for update;
+    if found then
+      update public.candidate_documents
+      set is_active = false, archived_at = now(), updated_at = now()
+      where id = v_previous_cv.id;
+    end if;
+  end if;
+
+  update public.candidate_documents
+  set upload_complete = true,
+      uploaded_at = coalesce(uploaded_at, now()),
+      updated_at = now()
+  where id = p_document_id
+  returning * into v_document;
   return v_document;
 end;
 $$;
@@ -183,6 +257,7 @@ begin
     from public.candidate_documents d
     where d.professional_id = public.current_professional_id()
       and d.is_active
+      and d.upload_complete
     order by d.document_type, d.created_at desc;
 end;
 $$;
@@ -280,7 +355,8 @@ begin
   if not found
      or v_cv.professional_id <> v_professional_id
      or v_cv.document_type <> 'cv'
-     or not v_cv.is_active then
+     or v_cv.is_active is not true
+     or v_cv.upload_complete is not true then
     raise exception 'Select an active primary CV';
   end if;
   if char_length(v_cover_note) < 20 then raise exception 'Cover note must be at least 20 characters'; end if;
@@ -308,12 +384,14 @@ end;
 $$;
 
 revoke all on function public.create_candidate_document(text, text, text, bigint) from public;
+revoke all on function public.complete_candidate_document(uuid) from public;
 revoke all on function public.list_my_candidate_documents() from public;
 revoke all on function public.archive_my_candidate_document(uuid) from public;
 revoke all on function public.list_application_documents(uuid) from public;
 revoke all on function public.submit_job_application_with_cv(uuid, uuid, text, text) from public;
 
 grant execute on function public.create_candidate_document(text, text, text, bigint) to authenticated;
+grant execute on function public.complete_candidate_document(uuid) to authenticated;
 grant execute on function public.list_my_candidate_documents() to authenticated;
 grant execute on function public.archive_my_candidate_document(uuid) to authenticated;
 grant execute on function public.list_application_documents(uuid) to authenticated;

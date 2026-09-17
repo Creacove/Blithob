@@ -19,6 +19,10 @@ begin
   if not has_column('public', 'job_applications', 'cv_document_id') then
     raise exception 'job_applications.cv_document_id is missing';
   end if;
+  if not has_column('public', 'candidate_documents', 'upload_complete')
+     or not has_column('public', 'candidate_documents', 'uploaded_at') then
+    raise exception 'candidate document upload completion columns are missing';
+  end if;
   if not has_table('storage', 'buckets') or not exists (
     select 1 from storage.buckets where id = 'candidate-documents' and not public and file_size_limit = 10485760
   ) then
@@ -33,6 +37,7 @@ declare
 begin
   foreach function_signature in array array[
     'public.create_candidate_document(text,text,text,bigint)',
+    'public.complete_candidate_document(uuid)',
     'public.list_my_candidate_documents()',
     'public.archive_my_candidate_document(uuid)',
     'public.list_application_documents(uuid)',
@@ -50,6 +55,9 @@ begin
   end if;
   if has_table_privilege('anon', 'public.candidate_documents', 'select') then
     raise exception 'Anonymous direct table select must be denied';
+  end if;
+  if has_function_privilege('anon', 'public.complete_candidate_document(uuid)', 'execute') then
+    raise exception 'Anonymous document completion must be denied';
   end if;
 end;
 $$;
@@ -69,8 +77,11 @@ declare
   v_job_id uuid := '93000000-0000-4000-8000-000000000001';
   legacy_job_id uuid := '93000000-0000-4000-8000-000000000002';
   cv_one public.candidate_documents%rowtype;
+  cv_failed public.candidate_documents%rowtype;
   cv_two public.candidate_documents%rowtype;
   other_cv public.candidate_documents%rowtype;
+  storage_cv public.candidate_documents%rowtype;
+  supporting_doc public.candidate_documents%rowtype;
   supporting_id uuid;
   listed_count integer;
   i integer;
@@ -126,14 +137,60 @@ begin
     if sqlerrm not like '%10 MiB%' then raise; end if;
   end;
   select * into cv_one from public.create_candidate_document('cv', 'one.pdf', 'application/pdf', 100);
-  select * into cv_two from public.create_candidate_document('cv', 'replacement.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 200);
-  if exists (select 1 from public.candidate_documents where id = cv_two.id and is_active and document_type = 'cv') is not true
-     or exists (select 1 from public.candidate_documents where id = cv_one.id and is_active) then
-    raise exception 'CV replacement did not archive the previous CV';
+  begin
+    perform public.submit_job_application_with_cv(v_job_id, cv_one.id, repeat('incomplete CV should fail ', 2), null);
+    raise exception 'incomplete CV was accepted';
+  exception when others then
+    if sqlerrm not like '%active primary CV%' then raise; end if;
+  end;
+  begin
+    perform public.complete_candidate_document(cv_one.id);
+    raise exception 'CV without a matching Storage object was completed';
+  exception when others then
+    if sqlerrm not like '%Storage object%' then raise; end if;
+  end;
+  insert into storage.objects (bucket_id, name, metadata)
+  values ('candidate-documents', cv_one.storage_path, jsonb_build_object('mimetype', cv_one.mime_type, 'size', cv_one.size_bytes));
+  select * into cv_one from public.complete_candidate_document(cv_one.id);
+  perform public.submit_job_application_with_cv(v_job_id, cv_one.id, repeat('historical CV application note ', 2), null);
+
+  select * into cv_failed from public.create_candidate_document('cv', 'failed-replacement.pdf', 'application/pdf', 150);
+  begin
+    perform public.complete_candidate_document(cv_failed.id);
+    raise exception 'replacement without a matching Storage object was completed';
+  exception when others then
+    if sqlerrm not like '%Storage object%' then raise; end if;
+  end;
+  if exists (select 1 from public.candidate_documents where id = cv_one.id and is_active and upload_complete) is not true then
+    raise exception 'failed replacement did not preserve the previous active CV';
   end if;
+  perform public.archive_my_candidate_document(cv_failed.id);
+
+  select * into cv_two from public.create_candidate_document('cv', 'replacement.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 200);
+  begin
+    perform public.submit_job_application_with_cv(legacy_job_id, cv_two.id, repeat('incomplete replacement should fail ', 2), null);
+    raise exception 'incomplete replacement CV was accepted';
+  exception when others then
+    if sqlerrm not like '%active primary CV%' then raise; end if;
+  end;
+  insert into storage.objects (bucket_id, name, metadata)
+  values ('candidate-documents', cv_two.storage_path, jsonb_build_object('mimetype', cv_two.mime_type, 'size', cv_two.size_bytes));
+  select * into cv_two from public.complete_candidate_document(cv_two.id);
+  if exists (select 1 from public.candidate_documents where id = cv_two.id and is_active and upload_complete) is not true
+     or exists (select 1 from public.candidate_documents where id = cv_one.id and is_active) then
+    raise exception 'successful CV replacement did not archive the previous CV';
+  end if;
+  if not exists (select 1 from public.job_applications where job_id = v_job_id and cv_document_id = cv_one.id) then
+    raise exception 'historical application did not retain the previous CV link';
+  end if;
+  perform public.submit_job_application(legacy_job_id, repeat('legacy application cover note ', 2), null);
 
   for i in 1..5 loop
-    select id into supporting_id from public.create_candidate_document('supporting', 'supporting-' || i || '.pdf', 'application/pdf', 100 + i);
+    select * into supporting_doc from public.create_candidate_document('supporting', 'supporting-' || i || '.pdf', 'application/pdf', 100 + i);
+    insert into storage.objects (bucket_id, name, metadata)
+    values ('candidate-documents', supporting_doc.storage_path, jsonb_build_object('mimetype', supporting_doc.mime_type, 'size', supporting_doc.size_bytes));
+    perform public.complete_candidate_document(supporting_doc.id);
+    supporting_id := supporting_doc.id;
   end loop;
   begin
     perform public.create_candidate_document('supporting', 'supporting-6.pdf', 'application/pdf', 106);
@@ -158,13 +215,12 @@ begin
   exception when others then
     if sqlerrm not like '%active primary CV%' then raise; end if;
   end;
-  perform public.submit_job_application_with_cv(v_job_id, cv_two.id, repeat('valid application cover note ', 2), null);
   perform public.submit_job_application(legacy_job_id, repeat('legacy application cover note ', 2), null);
 
   for v_status in select unnest(enum_range(null::public.job_application_status)) loop
-    update public.job_applications set status = v_status where cv_document_id = cv_two.id;
+    update public.job_applications set status = v_status where cv_document_id = cv_one.id;
     begin
-      perform public.archive_my_candidate_document(cv_two.id);
+      perform public.archive_my_candidate_document(cv_one.id);
       raise exception 'application-referenced CV was archived';
     exception when others then
       if sqlerrm not like '%referenced by an application%' then raise; end if;
@@ -174,6 +230,11 @@ begin
   perform set_config('request.jwt.claim.sub', admin_user::text, true);
   if not exists (select 1 from public.list_application_documents((select a.id from public.job_applications a where a.job_id = v_job_id))) then
     raise exception 'Admin cannot read application document metadata';
+  end if;
+  perform set_config('request.jwt.claim.sub', candidate_one::text, true);
+  select * into storage_cv from public.create_candidate_document('cv', 'storage-test.pdf', 'application/pdf', 300);
+  if exists (select 1 from public.list_my_candidate_documents() where id = storage_cv.id) then
+    raise exception 'pending document leaked into candidate document listing';
   end if;
 end;
 $$;
@@ -192,16 +253,28 @@ $$, 'otherwise valid candidate cannot submit without a CV document');
 -- text only. All objects are rolled back with the fixture transaction.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '90000000-0000-4000-8000-000000000002', true);
+select throws_ok($$
+  insert into storage.objects (bucket_id, name, metadata)
+  select 'candidate-documents', d.storage_path,
+    jsonb_build_object('mimetype', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'size', d.size_bytes)
+  from public.candidate_documents d
+  where d.display_name = 'storage-test.pdf'
+$$, 'registered path with mismatched MIME is denied');
+select throws_ok($$
+  insert into storage.objects (bucket_id, name, metadata)
+  select 'candidate-documents', d.storage_path,
+    jsonb_build_object('mimetype', d.mime_type, 'size', 10485761)
+  from public.candidate_documents d
+  where d.display_name = 'storage-test.pdf'
+$$, 'registered path with mismatched size is denied');
 select lives_ok($$
   insert into storage.objects (bucket_id, name, metadata)
   select 'candidate-documents', d.storage_path,
     jsonb_build_object('mimetype', d.mime_type, 'size', d.size_bytes)
   from public.candidate_documents d
-  where d.professional_id = '91000000-0000-4000-8000-000000000001'
-    and d.document_type = 'cv' and d.is_active
-  limit 1
+  where d.display_name = 'storage-test.pdf'
 $$, 'candidate can insert a registered owned document path');
-select is((select count(*)::integer from storage.objects where bucket_id = 'candidate-documents' and name like '91000000-0000-4000-8000-000000000001/%'), 1, 'candidate can select the owned object');
+select is((select count(*)::integer from storage.objects where bucket_id = 'candidate-documents' and name = (select storage_path from public.candidate_documents where display_name = 'storage-test.pdf')), 1, 'candidate can select the owned object');
 select throws_ok($$
   insert into storage.objects (bucket_id, name, metadata)
   select 'candidate-documents', d.storage_path,
@@ -215,24 +288,6 @@ select throws_ok($$
   insert into storage.objects (bucket_id, name, metadata)
   values ('candidate-documents', '91000000-0000-4000-8000-000000000001/unregistered.pdf', jsonb_build_object('mimetype', 'application/pdf', 'size', 100))
 $$, 'unregistered storage path is denied');
-select throws_ok($$
-  insert into storage.objects (bucket_id, name, metadata)
-  select 'candidate-documents', d.storage_path,
-    jsonb_build_object('mimetype', 'application/pdf', 'size', d.size_bytes)
-  from public.candidate_documents d
-  where d.professional_id = '91000000-0000-4000-8000-000000000001'
-    and d.document_type = 'supporting' and d.is_active
-  limit 1
-$$, 'registered path with mismatched MIME is denied');
-select throws_ok($$
-  insert into storage.objects (bucket_id, name, metadata)
-  select 'candidate-documents', d.storage_path,
-    jsonb_build_object('mimetype', d.mime_type, 'size', 10485761)
-  from public.candidate_documents d
-  where d.professional_id = '91000000-0000-4000-8000-000000000001'
-    and d.document_type = 'supporting' and d.is_active
-  limit 1
-$$, 'registered path with mismatched size is denied');
 select set_config('request.jwt.claim.sub', '90000000-0000-4000-8000-000000000001', true);
 select is((select count(*)::integer from storage.objects where bucket_id = 'candidate-documents'), 1, 'Admin can read candidate objects');
 reset role;
@@ -255,6 +310,7 @@ declare
   archive_function text;
   create_function text;
   list_function text;
+  index_definition text;
 begin
   if not has_table_privilege('authenticated', 'public.candidate_documents', 'select') then
     raise exception 'Authenticated Admin repository cannot select candidate_documents';
@@ -289,13 +345,14 @@ begin
   if archive_function like '%status in%' then
     raise exception 'Archive must reject every application reference';
   end if;
-  if archive_function not like '%pg_advisory_xact_lock%' then
-    raise exception 'Supporting-document count must be serialized';
-  end if;
   select pg_get_functiondef('public.create_candidate_document(text,text,text,bigint)'::regprocedure)
     into create_function;
   if create_function not like '%[:cntrl:]%' or create_function not like '%application/pdf%' then
     raise exception 'Create RPC must validate safe names and MIME values';
+  end if;
+  if create_function not like '%pg_advisory_xact_lock%'
+     or create_function not like '%p_document_type in (''cv'', ''supporting'')%' then
+    raise exception 'CV and supporting registration must be serialized';
   end if;
   select pg_get_functiondef('public.list_my_candidate_documents()'::regprocedure)
     into list_function;
@@ -306,6 +363,11 @@ begin
     into list_function;
   if list_function not like '%auth.uid() is null%' then
     raise exception 'Application listing RPC must explicitly guard anonymous callers';
+  end if;
+  select pg_get_functiondef('public.complete_candidate_document(uuid)'::regprocedure)
+    into list_function;
+  if list_function not like '%pg_advisory_xact_lock%' or list_function not like '%storage.objects%' then
+    raise exception 'Document completion must lock the Professional and verify Storage';
   end if;
   select pg_get_functiondef('public.submit_job_application_with_cv(uuid,uuid,text,text)'::regprocedure)
     into list_function;
@@ -327,6 +389,12 @@ begin
       and indexname = 'candidate_documents_one_active_cv'
   ) then
     raise exception 'Active CV uniqueness index is missing';
+  end if;
+  select indexdef into index_definition
+  from pg_indexes
+  where schemaname = 'public' and indexname = 'candidate_documents_one_active_cv';
+  if index_definition not like '%upload_complete%' then
+    raise exception 'Active CV uniqueness index must require completed uploads';
   end if;
 end;
 $$;
