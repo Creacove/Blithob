@@ -109,9 +109,12 @@ marketing attribution are planned for Phase 2.
 
 **Can different staff members have different roles and permissions?**
 
-Phase 1 provides the core Admin and Professional access model used by the
-current operations workflow. More granular roles such as Recruiter, Finance,
-Content Manager, Reviewer and Super Admin are planned for Phase 2.
+Yes. Phase 1 includes role-aware access for Admin users and Professionals. A
+Professional can be promoted to Lead, giving them responsibility for supporting
+and supervising other Professionals across the relevant services, including
+lead-level readiness and work-review responsibilities. More granular or fully
+custom roles such as Recruiter, Finance, Content Manager, Reviewer and Super
+Admin are planned for Phase 2.
 
 **Can the system record an audit trail showing which staff member made each change?**
 
@@ -162,19 +165,26 @@ server-side workflow rules and short-lived signed document URLs.
 
 **What security measures are implemented against hacking, fake accounts, spam and malicious uploads?**
 
-The Phase 1 baseline includes authenticated access, database-level permissions,
-server-side validation, duplicate-application protection, bounded queries,
-account rate limiting, anti-spam controls, restricted CV/document formats and
-sizes, private storage and actor-attributed activity logging. Service-role keys
-and provider secrets are never exposed in the browser.
+Phase 1 includes the security baseline appropriate for the current platform and
+user volume: authenticated access, database-level permissions, server-side
+validation, duplicate-application protection, bounded queries, account rate
+limiting, anti-spam controls, restricted CV/document formats and sizes, private
+storage and actor-attributed activity logging. Service-role keys and provider
+secrets are never exposed in the browser.
+
+Phase 2 will add deeper security operations where the platform's usage justifies
+them, including malware scanning and quarantine for uploaded files, malicious
+activity tracking, stronger bot and abuse detection, web-application controls,
+security monitoring and alerting, dependency and vulnerability scanning,
+penetration testing, incident-response procedures and extended audit reporting.
 
 **Is the platform being designed to meet UK GDPR/data-protection requirements?**
 
 The technical design follows data-protection principles such as minimisation,
 controlled access, private document storage and managed deletion/retention
-paths. Formal legal compliance also requires approved policies, retention rules,
-privacy wording, DPIA/DSAR procedures and legal review. Those governance
-processes are planned for Phase 2 and should not be represented as legal
+paths. The remaining formal work - approved policies, retention rules, privacy
+wording, DPIA/DSAR procedures, processor documentation and legal review - is a
+later-phase governance workstream. It should not be represented as legal
 certification until reviewed by the appropriate advisers.
 
 **Is the website fully optimised for mobile phones?**
@@ -185,10 +195,15 @@ Admin and job-discovery journeys.
 
 **What happens if the platform eventually has 10,000–100,000 registered users?**
 
-The current React, Netlify and Supabase architecture provides a strong starting
-point for that growth. At that scale, the roadmap will add deeper indexing,
-pagination, caching, background processing, monitoring, load testing, backup
-and recovery procedures, and additional infrastructure where required.
+The current React, Netlify and Supabase architecture works appropriately for
+the platform's current user volume and expected Phase 1 usage. The system does
+not need 10,000–100,000-user infrastructure in order to operate reliably today.
+
+If usage later approaches that range, the platform can be strengthened in a
+controlled way with deeper indexing and pagination, caching, background
+processing, monitoring, load testing, backup and recovery procedures, and
+additional infrastructure where actual usage requires it. This is future scale
+optimisation, not a current Phase 1 limitation.
 
 **What analytics and marketing tracking systems will be integrated?**
 
@@ -244,23 +259,68 @@ part of the client sign-off and operational handover.
 - Candidate accounts, profiles and document management.
 - Job applications and candidate status tracking.
 - Admin vacancy publication and applicant review.
+- Role-aware access for Admin users, Professionals and promoted Leads.
 - Basic operational analytics and activity history.
 - Application notifications.
 - Internal assignment, readiness, review and manual payout workflows.
 - Mobile responsiveness, SEO foundations, security controls and release QA.
 
-### Phase 2 — Employer marketplace and advanced recruitment
+### Phase 2 — Prioritised platform expansion
 
-- Employer accounts and employer verification.
+Phase 2 will be delivered in the following order, based on business value and
+operational importance.
+
+### Priority 1: Payments and commercial operations
+
+- Payment gateway integration.
+- Subscriptions and premium Jobs.
+- Recruitment fees.
+- Automated payout and payment-status workflows.
+- Reconciliation, payment reporting and financial audit controls.
+
+### Priority 2: Security, privacy and compliance hardening
+
+- Malware scanning, quarantine and review of uploaded files.
+- Malicious activity tracking, bot detection and stronger abuse prevention.
+- Web-application protection, security monitoring and alerting.
+- Vulnerability scanning, penetration testing and incident-response procedures.
+- Extended audit controls and formal data-governance processes.
+- GDPR operating processes, retention governance, DPIA and DSAR support after
+  the required client and legal review.
+
+### Priority 3: Granular analytics and reporting
+
+- Detailed application and recruitment funnels.
+- Candidate, vacancy and conversion reporting.
+- Employer reporting once employer accounts are introduced.
+- Marketing attribution and consent-aware tracking.
+- More granular staff permissions for operational reporting.
+
+### Priority 4: Employer marketplace and advanced recruitment
+
+- Employer accounts and verification.
 - Employer vacancy creation and applicant management.
-- Advanced recruitment statuses: Interview, Offer and Hired.
+- Interview, Offer and Hired stages.
 - Interview scheduling and recruitment communications.
-- Visa-sponsored and international-job workflows.
-- AI-assisted CV analysis, skills matching and recommendations.
-- Payment gateways, subscriptions, premium Jobs and recruitment fees.
-- Granular staff permissions and expanded audit controls.
-- Advanced reporting, marketing analytics and scale hardening.
-- Formal data-governance and GDPR operating processes.
+
+### Priority 5: AI and matching
+
+- AI-assisted CV analysis.
+- Skills extraction and matching.
+- Candidate-to-job recommendations.
+- Human-reviewed automated suggestions.
+
+### Priority 6: International recruitment
+
+- Visa-sponsored Jobs.
+- International eligibility and destination-country information.
+- Visa and immigration-related recruitment workflows.
+
+### Priority 7: Scale and infrastructure optimisation
+
+- Load testing and capacity monitoring as usage grows.
+- Additional indexing, caching, background processing and infrastructure when
+  actual volume requires it.
 
 ### Phase 3 — Multi-service and enterprise expansion
 
@@ -273,11 +333,10 @@ part of the client sign-off and operational handover.
 
 ## 4. Ownership and handover
 
-Ownership should be confirmed in the commercial agreement. The recommended
-handover model is that Blithob owns the project-specific source code, database
-records, domain, hosting account, Supabase project, production credentials,
-custom designs and project intellectual property after the agreed commercial
-obligations are met.
+Blithob has completed the agreed payment for the project and is the owner of
+the project-specific source code, database records, domain, hosting account,
+Supabase project, production credentials, custom designs and project
+intellectual property.
 
 Production accounts should be registered under Blithob-controlled credentials,
 with the development team receiving the access required to maintain the
@@ -287,7 +346,7 @@ handled separately in the agreement.
 ## Closing position
 
 Phase 1 delivers a complete, focused and launchable Blithob platform for
-candidate applications and internal workforce operations. Phase 2 is the next
-logical expansion into employer self-service, advanced recruitment,
-international jobs, AI and monetisation. Phase 3 extends the same foundation
-into the wider Blithob service ecosystem.
+candidate applications and internal workforce operations. Phase 2 begins with
+payments, then strengthens security and data governance, expands analytics and
+adds employer, recruitment, AI and international capabilities in priority order.
+Phase 3 extends the same foundation into the wider Blithob service ecosystem.
