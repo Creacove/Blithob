@@ -121,6 +121,7 @@ export interface PublicListingsRepository {
   submitApplication(input: {
     jobId: string;
     coverNote: string;
+    cvDocumentId: string;
     portfolioUrl?: string;
   }): Promise<string>;
   withdrawApplication(applicationId: string): Promise<string>;
@@ -313,10 +314,11 @@ export function createPublicListingsRepository(client: PublicListingsClient): Pu
       return scalar(data) ?? "";
     },
     async submitApplication(input) {
-      const data = await resolve<unknown>(client.rpc("submit_job_application", {
+      const data = await resolve<unknown>(client.rpc("submit_job_application_with_cv", {
         p_job_id: input.jobId,
         p_cover_note: input.coverNote.trim(),
-        p_portfolio_url: input.portfolioUrl?.trim() || null
+        p_portfolio_url: input.portfolioUrl?.trim() || null,
+        p_cv_document_id: input.cvDocumentId
       }));
       return scalar(data) ?? "";
     },

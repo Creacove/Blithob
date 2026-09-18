@@ -75,4 +75,22 @@ describe("public listings repository", () => {
 
     await expect(repository.listCategories()).rejects.toThrow("network down");
   });
+
+  it("submits applications with the completed CV document reference", async () => {
+    const client = fakeClient({ data: ["application-1"], error: null });
+    const repository = createPublicListingsRepository(client);
+
+    await repository.submitApplication({
+      jobId: "job-1",
+      coverNote: "I have shipped similar products and can start next month.",
+      cvDocumentId: "cv-1"
+    });
+
+    expect(client.rpc).toHaveBeenCalledWith("submit_job_application_with_cv", {
+      p_job_id: "job-1",
+      p_cover_note: "I have shipped similar products and can start next month.",
+      p_portfolio_url: null,
+      p_cv_document_id: "cv-1"
+    });
+  });
 });

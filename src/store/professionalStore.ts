@@ -118,6 +118,7 @@ interface ProfessionalActions {
     file: File;
   }) => Promise<CandidateDocument>;
   archiveCandidateDocument: (documentId: string) => Promise<void>;
+  downloadCandidateDocument: (documentId: string) => Promise<string>;
 
   createProfessional: (input: CreateProfessionalInput) => AsyncValue<string>;
   updateProfessional: (
@@ -367,6 +368,12 @@ export const useProfessionalStore = create<ProfessionalStore>()(
             (document) => document.id !== documentId
           )
         }));
+      },
+      downloadCandidateDocument: async (documentId) => {
+        if (!get().candidateDocuments.some((document) => document.id === documentId)) {
+          throw new Error("Document is not available.");
+        }
+        throw new Error("Downloads are available when the document is stored securely.");
       },
 
       createProfessional: (input) => {
@@ -1244,6 +1251,27 @@ useProfessionalStore.setState({
           (document) => document.id !== documentId
         )
       }));
+    } catch (error) {
+      useProfessionalStore.setState({ error: errorMessage(error) });
+      throw error;
+    } finally {
+      useProfessionalStore.setState({ isLoading: false });
+    }
+  },
+  downloadCandidateDocument: async (documentId) => {
+    const state = useProfessionalStore.getState();
+    const document = state.candidateDocuments.find((item) => item.id === documentId);
+    if (!document) throw new Error("Document is not available.");
+    if (
+      !remoteRepository ||
+      state.backendMode !== "remote" ||
+      !state.session
+    ) {
+      return baseActions.downloadCandidateDocument(documentId);
+    }
+    useProfessionalStore.setState({ isLoading: true, error: null });
+    try {
+      return await remoteRepository.candidateDocuments().getDownloadUrl(document);
     } catch (error) {
       useProfessionalStore.setState({ error: errorMessage(error) });
       throw error;
