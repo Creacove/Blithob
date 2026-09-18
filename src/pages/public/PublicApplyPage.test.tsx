@@ -41,4 +41,26 @@ describe("PublicApplyPage", () => {
 
     await waitFor(() => expect(submitApplication).toHaveBeenCalledWith(expect.objectContaining({ cvDocumentId: "cv-1" })));
   });
+
+  it("keeps submission unavailable until a completed CV exists", async () => {
+    useProfessionalStore.getState().signIn("professional");
+    useProfessionalStore.setState({ candidateDocuments: [] });
+    render(<MemoryRouter initialEntries={["/jobs/product-designer/apply"]}><Routes><Route path="/jobs/:slug/apply" element={<PublicApplyPage repository={repository} />} /></Routes></MemoryRouter>);
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: /Apply for Product Designer/ })).toBeInTheDocument());
+    expect(screen.getByText("Upload a completed CV to apply")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Upload a completed CV to apply/i })).toBeDisabled();
+  });
+
+  it("surfaces duplicate application errors without exposing backend details", async () => {
+    useProfessionalStore.getState().signIn("professional");
+    useProfessionalStore.setState({ candidateDocuments: [cvFixture] });
+    submitApplication.mockRejectedValueOnce(new Error("You have already applied to this job"));
+    render(<MemoryRouter initialEntries={["/jobs/product-designer/apply"]}><Routes><Route path="/jobs/:slug/apply" element={<PublicApplyPage repository={repository} />} /></Routes></MemoryRouter>);
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: /Apply for Product Designer/ })).toBeInTheDocument());
+    fireEvent.change(screen.getByPlaceholderText("I’m a strong fit because…"), { target: { value: "I have shipped similar products and can start next month." } });
+    await userEvent.setup().click(screen.getByRole("button", { name: /submit application/i }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("You have already applied to this job"));
+  });
 });

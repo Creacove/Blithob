@@ -15,8 +15,8 @@ import { PublicFooter, PublicHeader } from "./PublicLayout";
 import "./public.css";
 
 const statusCopy: Record<JobApplicationStatus, { label: string; body: string }> = {
-  submitted: { label: "Submitted", body: "Your application is in the queue. We’ll keep the next step clear." },
-  under_review: { label: "Under review", body: "The team is reviewing your application." },
+  submitted: { label: "Applied", body: "Your application is in the queue. We’ll keep the next step clear." },
+  under_review: { label: "Reviewing", body: "The team is reviewing your application." },
   shortlisted: { label: "Shortlisted", body: "You’re through to the next stage. We’ll be in touch with the details." },
   rejected: { label: "Not selected", body: "This role wasn’t the right match this time. Keep your profile ready for the next one." },
   withdrawn: { label: "Withdrawn", body: "You withdrew this application." },
