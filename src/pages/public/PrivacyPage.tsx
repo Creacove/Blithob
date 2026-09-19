@@ -1,0 +1,7 @@
+import { Link } from "react-router-dom";
+import { PublicFooter, PublicHeader } from "./PublicLayout";
+import "./public.css";
+
+export function PrivacyPage() {
+  return <main className="public-page"><PublicHeader /><section className="public-shell public-detail-page"><p className="public-eyebrow">Privacy</p><h1>How Blithob uses your information.</h1><p className="public-detail-summary">This draft privacy notice explains the information used to operate candidate accounts and applications. It is not a legal certification.</p><div className="public-detail-main"><section><h2>What we collect</h2><p>Account details, profile information, application notes, portfolio links, and documents you choose to upload. CVs and supporting documents are stored privately and are available only to the candidate and authorized Blithob Admins.</p></section><section><h2>Why we use it</h2><p>We use this information to authenticate accounts, present applications to the internal review team, show application status, and operate the existing professional assignment workflow. We do not use AI matching or automated hiring decisions in this Phase 1 product.</p></section><section><h2>Your choices</h2><p>You may update your profile and request help with access or deletion. Contact details for the final retention and deletion channel must be configured by the site owner before launch; do not treat this draft as a substitute for legal review.</p></section><Link to="/jobs" className="public-header-cta">Browse jobs</Link></div></section><PublicFooter /></main>;
+}

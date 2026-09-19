@@ -81,3 +81,24 @@ role.
 
 Never commit `.env.local`, the database password, or a service-role/secret API
 key. The browser only needs `VITE_SUPABASE_URL` and the public anon key.
+
+## Phase 1 production-readiness additions
+
+The additive migrations `202609170001` through `202609170004` preserve the
+private candidate-document contract and add bounded public country/rate/type
+filters, a private application email outbox, and an Admin-only paginated
+application queue with submitted-CV metadata. Apply them in order with
+`supabase db push --linked`; never reset the linked database.
+
+The outbox processor is `process-email-outbox`. Configure
+`EMAIL_OUTBOX_INTERNAL_TOKEN`, `RESEND_API_KEY`, and `EMAIL_FROM` as Supabase
+Edge Function secrets, then invoke it from a private Supabase Cron job. The
+frontend never receives these values. Missing provider configuration leaves
+applications usable and reports a safe delivery configuration error.
+
+The public `/privacy`, `/robots.txt`, and `/sitemap.xml` routes are included in
+the frontend. The privacy copy is draft operational copy and does not claim
+GDPR certification; the site owner must provide the final retention/deletion
+contact and legal review before launch. Review seeded Job facts and configure
+Auth site URL, redirect allow-list, SMTP, CAPTCHA, and rate limits in the
+Supabase dashboard before production release.

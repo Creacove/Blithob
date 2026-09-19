@@ -9,6 +9,7 @@ import { PublicJobsPage } from "./pages/public/PublicJobsPage";
 import { PublicJobDetailPage } from "./pages/public/PublicJobDetailPage";
 import { PublicApplyPage } from "./pages/public/PublicApplyPage";
 import { PublicApplicationsPage } from "./pages/public/PublicApplicationsPage";
+import { PrivacyPage } from "./pages/public/PrivacyPage";
 import { OnboardingPage } from "./pages/public/OnboardingPage";
 import { AdminApplicationsPage } from "./pages/admin/AdminApplicationsPage";
 import { PeoplePage } from "./pages/admin/PeoplePage";
@@ -87,6 +88,7 @@ export function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/jobs" element={<PublicJobsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/jobs/:slug" element={<PublicJobDetailPage />} />
       <Route path="/jobs/:slug/apply" element={<PublicApplyPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />

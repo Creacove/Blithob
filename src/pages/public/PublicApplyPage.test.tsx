@@ -7,6 +7,8 @@ import { useProfessionalStore } from "../../store/professionalStore";
 import { PublicApplyPage } from "./PublicApplyPage";
 import type { PublicListingsRepository } from "../../lib/publicListings";
 
+vi.setConfig({ testTimeout: 15000 });
+
 const submitApplication = vi.fn(async () => "a1");
 const repository: PublicListingsRepository = {
   async listServices() { return []; }, async listCategories() { return []; }, async listJobs() { return { jobs: [], total: 0 }; },

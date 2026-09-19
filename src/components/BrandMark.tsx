@@ -20,7 +20,7 @@ export function BrandMark({
         alt="Blithob Pro"
         width={512}
         height={512}
-        className="h-10 w-10 object-contain"
+        className={compact ? "h-8 w-8 object-contain" : "h-10 w-10 object-contain"}
       />
     </Link>
   );
