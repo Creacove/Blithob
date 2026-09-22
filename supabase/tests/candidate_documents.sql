@@ -81,6 +81,7 @@ declare
   cv_two public.candidate_documents%rowtype;
   other_cv public.candidate_documents%rowtype;
   storage_cv public.candidate_documents%rowtype;
+  storage_missing_size public.candidate_documents%rowtype;
   supporting_doc public.candidate_documents%rowtype;
   supporting_id uuid;
   listed_count integer;
@@ -233,6 +234,7 @@ begin
   end if;
   perform set_config('request.jwt.claim.sub', candidate_one::text, true);
   select * into storage_cv from public.create_candidate_document('cv', 'storage-test.pdf', 'application/pdf', 300);
+  select * into storage_missing_size from public.create_candidate_document('supporting', 'storage-missing-size.pdf', 'application/pdf', 301);
   if exists (select 1 from public.list_my_candidate_documents() where id = storage_cv.id) then
     raise exception 'pending document leaked into candidate document listing';
   end if;
@@ -260,6 +262,13 @@ select throws_ok($$
   from public.candidate_documents d
   where d.display_name = 'storage-test.pdf'
 $$, 'registered path with mismatched MIME is denied');
+select lives_ok($$
+  insert into storage.objects (bucket_id, name, metadata)
+  select 'candidate-documents', d.storage_path,
+    jsonb_build_object('mimetype', d.mime_type)
+  from public.candidate_documents d
+  where d.display_name = 'storage-missing-size.pdf'
+$$, 'candidate can start an upload before Storage reports its final size');
 select throws_ok($$
   insert into storage.objects (bucket_id, name, metadata)
   select 'candidate-documents', d.storage_path,
@@ -289,7 +298,7 @@ select throws_ok($$
   values ('candidate-documents', '91000000-0000-4000-8000-000000000001/unregistered.pdf', jsonb_build_object('mimetype', 'application/pdf', 'size', 100))
 $$, 'unregistered storage path is denied');
 select set_config('request.jwt.claim.sub', '90000000-0000-4000-8000-000000000001', true);
-select is((select count(*)::integer from storage.objects where bucket_id = 'candidate-documents'), 1, 'Admin can read candidate objects');
+select is((select count(*)::integer from storage.objects where bucket_id = 'candidate-documents'), 2, 'Admin can read candidate objects');
 reset role;
 
 set local role anon;

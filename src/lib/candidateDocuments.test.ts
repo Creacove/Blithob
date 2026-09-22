@@ -59,8 +59,7 @@ describe("CandidateDocumentsRepository", () => {
       pdfFile,
       expect.objectContaining({
         upsert: false,
-        contentType: "application/pdf",
-        metadata: { mimetype: "application/pdf", size: pdfFile.size }
+        contentType: "application/pdf"
       })
     );
     expect(fake._rpc).toHaveBeenCalledWith("complete_candidate_document", expect.anything());

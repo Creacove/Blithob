@@ -116,11 +116,7 @@ export class CandidateDocumentsRepository {
         .from("candidate-documents")
         .upload(registered.storagePath, input.file, {
           upsert: false,
-          contentType: input.file.type,
-          metadata: {
-            mimetype: input.file.type,
-            size: input.file.size
-          }
+          contentType: input.file.type
         });
       if (upload.error) throw new Error(upload.error.message);
 
