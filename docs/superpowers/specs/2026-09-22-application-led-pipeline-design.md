@@ -1,92 +1,127 @@
-# Application-led candidate pipeline
+# Job-first candidate pipeline
 
 ## Goal
 
-Make a Job Application the single, understandable record that connects an applicant, the required Service readiness, and that applicant's eventual Assignment. A Job may have multiple applicants and multiple assignments, but every applicant is progressed and assigned independently.
+Make the Job the primary product object and make every candidate's path from interest to Assignment understandable in two clear decisions. Support two entry paths—public applicants and invited Professionals—while keeping each candidate's Job decision independent when a Job has multiple people.
 
-## Current problem
+## Product principles
 
-- The Admin Applications page creates or reuses a Service enrolment when an applicant is shortlisted, but the enrolment is not explicitly linked back to the Application.
-- Readiness approval updates only the Service enrolment. The Application remains visually shortlisted, and the Admin must discover the separate readiness queue before returning to the Application.
-- `list_my_applications` returns only the basic application fields, so the professional cannot reliably see Service readiness progress or why an application is ready for its next step.
-- The professional application history is rendered outside the signed-in AppShell, so it is absent from workspace navigation and Today.
-- The shortlist RPC returns a JSON object, while the client assumes an array and can throw after a successful shortlist/email.
+The product follows a Linear-style operating model: remove states that do not change an outcome, keep the Job context visible, automate predictable transitions, and give each screen one primary action.
 
-## Product model
+The canonical relationship is:
 
-The Application is the canonical Job ↔ Professional record. Its lifecycle is:
+`Job → Candidate → Next steps → Assignment`
 
-`Applied → Reviewing → Shortlisted → Readiness → Ready to assign → Assigned`
+The candidate may enter through a public application or an invitation. The source is metadata, not a different operating model.
 
-Rejected and Withdrawn are terminal outcomes. Assigned is represented by the existing `converted` status plus `assignment_id`; the UI presents this as **Assigned**.
+## Two entry paths
 
-Readiness remains a reusable Service-level prerequisite. A Professional may use the same approved Service enrolment for multiple applications for that Service. Each Application stores the readiness enrolment it is using, so the relationship is explicit and does not depend on re-deriving a match from Professional + Service at read time.
+### Public applicant
 
-When a readiness enrolment reaches `approved`, every linked shortlisted Application for that enrolment becomes **Ready to assign** in its read model. No other applicant is changed. The system does not create an Assignment automatically because a Job can have multiple Professionals and each Assignment can have different pay, deadline, and reviewer.
+`Apply → Shortlist or not selected → Complete next steps → Approve or not selected → Assignment`
+
+The application form creates the Candidate-for-Job record. Shortlisting immediately creates the required next-step plan and notifies the candidate.
+
+### Invited Professional
+
+`Invitation → Complete Service qualification once → Match to Job → Approve or not selected → Assignment`
+
+An invitation can target a Service/team or a specific Job. A Professional who is already approved for the Job's Service skips repeated Service qualification and completes only Job-specific steps.
+
+Both paths converge on the same Job candidate record and the same Admin decision surface.
+
+## Role of Services and next steps
+
+Services are reusable qualification templates, not the primary workflow. A Job selects a Service; that Service supplies the normal checklist, assessment, or interview requirements. A Job may add Job-specific steps.
+
+Candidates see plain-language **Next steps**. They do not need to understand internal terms such as Service enrolment, readiness queue, or reviewer routing.
+
+The reusable Service qualification may be shared by several Applications for the same Professional and Service. Each Application explicitly stores the qualification record it uses, so the Job relationship is not inferred at read time.
 
 ## Admin experience
 
-The Admin Applications destination remains the decision workspace.
+Jobs are the primary operating surface. A Job detail contains:
 
-- Keep one primary next action per Application:
-  - Submitted: Start review
-  - Under review: Shortlist or Not selected
-  - Shortlisted/readiness incomplete: Open readiness
-  - Ready to assign: Confirm assignment
-  - Assigned: Open assignment
-- Do not expose assignment controls before readiness is approved.
-- Confirm assignment opens the existing assignment drawer for that one candidate, with the Job deadline prefilled. Pay remains an explicit per-candidate confirmation because assignments can differ.
-- After confirmation, refresh the Application row and show Assigned/Open assignment. The other applicants remain unchanged.
-- Readiness approval from Reviews must refresh or navigate back to the linked Application context, so Admin does not need to remember a second queue.
+- Candidates
+- Assigned people
+- Job details
+
+The candidate queue has only three useful groups:
+
+- **New** — Admin chooses Shortlist or Not selected.
+- **Waiting on candidate** — next steps are underway.
+- **Ready for decision** — Admin chooses Approve for Job or Not selected.
+
+Remove the meaningless **Start review** action and do not store an “under review” step solely because an Admin opened a record. Opening the candidate is review.
+
+For each candidate:
+
+1. **Shortlist** immediately creates or reuses that Professional's Service qualification, links it to the candidate's Job record, and sends the next-steps email.
+2. The candidate completes the required checklist, assessment, or interview.
+3. When complete, that candidate alone moves to **Ready for decision**.
+4. **Approve for Job** opens a compact confirmation sheet with pay, deadline, and reviewer prefilled. Confirming creates only that Professional's Assignment.
+5. Other candidates for the same Job remain in their own states.
+
+Pay remains explicitly confirmable per person because the same Job may have multiple Professionals with different terms. The Job deadline is the default deadline.
+
+The global Applications destination may remain as a cross-Job inbox, but Job context and the candidate's primary action must always be visible.
 
 ## Professional experience
 
 - Add **Applications** as a first-class professional AppShell destination on desktop, tablet, and mobile.
-- Render the application history inside the workspace shell rather than the public marketing shell. Keep the public route as a compatibility redirect or shared page entry.
-- Each application row/card shows role, company, current state, applied date, and exactly one next action:
-  - Complete readiness when required
-  - View status while under review
-  - Open Assignment when assigned
-  - Browse another role for an empty state
-- Today stays focused on one highest-priority action. If an application needs action, it can appear as a compact next-action item; the full application list remains on Applications.
-- Do not expose Admin notes or other private fields to professionals.
+- Render application history in the signed-in workspace shell. Keep the public route as a compatibility entry/redirect.
+- Show role, company, applied date, current state, and exactly one next action per candidate.
+- Use only these candidate-facing states: Application received, Action needed, Decision pending, Assigned, Not selected.
+- If an invited Professional is already Service-qualified, show only remaining Job-specific steps.
+- Keep Today focused on one highest-priority action. An application may appear as a compact action item; the complete history remains on Applications.
+- Never expose private Admin notes.
 
-## Data and API changes
+## State and data model
 
-1. Add a nullable `readiness_enrolment_id` foreign key to `job_applications`, indexed for application/readiness lookups. Existing rows are backfilled from the current Professional + Job Service match when one unambiguous active enrolment exists.
-2. Update the shortlist RPC to write that link when it creates or reuses the Service enrolment.
-3. Update readiness approval handling/read models so linked applications expose `ready_for_assignment` and readiness progress without changing unrelated applications.
-4. Extend `list_my_applications` with Service/readiness fields needed by the professional workspace: Service name, readiness enrolment id/status, progress counts, `ready_for_assignment`, and assignment id.
-5. Keep the existing per-candidate conversion RPC as the authoritative assignment gate.
-6. Make the client shortlist parser accept the JSON object returned by `shortlist_job_application` and retain compatibility with an array-shaped test response.
+The visible candidate lifecycle is:
+
+`Application received → Next steps → Ready for decision → Assigned`
+
+Not selected and Withdrawn are terminal outcomes. The existing `converted` database status and `assignment_id` remain the persistence representation of Assigned.
+
+Required database/API changes:
+
+1. Add nullable `readiness_enrolment_id` to `job_applications`, with a foreign key and index. Backfill existing rows where one active Professional + Service qualification is unambiguous.
+2. Update the shortlist RPC to write that link when it creates or reuses qualification.
+3. Update readiness approval/read models so only linked candidate records expose `ready_for_assignment` and progress.
+4. Extend `list_my_applications` with Service name, qualification id/status, progress counts, `ready_for_assignment`, and assignment id.
+5. Keep per-candidate conversion as the authoritative Assignment gate.
+6. Make the client shortlist parser accept the real JSON object response and retain compatibility with array-shaped test data.
 
 ## Email behavior
 
-Keep email volume limited to meaningful state changes already supported by the transactional outbox:
+Send only essential state-change email:
 
-- application received
-- application shortlisted
-- readiness review requested
-- readiness approved or changes requested
-- assignment created
+- Invitation received
+- Application received
+- Next steps assigned
+- Changes requested
+- Final decision
+- Assignment created
 
-No duplicate email should be sent merely because an Application read model changes from shortlisted to ready-to-assign.
+Do not send an email for an internal “under review” state or duplicate an email merely because a read model becomes ready for decision.
 
 ## Acceptance criteria
 
-- A professional with an application can reach Applications from the workspace navigation on desktop and mobile.
-- A professional's Applications page shows the actual readiness state returned by the backend and provides the correct next action.
-- Shortlisting an application never throws after the RPC succeeds, regardless of object/array response shape.
-- Shortlisting one candidate creates or reuses only that candidate's Service enrolment and links it to that Application.
-- Approving readiness changes only applications linked to that enrolment to Ready to assign.
-- An Admin can confirm an Assignment for one ready candidate without opening a separate Service record, and other applicants remain untouched.
-- Assignment creation still requires positive per-candidate pay and uses the Job deadline by default.
-- Assigned professionals see the Assignment from their normal Work destination and from the converted application.
-- Relevant unit/page tests cover the state transitions, response parsing, navigation, and multi-applicant isolation.
+- Public applicants and invited Professionals converge on the same Job candidate workflow.
+- Services provide reusable qualification requirements without becoming a separate Admin hunt.
+- Admin can process a candidate with Shortlist → candidate completion → Approve → Confirm assignment.
+- There is no Start review action or meaningless under-review transition.
+- Each ready candidate can be approved independently on a multi-person Job.
+- An approved Service qualification can be reused without forcing repeated steps.
+- A professional can open Applications from the workspace and see accurate next steps.
+- Shortlisting never throws after the RPC succeeds, regardless of object/array response shape.
+- The existing assignment gate still validates positive per-person pay and uses the Job deadline by default.
+- Relevant unit/page tests cover navigation, next-step derivation, shortlist parsing, readiness/application linkage, and multi-applicant isolation.
 
 ## Non-goals
 
-- Bulk assignment or automatic assignment of every ready applicant.
-- Replacing the Service readiness checklist or Lead/Admin review rules.
-- Adding a new hiring/interview stage not represented by the current product.
-- Changing public job discovery or application submission copy beyond links into the signed-in workspace.
+- Bulk assignment or automatic assignment of every ready candidate.
+- Replacing the existing Service checklist, Lead review, or evidence rules.
+- Adding an unrequested interview product beyond representing it as a Job next step.
+- Redesigning public Job discovery or application submission copy beyond workspace links.
