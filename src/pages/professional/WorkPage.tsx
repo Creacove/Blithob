@@ -33,6 +33,7 @@ export function WorkPage() {
   const jobs = useProfessionalStore((state) => state.jobs);
   const services = useProfessionalStore((state) => state.services);
   const professionals = useProfessionalStore((state) => state.professionals);
+  const submissions = useProfessionalStore((state) => state.submissions);
   const isMobile = useMediaQuery("(max-width: 767px)");
 
   const ownAssignments = useMemo(
@@ -141,10 +142,14 @@ export function WorkPage() {
                       value: formatCurrency(assignment.agreedPay)
                     },
                     {
-                      label: "Deadline",
-                      value: formatDate(assignment.deadline)
+                      label: "Next step",
+                      value: workNextAction(
+                        assignment.status,
+                        submissions.some((submission) => submission.assignmentId === assignment.id)
+                      )
                     }
                   ]}
+                  details={<span>Due {formatDate(assignment.deadline)}</span>}
                 />
               );
             })}
@@ -159,12 +164,15 @@ export function WorkPage() {
             const reviewer = professionals.find(
               (item) => item.id === assignment.leadReviewerId
             );
+            const hasSubmission = submissions.some(
+              (submission) => submission.assignmentId === assignment.id
+            );
             return (
               <DesktopRecordRow
                 key={assignment.id}
                 to={`/professional/work/${assignment.id}`}
                 ariaLabel={`Open ${job?.title ?? "Assignment"}`}
-                columns="minmax(14rem,1.2fr) 10.5rem 7.5rem 9.5rem minmax(10rem,0.75fr) 1.25rem"
+                columns="minmax(14rem,1.2fr) 10.5rem 7.5rem 9.5rem minmax(10rem,0.9fr) minmax(10rem,0.75fr) 1.25rem"
                 className="gap-3"
               >
                 <div className="min-w-0">
@@ -184,6 +192,9 @@ export function WorkPage() {
                 <p className="whitespace-nowrap text-sm text-[var(--muted)]">
                   Due {formatDate(assignment.deadline)}
                 </p>
+                <p className={`truncate text-sm font-semibold ${assignment.status.includes("changes_requested") ? "text-orange-700" : "text-[var(--ink)]"}`}>
+                  {workNextAction(assignment.status, hasSubmission)}
+                </p>
                 <p className="truncate text-sm text-[var(--muted)]">
                   Reviewer: {reviewer?.name ?? "Direct to Admin"}
                 </p>
@@ -200,6 +211,16 @@ export function WorkPage() {
       )}
     </div>
   );
+}
+
+function workNextAction(status: AssignmentStatus, hasSubmission: boolean) {
+  if (status === "assigned") return "Start work";
+  if (status === "changes_requested_by_lead" || status === "changes_requested_by_admin") return "Submit revision";
+  if (status === "waiting_for_lead" || status === "waiting_for_admin") return hasSubmission ? "Waiting for review" : "Submit work";
+  if (status === "approved") return "Complete work";
+  if (status === "completed") return "Completed";
+  if (status === "cancelled") return "Cancelled";
+  return "Submit work";
 }
 
 function statusesFor(filter: WorkFilter): AssignmentStatus[] {

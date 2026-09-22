@@ -80,6 +80,44 @@ describe("professional workspace", () => {
     expect(screen.queryByText("Shortlisted")).not.toBeInTheDocument();
   });
 
+  it("does not tell a shortlisted Professional to wait when readiness is not attached", async () => {
+    const application: PublicApplication = {
+      id: "application-2",
+      jobId: "job-2",
+      jobSlug: "social-media-manager",
+      jobTitle: "Social Media Manager",
+      companyName: "Brightwave",
+      status: "shortlisted",
+      coverNote: "Relevant experience",
+      createdAt: "2026-09-22T10:00:00Z",
+      updatedAt: "2026-09-22T10:00:00Z"
+    };
+    const repository: PublicListingsRepository = {
+      async listServices() { return []; },
+      async listCategories() { return []; },
+      async listJobs() { return { jobs: [], total: 0 }; },
+      async getJob() { return null; },
+      async listMyApplications() { return [application]; },
+      async listAdminApplications() { return []; },
+      async completeProfessionalProfile() { return "professional-1"; },
+      async submitApplication() { return "application-2"; },
+      async withdrawApplication(id) { return id; },
+      async reviewApplication(input) { return input.applicationId; },
+      async shortlistApplication(input) { return input.applicationId; },
+      async convertApplication() { return "assignment-2"; }
+    };
+
+    render(
+      <MemoryRouter>
+        <ProfessionalJobsPage repository={repository} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Shortlisted")).toBeInTheDocument();
+    expect(screen.getByText(/Nothing is needed from you yet/)).toBeInTheDocument();
+    expect(screen.queryByText("We’ll notify you when the steps are ready.")).not.toBeInTheDocument();
+  });
+
   it("shows Amara only her independent Assignments", () => {
     renderAppAt("/professional/work");
 

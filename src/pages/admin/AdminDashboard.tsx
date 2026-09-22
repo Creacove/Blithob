@@ -133,23 +133,27 @@ export function AdminDashboard() {
           {
             label: "Work reviews",
             value: workReviews.length,
+            to: "/admin/reviews",
             tone: workReviews.length ? "attention" : "default",
             mobilePriority: "primary"
           },
           {
             label: "Qualifications",
             value: readinessApprovals.length,
+            to: "/admin/reviews",
             tone: readinessApprovals.length ? "attention" : "default",
             mobilePriority: "primary"
           },
           {
             label: "Active deadlines",
             value: activeDeadlines.length,
+            to: "/admin/jobs",
             mobilePriority: "secondary"
           },
           {
             label: "Payment issues",
             value: paymentIssues.length,
+            to: "/admin/payments",
             tone: paymentIssues.length ? "attention" : "default",
             mobilePriority: "secondary"
           }
@@ -159,10 +163,10 @@ export function AdminDashboard() {
       <SummaryBand
         className="mt-4"
         items={[
-          { label: "Open public Jobs", value: applicationMetrics.openPublicJobs, mobilePriority: "primary" },
-          { label: "Total applications", value: applicationMetrics.totalApplications, mobilePriority: "primary" },
-          { label: "Awaiting review", value: applicationMetrics.awaitingReview, tone: applicationMetrics.awaitingReview ? "attention" : "default", mobilePriority: "secondary" },
-          { label: "Shortlisted", value: applicationMetrics.shortlisted, mobilePriority: "secondary" }
+          { label: "Open public Jobs", value: applicationMetrics.openPublicJobs, to: "/admin/jobs", mobilePriority: "primary" },
+          { label: "Total applications", value: applicationMetrics.totalApplications, to: "/admin/applications", mobilePriority: "primary" },
+          { label: "Awaiting review", value: applicationMetrics.awaitingReview, to: "/admin/applications", tone: applicationMetrics.awaitingReview ? "attention" : "default", mobilePriority: "secondary" },
+          { label: "Shortlisted", value: applicationMetrics.shortlisted, to: "/admin/applications?status=shortlisted", mobilePriority: "secondary" }
         ]}
       />
 
@@ -339,11 +343,7 @@ function AssignmentAction({
 }) {
   return (
     <Link
-      to={
-        assignment.status === "waiting_for_admin"
-          ? "/admin/reviews"
-          : `/admin/assignments/${assignment.id}`
-      }
+      to={`/admin/assignments/${assignment.id}`}
       className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[var(--border)] p-4 hover:bg-[var(--surface-subtle)]"
     >
       <div>

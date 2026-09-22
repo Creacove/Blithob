@@ -137,6 +137,56 @@ describe("public listings repository", () => {
     }));
   });
 
+  it("maps Professional readiness fields from the personal application read model", async () => {
+    const client = fakeClient({
+      data: [{
+        id: "application-1",
+        job_id: "job-1",
+        job_slug: "frontend-developer",
+        job_title: "Frontend Developer",
+        company_name: "A client team",
+        status: "shortlisted",
+        cover_note: "A thoughtful application note.",
+        created_at: "2026-09-02T10:00:00.000Z",
+        updated_at: "2026-09-02T10:00:00.000Z",
+        readiness_enrolment_id: "enrolment-1",
+        readiness_status: "in_progress",
+        readiness_completed_count: 1,
+        readiness_requirement_count: 3,
+        ready_for_assignment: false
+      }],
+      error: null
+    });
+    const repository = createPublicListingsRepository(client);
+
+    const [result] = await repository.listMyApplications();
+
+    expect(client.rpc).toHaveBeenCalledWith("list_my_applications", { p_status: null });
+    expect(result).toEqual(expect.objectContaining({
+      readinessEnrolmentId: "enrolment-1",
+      readinessStatus: "in_progress",
+      readinessCompletedCount: 1,
+      readinessRequirementCount: 3,
+      readyForAssignment: false
+    }));
+  });
+
+  it("maps per-job applicant metrics for the Admin job directory", async () => {
+    const client = fakeClient({
+      data: [{ job_id: "job-1", applicant_count: "2", hired_count: 1, needs_action_count: 1 }],
+      error: null
+    });
+    const repository = createPublicListingsRepository(client);
+
+    await expect(repository.listAdminJobMetrics?.()).resolves.toEqual([{
+      jobId: "job-1",
+      applicantCount: 2,
+      hiredCount: 1,
+      needsActionCount: 1
+    }]);
+    expect(client.rpc).toHaveBeenCalledWith("list_admin_job_metrics");
+  });
+
   it("shortlists through the atomic readiness handoff RPC", async () => {
     const client = fakeClient({ data: [{ application_id: "application-1" }], error: null });
     const repository = createPublicListingsRepository(client);

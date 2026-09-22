@@ -1,5 +1,5 @@
 import { ChevronRight, Plus, Search, SlidersHorizontal } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FilterSheet } from "../../components/FilterSheet";
 import { PageHeader } from "../../components/PageHeader";
@@ -17,9 +17,18 @@ import {
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import type { JobOperationalStatus } from "../../domain/model";
 import { formatDate } from "../../lib/format";
+import {
+  publicListingsRepository,
+  type AdminJobMetric,
+  type PublicListingsRepository
+} from "../../lib/publicListings";
 import { useProfessionalStore } from "../../store/professionalStore";
 
-export function JobsPage() {
+export function JobsPage({
+  repository = publicListingsRepository
+}: {
+  repository?: PublicListingsRepository;
+}) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [serviceFilter, setServiceFilter] = useState("all");
@@ -31,6 +40,28 @@ export function JobsPage() {
   const getJobStatus = useProfessionalStore(
     (state) => state.jobOperationalStatus
   );
+  const [jobMetrics, setJobMetrics] = useState<Record<string, AdminJobMetric>>({});
+  const [metricsLoaded, setMetricsLoaded] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const metrics = await repository.listAdminJobMetrics?.();
+        if (!active) return;
+        setJobMetrics(
+          Object.fromEntries((metrics ?? []).map((metric) => [metric.jobId, metric]))
+        );
+        setMetricsLoaded(Boolean(metrics));
+      } catch {
+        // The directory still has local assignment counts while the optional
+        // read model is being deployed.
+        if (active) setMetricsLoaded(false);
+      }
+    };
+    void load();
+    return () => { active = false; };
+  }, [repository]);
 
   const filtered = jobs.filter((job) => {
     const status = getJobStatus(job.id);
@@ -133,29 +164,50 @@ export function JobsPage() {
               const actionCount = jobAssignments.filter((assignment) =>
                 ["waiting_for_admin", "approved"].includes(assignment.status)
               ).length;
+              const metric = jobMetrics[job.id];
+              const applicantCount = metric?.applicantCount;
+              const hiredCount = metric?.hiredCount ?? jobAssignments.length;
+              const needsActionCount = metric?.needsActionCount ?? actionCount;
               const service = services.find(
                 (item) => item.id === job.serviceId
               );
               return (
                 <ResponsiveRecord
                   key={job.id}
-                  to={`/admin/jobs/${job.id}`}
-                  ariaLabel={`Open ${job.title || "Untitled Job"} mobile`}
-                  title={job.title || "Untitled Job"}
+                  title={
+                    <Link
+                      to={`/admin/jobs/${job.id}`}
+                      className="hover:text-[var(--blue)]"
+                    >
+                      {job.title || "Untitled Job"}
+                    </Link>
+                  }
                   subtitle={service?.name ?? "Unknown Service"}
                   status={<StatusBadge status={getJobStatus(job.id)} />}
                   facts={[
                     {
-                      label: "Deadline",
-                      value: job.deadline
-                        ? formatDate(job.deadline)
-                        : "Not set"
+                      label: "Applicants",
+                      value: metricsLoaded ? applicantCount ?? 0 : "—"
                     },
                     {
-                      label: "Needs action",
-                      value: actionCount
+                      label: "Hired",
+                      value: metricsLoaded ? hiredCount : "…"
                     }
                   ]}
+                  details={
+                    <span>
+                      {job.deadline ? `Due ${formatDate(job.deadline)}` : "No deadline"}
+                      {needsActionCount > 0 && ` · ${needsActionCount} needs action`}
+                    </span>
+                  }
+                  action={
+                    <Link
+                      to={`/admin/applications?jobId=${job.id}`}
+                      className="text-sm font-semibold text-[var(--blue)]"
+                    >
+                      View applicants
+                    </Link>
+                  }
                 />
               );
             })}
@@ -172,6 +224,10 @@ export function JobsPage() {
             const actionCount = jobAssignments.filter((assignment) =>
               ["waiting_for_admin", "approved"].includes(assignment.status)
             ).length;
+            const metric = jobMetrics[job.id];
+            const applicantCount = metric?.applicantCount;
+            const hiredCount = metric?.hiredCount ?? jobAssignments.length;
+            const needsActionCount = metric?.needsActionCount ?? actionCount;
             const service = services.find(
               (item) => item.id === job.serviceId
             );
@@ -184,7 +240,9 @@ export function JobsPage() {
                 status={getJobStatus(job.id)}
                 progress={`${completed} of ${jobAssignments.length} completed`}
                 deadline={job.deadline}
-                actionCount={actionCount}
+                applicantCount={metricsLoaded ? applicantCount ?? 0 : undefined}
+                hiredCount={metricsLoaded ? hiredCount : undefined}
+                actionCount={metricsLoaded ? needsActionCount : actionCount}
               />
             );
           })}
@@ -252,6 +310,8 @@ function JobRow({
   status,
   progress,
   deadline,
+  applicantCount,
+  hiredCount,
   actionCount
 }: {
   id: string;
@@ -260,18 +320,21 @@ function JobRow({
   status: JobOperationalStatus;
   progress: string;
   deadline: string;
+  applicantCount?: number;
+  hiredCount?: number;
   actionCount: number;
 }) {
   return (
     <DesktopRecordRow
-      to={`/admin/jobs/${id}`}
-      ariaLabel={`Open ${title}`}
-      columns="minmax(15rem,1.2fr) 8.5rem minmax(22rem,1fr) 1.25rem"
+      columns="minmax(15rem,1.2fr) 8.5rem minmax(28rem,1fr) 1.25rem"
     >
       <span className="min-w-0">
-        <strong className="block truncate text-base font-semibold text-[var(--ink)]">
+        <Link
+          to={`/admin/jobs/${id}`}
+          className="block truncate text-base font-semibold text-[var(--ink)] hover:text-[var(--blue)]"
+        >
           {title}
-        </strong>
+        </Link>
         <span className="mt-1 block text-sm text-[var(--muted)]">
           {service}
         </span>
@@ -280,6 +343,15 @@ function JobRow({
         <StatusBadge status={status} />
       </div>
       <span className="flex min-w-0 flex-wrap gap-x-5 gap-y-1 text-sm text-[var(--muted)]">
+        <Link
+          to={`/admin/applications?jobId=${id}`}
+          className="font-semibold text-[var(--blue)] hover:underline"
+        >
+          {applicantCount === undefined ? "… applicants" : `${applicantCount} applicant${applicantCount === 1 ? "" : "s"}`}
+        </Link>
+        <span className="font-medium">
+          {hiredCount === undefined ? "… hired" : `${hiredCount} hired`}
+        </span>
         <span className="font-medium">{progress}</span>
         <span>
           {deadline ? `Due ${formatDate(deadline)}` : "No deadline"}
@@ -290,7 +362,13 @@ function JobRow({
           {actionCount} action{actionCount === 1 ? "" : "s"}
         </span>
       </span>
-      <ChevronRight size={18} className="text-[var(--muted)]" aria-hidden />
+      <Link
+        to={`/admin/jobs/${id}`}
+        aria-label={`Open ${title}`}
+        className="grid place-items-center rounded-md text-[var(--muted)] hover:text-[var(--blue)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--blue)]"
+      >
+        <ChevronRight size={18} aria-hidden />
+      </Link>
     </DesktopRecordRow>
   );
 }

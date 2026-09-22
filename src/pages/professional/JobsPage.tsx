@@ -15,9 +15,11 @@ function visibleState(application: PublicApplication) {
   if (application.status === "withdrawn") return "Withdrawn";
   if (
     application.status === "shortlisted" &&
+    application.readinessEnrolmentId &&
     application.readyForAssignment !== true &&
     application.readinessStatus !== "approved"
   ) return "Action required";
+  if (application.status === "shortlisted") return "Shortlisted";
   if (application.status === "submitted") return "Applied";
   return "Waiting for decision";
 }
@@ -120,6 +122,8 @@ export function JobsPage({
           {applications.map((application) => {
             const state = visibleState(application);
             const needsQualification = state === "Action required";
+            const isShortlistedPending =
+              application.status === "shortlisted" && state === "Shortlisted";
             return (
               <article key={application.id} className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,.03)]">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -155,6 +159,15 @@ export function JobsPage({
                     ) : (
                       <span className="text-sm font-medium text-amber-900">We’ll notify you when the steps are ready.</span>
                     )}
+                  </div>
+                )}
+
+                {isShortlistedPending && (
+                  <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                    <p className="font-semibold text-blue-950">You’re shortlisted</p>
+                    <p className="mt-1 text-sm text-blue-800">
+                      Nothing is needed from you yet. We’ll show the next step here when the team is ready.
+                    </p>
                   </div>
                 )}
 

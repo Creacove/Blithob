@@ -134,6 +134,13 @@ export interface AdminApplicationMetrics {
   converted: number;
 }
 
+export interface AdminJobMetric {
+  jobId: string;
+  applicantCount: number;
+  hiredCount: number;
+  needsActionCount: number;
+}
+
 export interface PublicListingsRepository {
   listServices(): Promise<PublicService[]>;
   listCategories(): Promise<PublicCategory[]>;
@@ -148,6 +155,7 @@ export interface PublicListingsRepository {
     offset?: number;
   }): Promise<PublicApplication[]>;
   getAdminApplicationMetrics?(): Promise<AdminApplicationMetrics>;
+  listAdminJobMetrics?(): Promise<AdminJobMetric[]>;
   completeProfessionalProfile(input: {
     displayName: string;
     phone: string;
@@ -319,6 +327,15 @@ function mapAdminApplicationMetrics(row: Record<string, unknown>): AdminApplicat
   };
 }
 
+function mapAdminJobMetric(row: Record<string, unknown>): AdminJobMetric {
+  return {
+    jobId: text(row, "job_id"),
+    applicantCount: numberValue(row, "applicant_count") ?? 0,
+    hiredCount: numberValue(row, "hired_count") ?? 0,
+    needsActionCount: numberValue(row, "needs_action_count") ?? 0
+  };
+}
+
 async function resolve<T>(request: PromiseLike<{ data: unknown; error: { message: string } | null }>) {
   const response = await request;
   if (response.error) throw new Error(response.error.message);
@@ -383,6 +400,10 @@ export function createPublicListingsRepository(client: PublicListingsClient): Pu
     async getAdminApplicationMetrics() {
       const data = await resolve<unknown>(client.rpc("get_admin_application_metrics"));
       return mapAdminApplicationMetrics(rows(data)[0] ?? {});
+    },
+    async listAdminJobMetrics() {
+      const data = await resolve<unknown>(client.rpc("list_admin_job_metrics"));
+      return rows(data).map(mapAdminJobMetric);
     },
     async completeProfessionalProfile(input) {
       const data = await resolve<unknown>(client.rpc("complete_my_professional_profile", {
@@ -465,6 +486,7 @@ export function createEmptyPublicListingsRepository(): PublicListingsRepository 
         converted: 0
       };
     },
+    async listAdminJobMetrics() { return []; },
     async completeProfessionalProfile() { throw new Error("Supabase is not configured."); },
     async submitApplication() { throw new Error("Supabase is not configured."); },
     async withdrawApplication() { throw new Error("Supabase is not configured."); },

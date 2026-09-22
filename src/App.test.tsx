@@ -279,6 +279,24 @@ describe("application routing", () => {
     );
   });
 
+  it("puts each submitted person's next action directly in the Job view", () => {
+    useProfessionalStore.setState((state) => ({
+      assignments: state.assignments.map((assignment) =>
+        assignment.id === "assignment-waiting-lead"
+          ? { ...assignment, status: "waiting_for_admin" }
+          : assignment
+      )
+    }));
+    useProfessionalStore.getState().signIn("admin");
+    renderAppAt("/admin/jobs/job-campaign");
+
+    expect(screen.getAllByText("Version 1 submitted")).not.toHaveLength(0);
+    expect(screen.getByRole("link", { name: "Review submission" })).toHaveAttribute(
+      "href",
+      "/admin/assignments/assignment-waiting-lead"
+    );
+  });
+
   it("opens eligible Professionals in the Job assignment drawer", async () => {
     const user = userEvent.setup();
     useProfessionalStore.getState().signIn("admin");

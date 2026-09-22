@@ -26,7 +26,7 @@ import {
   Section,
   Select
 } from "../../components/ui";
-import { formatCurrency, formatDate } from "../../lib/format";
+import { formatCurrency, formatDate, formatDateTime } from "../../lib/format";
 import { useProfessionalStore } from "../../store/professionalStore";
 import { RouteShell } from "../RouteShell";
 
@@ -37,6 +37,17 @@ interface AssignmentDraft {
   leadReviewerId: string;
 }
 
+function assignmentActionLabel(
+  status: Parameters<typeof StatusBadge>[0]["status"],
+  hasSubmission: boolean
+) {
+  if (status === "waiting_for_admin" && hasSubmission) return "Review submission";
+  if (status === "approved") return "Complete work";
+  if (status === "changes_requested_by_admin") return "View changes";
+  if (status === "waiting_for_lead") return "View review";
+  return "Open work";
+}
+
 export function JobDetailPage() {
   const { jobId } = useParams();
   const job = useProfessionalStore((state) =>
@@ -45,6 +56,8 @@ export function JobDetailPage() {
   const services = useProfessionalStore((state) => state.services);
   const assignments = useProfessionalStore((state) => state.assignments);
   const professionals = useProfessionalStore((state) => state.professionals);
+  const submissions = useProfessionalStore((state) => state.submissions);
+  const assignmentReviews = useProfessionalStore((state) => state.assignmentReviews);
   const activity = useProfessionalStore((state) => state.activity);
   const addAssignments = useProfessionalStore((state) => state.addAssignments);
   const archiveJob = useProfessionalStore((state) => state.archiveJob);
@@ -307,19 +320,26 @@ export function JobDetailPage() {
                 const reviewer = professionals.find(
                   (item) => item.id === assignment.leadReviewerId
                 );
+                const latestSubmission = submissions
+                  .filter((submission) => submission.assignmentId === assignment.id)
+                  .sort((left, right) => right.version - left.version)[0];
+                const latestReview = assignmentReviews
+                  .filter((review) => review.assignmentId === assignment.id)
+                  .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0];
                 return (
                   <DesktopRecordRow
                     key={assignment.id}
-                    to={`/admin/assignments/${assignment.id}`}
-                    ariaLabel={`Open ${professional?.name ?? "Professional"} assignment`}
-                    columns="minmax(12rem,1fr) 10.5rem 7.5rem 9.5rem"
+                    columns="minmax(12rem,1fr) 10.5rem minmax(15rem,1.1fr) minmax(10rem,.75fr)"
                     layoutAt="lg"
                     className="gap-3"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-[var(--ink)]">
+                      <Link
+                        to={`/admin/assignments/${assignment.id}`}
+                        className="block truncate font-semibold text-[var(--ink)] hover:text-[var(--blue)]"
+                      >
                         {professional?.name ?? "Unknown Professional"}
-                      </p>
+                      </Link>
                       <p className="mt-1 truncate text-sm text-[var(--muted)]">
                         {reviewer ? `Lead: ${reviewer.name}` : "Direct to Admin"}
                       </p>
@@ -327,12 +347,39 @@ export function JobDetailPage() {
                     <div className="min-w-0">
                       <StatusBadge status={assignment.status} />
                     </div>
-                    <span className="text-sm font-semibold text-[var(--ink)]">
-                      {formatCurrency(assignment.agreedPay)}
-                    </span>
-                    <span className="whitespace-nowrap text-sm text-[var(--muted)]">
-                      Due {formatDate(assignment.deadline)}
-                    </span>
+                    <div className="min-w-0 text-sm">
+                      {latestSubmission ? (
+                        <p className="font-semibold text-[var(--ink)]">
+                          Version {latestSubmission.version} submitted
+                        </p>
+                      ) : (
+                        <p className="font-semibold text-[var(--muted)]">
+                          No submission yet
+                        </p>
+                      )}
+                      <p className="mt-1 truncate text-[var(--muted)]">
+                        {latestSubmission
+                          ? formatDateTime(latestSubmission.submittedAt)
+                          : "Waiting for the Professional"}
+                        {latestReview?.decision === "changes_requested" && " · Changes requested"}
+                      </p>
+                    </div>
+                    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-sm">
+                      <span>
+                        <span className="block font-semibold text-[var(--ink)]">
+                          {formatCurrency(assignment.agreedPay)}
+                        </span>
+                        <span className="mt-1 block whitespace-nowrap text-[var(--muted)]">
+                          Due {formatDate(assignment.deadline)}
+                        </span>
+                      </span>
+                      <Link
+                        to={`/admin/assignments/${assignment.id}`}
+                        className="font-semibold text-[var(--blue)] hover:underline"
+                      >
+                        {assignmentActionLabel(assignment.status, Boolean(latestSubmission))}
+                      </Link>
+                    </div>
                   </DesktopRecordRow>
                 );
               })}

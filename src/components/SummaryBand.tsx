@@ -1,10 +1,12 @@
 import clsx from "clsx";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 export interface SummaryItem {
   label: string;
   value: string | number;
   note?: string;
+  to?: string;
   tone?: "default" | "attention" | "positive";
   mobilePriority?: "primary" | "secondary";
 }
@@ -55,27 +57,44 @@ export function SummaryBand({
       )}
     >
       <div className="summary-band" data-count={visibleItems.length}>
-        {visibleItems.map((item) => (
-          <div key={item.label} className="summary-cell p-4">
-            <strong
-              className={clsx(
-                "block text-2xl font-semibold tracking-[-0.03em] text-[var(--ink)]",
-                item.tone === "attention" && "text-[var(--attention)]",
-                item.tone === "positive" && "text-[var(--positive)]"
+        {visibleItems.map((item) => {
+          const content = (
+            <>
+              <strong
+                className={clsx(
+                  "block text-2xl font-semibold tracking-[-0.03em] text-[var(--ink)]",
+                  item.tone === "attention" && "text-[var(--attention)]",
+                  item.tone === "positive" && "text-[var(--positive)]"
+                )}
+              >
+                {item.value}
+              </strong>
+              <span className="mt-1 block text-sm font-medium leading-5 text-[var(--ink)]">
+                {item.label}
+              </span>
+              {item.note && (
+                <small className="mt-1 block text-xs leading-4 text-[var(--muted)]">
+                  {item.note}
+                </small>
               )}
+            </>
+          );
+
+          return item.to ? (
+            <Link
+              key={item.label}
+              to={item.to}
+              aria-label={`${item.value} ${item.label}`}
+              className="summary-cell block p-4 transition hover:bg-[var(--surface-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--blue)]"
             >
-              {item.value}
-            </strong>
-            <span className="mt-1 block text-sm font-medium leading-5 text-[var(--ink)]">
-              {item.label}
-            </span>
-            {item.note && (
-              <small className="mt-1 block text-xs leading-4 text-[var(--muted)]">
-                {item.note}
-              </small>
-            )}
-          </div>
-        ))}
+              {content}
+            </Link>
+          ) : (
+            <div key={item.label} className="summary-cell p-4">
+              {content}
+            </div>
+          );
+        })}
       </div>
       {isMobile && secondaryItems.length > 0 && (
         <button
