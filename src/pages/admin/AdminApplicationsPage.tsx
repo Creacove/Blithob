@@ -37,8 +37,6 @@ export function AdminApplicationsPage({
   const [assignmentApplication, setAssignmentApplication] = useState<PublicApplication | null>(null);
 
   const loadFirstPage = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
       const rows = await repository.listAdminApplications({
         status: status === "all" ? undefined : status,
@@ -57,7 +55,10 @@ export function AdminApplicationsPage({
   }, [jobId, repository, search, status]);
 
   useEffect(() => {
-    void loadFirstPage();
+    const timer = window.setTimeout(() => {
+      void loadFirstPage();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadFirstPage]);
 
   const loadMore = async () => {
@@ -237,6 +238,7 @@ export function AdminApplicationsPage({
       )}
 
       <AssignmentDrawer
+        key={assignmentApplication?.id ?? "closed"}
         application={assignmentApplication}
         job={jobs.find((job) => job.id === assignmentApplication?.jobId)}
         repository={repository}

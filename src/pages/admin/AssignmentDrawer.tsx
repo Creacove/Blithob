@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Drawer } from "../../components/Drawer";
 import { Button, Field, Input } from "../../components/ui";
 import type { Job } from "../../domain/model";
@@ -22,16 +22,9 @@ export function AssignmentDrawer({
   onStaleRecord: () => void;
 }) {
   const [agreedPay, setAgreedPay] = useState("");
-  const [deadline, setDeadline] = useState("");
+  const [deadline, setDeadline] = useState(() => job?.deadline?.slice(0, 10) ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open || !application) return;
-    setAgreedPay("");
-    setDeadline(job?.deadline?.slice(0, 10) ?? "");
-    setError(null);
-  }, [application, job, open]);
 
   if (!application) return null;
 
