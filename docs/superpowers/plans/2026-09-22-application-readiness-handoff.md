@@ -148,21 +148,9 @@ If the row is already shortlisted, reuse the existing non-paused enrolment and r
 
 Extend its return table with service_id, service_name, readiness_enrolment_id, readiness_status, readiness_completed_count, readiness_requirement_count, and ready_for_assignment. Use a left join lateral that selects the latest non-paused enrolment for the application Professional and Job Service. Use a second lateral aggregate over service_requirements and service_requirement_progress. Compute ready_for_assignment from approved readiness, active Professional, and open Job. Keep the existing Admin predicate, filters, limit cap of 100, offset, and total count.
 
-- [ ] **Step 3: Add SQL assertions for the new transaction.**
+- [ ] **Step 3: Add structural SQL assertions for the new contract.**
 
-In supabase/tests/public_jobs_and_applications.sql, after the existing application fixture is created:
-
-~~~
-select is((select status::text from public.job_applications where id = v_application_id), 'submitted', 'fixture starts submitted');
-select jsonb_object_field(
-  public.shortlist_job_application(v_application_id, 'Strong fit'),
-  'readiness_status'
-) = 'not_started'::jsonb;
-select is((select count(*)::int from public.service_enrolments where professional_id = v_professional_id and service_id = v_service_id and status <> 'paused'), 1, 'shortlist creates one active readiness record');
-select is((select count(*)::int from public.transactional_email_outbox where source_type = 'job_application' and source_id = v_application_id and event_type = 'application_shortlisted'), 1, 'shortlist queues one email');
-~~~
-
-Then call the RPC a second time and assert the active-enrolment and outbox counts remain one. Add an approved enrolment fixture and assert ready_for_assignment is true in list_admin_applications.
+The linked contract file runs without an authenticated Admin JWT, so keep it deterministic and structural. Add a do block to supabase/tests/public_jobs_and_applications.sql that verifies the new RPC exists, authenticated users can execute it, anon cannot, and its definition mentions service_enrolments, application_shortlisted, and the idempotent existing-shortlist branch. Add a second block that reads pg_get_function_result for list_admin_applications and fails unless it contains service_id, service_name, readiness_status, readiness_completed_count, readiness_requirement_count, and ready_for_assignment. Exercise the exact shortlist/reuse/idempotency behavior in the live Admin/Professional smoke test in Task 8, where the correct JWT context and fixtures exist.
 
 - [ ] **Step 4: Run the linked SQL test and lint.**
 
