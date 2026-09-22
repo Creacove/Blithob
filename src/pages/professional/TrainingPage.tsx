@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -13,6 +14,12 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { useProfessionalStore } from "../../store/professionalStore";
 
 export function TrainingPage() {
+  const backendMode = useProfessionalStore((state) => state.backendMode);
+  const isLoading = useProfessionalStore((state) => state.isLoading);
+  const refreshRemote = useProfessionalStore((state) => state.refreshRemote);
+  const [remoteLoadComplete, setRemoteLoadComplete] = useState(
+    backendMode !== "remote"
+  );
   const professional = useProfessionalStore((state) =>
     state.currentProfessional()
   );
@@ -20,6 +27,17 @@ export function TrainingPage() {
   const services = useProfessionalStore((state) => state.services);
   const professionals = useProfessionalStore((state) => state.professionals);
   const isMobile = useMediaQuery("(max-width: 767px)");
+
+  useEffect(() => {
+    if (backendMode !== "remote") return;
+    let active = true;
+    void refreshRemote().finally(() => {
+      if (active) setRemoteLoadComplete(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [backendMode, refreshRemote]);
 
   const ownEnrolments = professional
     ? enrolments.filter((item) => item.professionalId === professional.id)
@@ -29,7 +47,7 @@ export function TrainingPage() {
     <div>
       <PageHeader
         title="Qualifications"
-        description="Complete these steps once, then reuse your qualification for similar jobs."
+        description="Complete steps attached to your job applications. Your qualification can count for similar jobs."
       />
       <SummaryBand
         className="mt-6"
@@ -60,7 +78,11 @@ export function TrainingPage() {
         ]}
       />
 
-      {ownEnrolments.length === 0 ? (
+      {ownEnrolments.length === 0 && backendMode === "remote" && (isLoading || !remoteLoadComplete) ? (
+        <p role="status" className="mt-6 text-sm text-[var(--muted)]">
+          Loading your qualification steps…
+        </p>
+      ) : ownEnrolments.length === 0 ? (
         <div className="mt-6">
           <EmptyState
             title="No qualifications needed"

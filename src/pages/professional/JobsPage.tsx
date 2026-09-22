@@ -15,7 +15,6 @@ function visibleState(application: PublicApplication) {
   if (application.status === "withdrawn") return "Withdrawn";
   if (
     application.status === "shortlisted" &&
-    application.readinessEnrolmentId &&
     application.readyForAssignment !== true &&
     application.readinessStatus !== "approved"
   ) return "Action required";
@@ -142,7 +141,7 @@ export function JobsPage({
                 {needsQualification && (
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
                     <div>
-                      <p className="font-semibold text-amber-950">Complete the qualification for this job</p>
+                      <p className="font-semibold text-amber-950">Complete the steps for this job</p>
                       {application.readinessRequirementCount !== undefined && (
                         <p className="mt-1 text-sm text-amber-800">
                           {application.readinessCompletedCount ?? 0} of {application.readinessRequirementCount} complete
@@ -152,12 +151,18 @@ export function JobsPage({
                     {application.readinessEnrolmentId ? (
                       <Link
                         to={`/professional/training/${application.readinessEnrolmentId}`}
+                        state={{ jobTitle: application.jobTitle }}
                         className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-amber-900 px-3 text-sm font-semibold text-white"
                       >
-                        Complete qualification <ArrowRight size={15} aria-hidden />
+                        Complete steps <ArrowRight size={15} aria-hidden />
                       </Link>
                     ) : (
-                      <span className="text-sm font-medium text-amber-900">We’ll notify you when the steps are ready.</span>
+                      <Link
+                        to="/professional/training"
+                        className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-amber-900 px-3 text-sm font-semibold text-white"
+                      >
+                        Find steps <ArrowRight size={15} aria-hidden />
+                      </Link>
                     )}
                   </div>
                 )}

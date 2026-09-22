@@ -14,10 +14,12 @@ import { useProfessionalStore } from "../../store/professionalStore";
 import type { PublicApplication, PublicListingsRepository } from "../../lib/publicListings";
 import { JobsPage as ProfessionalJobsPage } from "./JobsPage";
 
-function renderAppAt(path: string) {
+const defaultRefreshRemote = useProfessionalStore.getState().refreshRemote;
+
+function renderAppAt(path: string, state?: unknown) {
   return render(
     <ToastProvider>
-      <MemoryRouter initialEntries={[path]}>
+      <MemoryRouter initialEntries={[state === undefined ? path : { pathname: path, state }]}>
         <App />
       </MemoryRouter>
     </ToastProvider>
@@ -25,7 +27,13 @@ function renderAppAt(path: string) {
 }
 
 describe("professional workspace", () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    useProfessionalStore.setState({
+      backendMode: "demo",
+      refreshRemote: defaultRefreshRemote
+    });
+  });
 
   beforeEach(() => {
     useProfessionalStore.getState().resetDemo();
@@ -73,15 +81,16 @@ describe("professional workspace", () => {
     expect(screen.getByRole("link", { name: "Browse jobs" })).toHaveAttribute("href", "/jobs");
     expect(await screen.findByText("Social Media Manager")).toBeInTheDocument();
     expect(screen.getByText("Action required")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Complete qualification" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Complete steps" })).toHaveAttribute(
       "href",
       "/professional/training/qualification-1"
     );
+    expect(screen.getByText("1 of 3 complete")).toBeInTheDocument();
     expect(screen.queryByText("Shortlisted")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "View job" })).not.toBeInTheDocument();
   });
 
-  it("does not tell a shortlisted Professional to wait when readiness is not attached", async () => {
+  it("shows a route to qualifications when shortlisted readiness details are missing", async () => {
     const application: PublicApplication = {
       id: "application-2",
       jobId: "job-2",
@@ -114,9 +123,95 @@ describe("professional workspace", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText("Shortlisted")).toBeInTheDocument();
-    expect(screen.getByText(/Nothing is needed from you yet/)).toBeInTheDocument();
-    expect(screen.queryByText("We’ll notify you when the steps are ready.")).not.toBeInTheDocument();
+    expect(await screen.findByText("Action required")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Find steps" })).toHaveAttribute(
+      "href",
+      "/professional/training"
+    );
+    expect(screen.queryByText(/Nothing is needed from you yet/)).not.toBeInTheDocument();
+  });
+
+  it("loads a newly created qualification before opening its checklist", async () => {
+    const state = useProfessionalStore.getState();
+    const professional = state.currentProfessional();
+    const service = state.services.find((item) => item.requirements.length > 0);
+    expect(professional).toBeDefined();
+    expect(service).toBeDefined();
+    const enrolmentId = "newly-shortlisted-qualification";
+
+    useProfessionalStore.setState({
+      backendMode: "remote",
+      serviceEnrolments: [],
+      refreshRemote: async () => {
+        useProfessionalStore.setState((current) => ({
+          serviceEnrolments: [
+            ...current.serviceEnrolments,
+            {
+              id: enrolmentId,
+              professionalId: professional!.id,
+              serviceId: service!.id,
+              status: "not_started",
+              requirements: service!.requirements.map((item) => ({
+                requirementId: item.id,
+                completed: false
+              })),
+              createdAt: "2026-09-22T10:00:00Z",
+              updatedAt: "2026-09-22T10:00:00Z"
+            }
+          ]
+        }));
+      }
+    });
+
+    renderAppAt(`/professional/training/${enrolmentId}`, {
+      jobTitle: "Social Media Manager"
+    });
+
+    expect(await screen.findByRole("heading", { name: "Qualification steps" })).toBeInTheDocument();
+    expect(await screen.findByText(service!.requirements[0].title)).toBeInTheDocument();
+    expect(screen.getByText("For Social Media Manager")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Jobs" })).toHaveAttribute(
+      "href",
+      "/professional/jobs"
+    );
+  });
+
+  it("refreshes qualifications before showing the list for a new shortlist", async () => {
+    const state = useProfessionalStore.getState();
+    const professional = state.currentProfessional();
+    const service = state.services.find((item) => item.requirements.length > 0);
+    expect(professional).toBeDefined();
+    expect(service).toBeDefined();
+    const enrolmentId = "new-shortlist-list-enrolment";
+
+    useProfessionalStore.setState({
+      backendMode: "remote",
+      serviceEnrolments: [],
+      refreshRemote: async () => {
+        useProfessionalStore.setState((current) => ({
+          serviceEnrolments: [
+            ...current.serviceEnrolments,
+            {
+              id: enrolmentId,
+              professionalId: professional!.id,
+              serviceId: service!.id,
+              status: "not_started",
+              requirements: service!.requirements.map((item) => ({
+                requirementId: item.id,
+                completed: false
+              })),
+              createdAt: "2026-09-22T10:00:00Z",
+              updatedAt: "2026-09-22T10:00:00Z"
+            }
+          ]
+        }));
+      }
+    });
+
+    renderAppAt("/professional/training");
+
+    expect(await screen.findByRole("link", { name: `Open ${service!.name} qualification` }))
+      .toHaveAttribute("href", `/professional/training/${enrolmentId}`);
   });
 
   it("shows Amara only her independent Assignments", () => {
@@ -244,7 +339,7 @@ describe("professional workspace", () => {
     renderAppAt("/professional/training");
 
     expect(screen.getByRole("heading", { name: "Qualifications" })).toBeInTheDocument();
-    expect(screen.getByText(/Complete these steps once/i)).toBeInTheDocument();
+    expect(screen.getByText(/Complete steps attached to your job applications/i)).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Training" })).not.toBeInTheDocument();
   });
 

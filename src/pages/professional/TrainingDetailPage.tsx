@@ -1,6 +1,6 @@
 import { ArrowLeft, CheckCircle2, ExternalLink } from "lucide-react";
-import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useToast } from "../../components/ToastProvider";
@@ -23,6 +23,10 @@ type EvidenceDraft = Record<
 
 export function TrainingDetailPage() {
   const { enrolmentId } = useParams();
+  const location = useLocation();
+  const backendMode = useProfessionalStore((state) => state.backendMode);
+  const isLoading = useProfessionalStore((state) => state.isLoading);
+  const refreshRemote = useProfessionalStore((state) => state.refreshRemote);
   const professional = useProfessionalStore((state) =>
     state.currentProfessional()
   );
@@ -54,7 +58,25 @@ export function TrainingDetailPage() {
       ])
     )
   );
+  const [remoteLoadComplete, setRemoteLoadComplete] = useState(
+    backendMode !== "remote"
+  );
   const { success, error } = useToast();
+  const routeContext = location.state as { jobTitle?: unknown } | null;
+  const jobTitle = typeof routeContext?.jobTitle === "string"
+    ? routeContext.jobTitle
+    : undefined;
+
+  useEffect(() => {
+    if (backendMode !== "remote") return;
+    let active = true;
+    void refreshRemote().finally(() => {
+      if (active) setRemoteLoadComplete(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [backendMode, enrolmentId, refreshRemote]);
 
   if (
     !professional ||
@@ -62,10 +84,18 @@ export function TrainingDetailPage() {
     enrolment.professionalId !== professional.id ||
     !service
   ) {
+    if (professional && !enrolment && backendMode === "remote" && (isLoading || !remoteLoadComplete)) {
+      return (
+        <RouteShell
+          title="Loading job steps"
+          description="Fetching the qualification attached to your application."
+        />
+      );
+    }
     return (
       <RouteShell
-        title="Qualification not found"
-        description="This qualification does not exist or does not belong to your account."
+        title="Steps unavailable"
+        description="We couldn’t find the qualification for this job. Return to Jobs and refresh your applications."
       />
     );
   }
@@ -127,17 +157,19 @@ export function TrainingDetailPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Job qualification"
+        eyebrow={jobTitle ? `For ${jobTitle}` : "Job qualification"}
         title={service.name}
-        description={service.description}
+        description={jobTitle
+          ? `Complete these steps to meet the requirements for ${jobTitle}. Your progress is saved as you go.`
+          : service.description}
         actions={
           <>
             <Link
-              to="/professional/training"
+              to="/professional/jobs"
               className="mobile-header-back inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
             >
               <ArrowLeft size={16} aria-hidden />
-              Back to Qualifications
+              Back to Jobs
             </Link>
             {editable && (
               <Button disabled={!canSubmit} onClick={sendForReview}>
