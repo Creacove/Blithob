@@ -31,7 +31,7 @@ describe("PublicApplicationsPage", () => {
       async listMyApplications() {
         return [
           { id: "a2", jobId: "j2", jobSlug: "writer", jobTitle: "Content Writer", companyName: "A client team", status: "under_review", coverNote: "Review note", createdAt: "2026-09-03", updatedAt: "2026-09-04" },
-          { id: "a3", jobId: "j3", jobSlug: "designer", jobTitle: "Product Designer", companyName: "Another team", status: "shortlisted", coverNote: "Shortlist note", createdAt: "2026-09-01", updatedAt: "2026-09-02" }
+          { id: "a3", jobId: "j3", jobSlug: "designer", jobTitle: "Product Designer", companyName: "Another team", status: "shortlisted", coverNote: "Shortlist note", readinessEnrolmentId: "enrolment-1", readinessStatus: "in_progress", readinessCompletedCount: 1, readinessRequirementCount: 3, createdAt: "2026-09-01", updatedAt: "2026-09-02" }
         ];
       }
     };
@@ -39,7 +39,25 @@ describe("PublicApplicationsPage", () => {
     render(<MemoryRouter><PublicApplicationsPage repository={phaseRepository} /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText("Reviewing")).toBeInTheDocument());
     expect(screen.getByText("Shortlisted")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /complete readiness/i })).toHaveAttribute("href", "/professional/training/enrolment-1");
     expect(screen.queryByText(/Interview|Offer|Hired/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the ready-for-assignment and assignment-received states without readiness jargon", async () => {
+    const readyRepository: PublicListingsRepository = {
+      ...repository,
+      async listMyApplications() {
+        return [
+          { id: "a4", jobId: "j4", jobSlug: "ready", jobTitle: "Frontend Developer", companyName: "A client team", status: "shortlisted", coverNote: "Ready note", readinessStatus: "approved", readyForAssignment: true, readinessEnrolmentId: "enrolment-2", createdAt: "2026-09-01", updatedAt: "2026-09-02" },
+          { id: "a5", jobId: "j5", jobSlug: "assigned", jobTitle: "Content Writer", companyName: "Another team", status: "converted", coverNote: "Assigned note", assignmentId: "assignment-1", createdAt: "2026-09-01", updatedAt: "2026-09-02" }
+        ];
+      }
+    };
+    useProfessionalStore.getState().signIn("professional");
+    render(<MemoryRouter><PublicApplicationsPage repository={readyRepository} /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByText(/Ready for assignment/i)).toBeInTheDocument());
+    expect(screen.getByText(/Assignment received/i)).toBeInTheDocument();
+    expect(screen.queryByText(/existing assignment workflow/i)).not.toBeInTheDocument();
   });
 
   it("surfaces a safe withdrawal error instead of silently changing the application", async () => {

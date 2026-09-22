@@ -23,6 +23,26 @@ const application: PublicApplication = {
   updatedAt: "2026-09-22"
 };
 
+const shortlistedWithoutReadiness: PublicApplication = {
+  ...application,
+  id: "application-shortlisted",
+  status: "shortlisted",
+  serviceName: "Web development",
+  readinessEnrolmentId: "enrolment-1",
+  readinessStatus: "in_progress",
+  readinessCompletedCount: 1,
+  readinessRequirementCount: 3,
+  readyForAssignment: false
+};
+
+const shortlistedReady: PublicApplication = {
+  ...shortlistedWithoutReadiness,
+  id: "application-ready",
+  readinessStatus: "approved",
+  readinessCompletedCount: 3,
+  readyForAssignment: true
+};
+
 function repository(rows: PublicApplication[] = [application]): PublicListingsRepository {
   return {
     async listServices() { return []; },
@@ -68,5 +88,29 @@ describe("AdminApplicationsPage", () => {
     await waitFor(() => expect(screen.getByText(/CV: ada\.pdf/)).toBeInTheDocument());
     expect(screen.getByRole("button", { name: /view CV/i })).toBeInTheDocument();
     expect(screen.getByText(/2 supporting document/)).toBeInTheDocument();
+  });
+
+  it("does not expose assignment pay before Service readiness is approved", async () => {
+    render(
+      <MemoryRouter>
+        <AdminApplicationsPage repository={repository([shortlistedWithoutReadiness])} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByText("Product Designer")).toBeInTheDocument());
+    expect(screen.getByText(/readiness/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Agreed pay/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /create assignment/i })).not.toBeInTheDocument();
+  });
+
+  it("reveals the assignment action only for an approved Service-ready candidate", async () => {
+    render(
+      <MemoryRouter>
+        <AdminApplicationsPage repository={repository([shortlistedReady])} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByText("Product Designer")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /create assignment/i })).toBeInTheDocument();
   });
 });
