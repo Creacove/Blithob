@@ -38,4 +38,20 @@ describe("Admin JobsPage", () => {
     );
     expect(screen.getAllByText("1 hired")).not.toHaveLength(0);
   });
+
+  it("uses an explicit empty state instead of an ambiguous zero-of-zero progress label", async () => {
+    const repository: PublicListingsRepository = {
+      ...createEmptyPublicListingsRepository(),
+      async listAdminJobMetrics() { return []; }
+    };
+
+    render(
+      <MemoryRouter>
+        <JobsPage repository={repository} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findAllByText("No people hired")).not.toHaveLength(0);
+    expect(screen.queryByText(/0 of 0 completed/i)).not.toBeInTheDocument();
+  });
 });

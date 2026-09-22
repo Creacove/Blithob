@@ -202,6 +202,17 @@ describe("public listings repository", () => {
     });
   });
 
+  it("accepts the JSON object returned by the shortlist RPC", async () => {
+    const client = fakeClient({
+      data: { application_id: "application-1", readiness_status: "pending" },
+      error: null
+    });
+    const repository = createPublicListingsRepository(client);
+
+    await expect(repository.shortlistApplication({ applicationId: "application-1" }))
+      .resolves.toBe("application-1");
+  });
+
   it("passes bounded discovery filters to the safe jobs RPC", async () => {
     const client = fakeClient({ data: [], error: null });
     const repository = createPublicListingsRepository(client);

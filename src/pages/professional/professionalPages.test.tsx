@@ -78,6 +78,7 @@ describe("professional workspace", () => {
       "/professional/training/qualification-1"
     );
     expect(screen.queryByText("Shortlisted")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "View job" })).not.toBeInTheDocument();
   });
 
   it("does not tell a shortlisted Professional to wait when readiness is not attached", async () => {

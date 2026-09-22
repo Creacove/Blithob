@@ -142,7 +142,7 @@ export function JobsPage({
                 {needsQualification && (
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
                     <div>
-                      <p className="font-semibold text-amber-950">Complete the steps for this type of job</p>
+                      <p className="font-semibold text-amber-950">Complete the qualification for this job</p>
                       {application.readinessRequirementCount !== undefined && (
                         <p className="mt-1 text-sm text-amber-800">
                           {application.readinessCompletedCount ?? 0} of {application.readinessRequirementCount} complete
@@ -182,7 +182,6 @@ export function JobsPage({
                     <Clock3 size={13} aria-hidden /> Applied {new Date(application.createdAt).toLocaleDateString("en-NG", { dateStyle: "medium" })}
                   </span>
                   <div className="flex items-center gap-3">
-                    <Link to={`/jobs/${application.jobSlug}`} className="text-sm font-semibold text-[var(--blue)]">View job</Link>
                     {["submitted", "under_review", "shortlisted"].includes(application.status) && (
                       <Button variant="secondary" disabled={workingId === application.id} onClick={() => void withdraw(application.id)}>
                         {workingId === application.id ? "Withdrawing…" : "Withdraw"}

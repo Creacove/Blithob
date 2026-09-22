@@ -238,7 +238,11 @@ export function JobsPage({
                 title={job.title || "Untitled Job"}
                 service={service?.name ?? "Unknown Service"}
                 status={getJobStatus(job.id)}
-                progress={`${completed} of ${jobAssignments.length} completed`}
+                progress={
+                  jobAssignments.length === 0
+                    ? "No people hired"
+                    : `${completed} of ${jobAssignments.length} complete`
+                }
                 deadline={job.deadline}
                 applicantCount={metricsLoaded ? applicantCount ?? 0 : undefined}
                 hiredCount={metricsLoaded ? hiredCount : undefined}

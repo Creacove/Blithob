@@ -441,7 +441,9 @@ export function createPublicListingsRepository(client: PublicListingsClient): Pu
         p_application_id: input.applicationId,
         p_admin_note: input.adminNote?.trim() || null
       }));
-      const row = rows(data)[0];
+      // The RPC returns a JSON object (readiness metadata), not a row set.
+      // Accept either shape so a successful shortlist never fails in the UI.
+      const row = rowObject(Array.isArray(data) ? data[0] : data);
       return text(row, "application_id") || input.applicationId;
     },
     async convertApplication(input) {
