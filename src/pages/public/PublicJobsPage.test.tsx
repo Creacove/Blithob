@@ -24,6 +24,7 @@ const repository: PublicListingsRepository = {
   async submitApplication() { return "a1"; },
   async withdrawApplication(id) { return id; },
   async reviewApplication(input) { return input.applicationId; },
+  async shortlistApplication(input) { return input.applicationId; },
   async convertApplication() { return "assignment-1"; }
 };
 

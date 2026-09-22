@@ -18,7 +18,7 @@ const repository: PublicListingsRepository = {
   },
   async listMyApplications() { return []; }, async listAdminApplications() { return []; },
   async completeProfessionalProfile() { return "p1"; }, async submitApplication() { return "a1"; }, async withdrawApplication(id) { return id; },
-  async reviewApplication(input) { return input.applicationId; }, async convertApplication() { return "assignment-1"; }
+  async reviewApplication(input) { return input.applicationId; }, async shortlistApplication(input) { return input.applicationId; }, async convertApplication() { return "assignment-1"; }
 };
 
 describe("PublicJobDetailPage", () => {

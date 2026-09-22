@@ -84,6 +84,54 @@ $$;
 
 do $$
 declare
+  shortlist_definition text;
+  review_definition text;
+  application_result text;
+begin
+  if to_regprocedure('public.shortlist_job_application(uuid,text)') is null then
+    raise exception 'Shortlist/readiness RPC is missing';
+  end if;
+  if not has_function_privilege('authenticated', 'public.shortlist_job_application(uuid,text)', 'execute') then
+    raise exception 'Authenticated execute privilege missing for shortlist/readiness RPC';
+  end if;
+  if has_function_privilege('anon', 'public.shortlist_job_application(uuid,text)', 'execute') then
+    raise exception 'Anonymous execute privilege must be denied for shortlist/readiness RPC';
+  end if;
+
+  select pg_get_functiondef('public.shortlist_job_application(uuid,text)'::regprocedure)
+    into shortlist_definition;
+  if shortlist_definition not like '%service_enrolments%' then
+    raise exception 'Shortlist RPC must create or reuse Service readiness';
+  end if;
+  if shortlist_definition not like '%application_shortlisted%' then
+    raise exception 'Shortlist RPC must queue the shortlist email';
+  end if;
+  if shortlist_definition not like '%status in (''withdrawn'', ''converted'')%' then
+    raise exception 'Shortlist RPC must protect closed applications';
+  end if;
+
+  select pg_get_functiondef('public.review_job_application(uuid,public.job_application_status,text)'::regprocedure)
+    into review_definition;
+  if review_definition not like '%shortlist_job_application%' then
+    raise exception 'Legacy review RPC must use readiness-aware shortlisting';
+  end if;
+
+  select pg_get_function_result('public.list_admin_applications(uuid,text,text,integer,integer)'::regprocedure)
+    into application_result;
+  foreach shortlist_definition in array array[
+    'service_id', 'service_name', 'readiness_status',
+    'readiness_completed_count', 'readiness_requirement_count',
+    'ready_for_assignment'
+  ] loop
+    if application_result not like '%' || shortlist_definition || '%' then
+      raise exception 'Admin application read model is missing %', shortlist_definition;
+    end if;
+  end loop;
+end;
+$$;
+
+do $$
+declare
   function_signature text;
 begin
   foreach function_signature in array array[

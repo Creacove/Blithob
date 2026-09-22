@@ -34,12 +34,29 @@ describe("transactional email configuration", () => {
     expect(migration).toContain("application_received");
     expect(migration).toContain("application_shortlisted");
     expect(migration).toContain("application_rejected");
+    expect(migration).toContain("readiness_review_requested");
+    expect(migration).toContain("readiness_certified");
+    expect(migration).toContain("readiness_changes_requested");
+    expect(migration).toContain("readiness_approved");
     expect(migration).toContain("assignment_created");
+    expect(migration).toContain("work_review_requested");
+    expect(migration).toContain("work_certified");
+    expect(migration).toContain("work_changes_requested");
+    expect(migration).toContain("work_approved");
+    expect(migration).toContain("assignment_completed");
+    expect(migration).toContain("assignment_cancelled");
     expect(migration).toContain("payment_paid");
+    expect(migration).toContain("payment_issue");
     expect(sender).toContain("RESEND_API_KEY");
     expect(sender).toContain("EMAIL_WEBHOOK_SECRET");
     expect(sender).toContain("Only internal webhook requests can send transactional email");
     expect(sender).toContain("async function rest");
+    expect(sender).toContain("readiness_required");
+    expect(sender).toContain("service_name");
+    expect(sender).toContain("Complete the readiness steps in Blithob");
+    expect(sender).toContain("escapeHtml");
+    expect(sender).not.toContain('text(payload, "admin_note")');
+    expect(sender).toContain("https://blithob.com");
     expect(webhookMigrationName).toBeDefined();
     const webhookMigration = readFileSync(
       resolve(migrationsDirectory, webhookMigrationName!),

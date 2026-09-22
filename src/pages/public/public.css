@@ -156,9 +156,20 @@
 .public-application-badge-shortlisted, .public-application-badge-converted { background: #ddf4e4; color: #277344; }
 .public-application-badge-rejected, .public-application-badge-withdrawn { background: #f0f2f3; color: #67767d; }
 .public-application-card-date { display: flex; align-items: center; gap: 6px; margin: 11px 0 0; color: #71818a; font-size: 12px; }
+.public-application-progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 18px; }
+.public-application-progress span { position: relative; border-radius: 999px; padding: 7px 8px; background: #eef2f3; color: #8a989e; text-align: center; font-size: 10px; font-weight: 900; letter-spacing: .02em; }
+.public-application-progress span.is-complete { background: #e5f5fc; color: #0b72ad; }
+.public-application-status-copy { margin: 14px 0 0; color: #5f7078; font-size: 14px; line-height: 1.55; }
+.public-application-next-step { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; border: 1px solid #cde8f3; border-radius: 15px; padding: 14px 16px; background: #f4fbfe; }
+.public-application-next-step.is-ready { border-color: #b8dfc5; background: #f3fbf5; }
+.public-application-next-step p { margin: 0; color: #31535f; font-size: 14px; line-height: 1.45; }
+.public-application-next-step .public-eyebrow { margin-bottom: 3px; color: #0b72ad; font-size: 10px; }
+.public-application-next-step.is-ready .public-eyebrow { color: #277344; }
+.public-application-next-step small { display: block; margin-top: 5px; color: #6e8088; font-size: 12px; }
 .public-application-admin-note { margin: 12px 0 0; border-left: 3px solid #9ed7eb; padding-left: 11px; color: #5d6f78; font-size: 13px; line-height: 1.5; }
 .public-application-card-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding-top: 14px; border-top: 1px solid #e5eaec; }
 @media (max-width: 560px) { .public-application-card-heading { align-items: start; flex-direction: column; } }
+@media (max-width: 560px) { .public-application-next-step { align-items: start; flex-direction: column; } }
 @media (max-width: 700px) { .public-onboarding-page { padding-top: 16px; } .public-onboarding-card { margin-top: 46px; border-radius: 22px; } .public-onboarding-card h1, .public-apply-gate h1, .public-apply-heading h1 { font-size: clamp(3.25rem, 15vw, 5rem); } .public-apply-page { padding-top: 34px; } .public-apply-heading { align-items: start; flex-direction: column; padding-top: 48px; } .public-application-status { grid-template-columns: auto minmax(0,1fr); } .public-application-status .public-inline-link { grid-column: 2; } }
 @media (max-width: 800px) { .public-detail-page { padding-top: 34px; } .public-detail-heading { align-items: start; flex-direction: column; padding-top: 46px; } .public-detail-heading h1 { font-size: clamp(3.4rem, 15vw, 5.5rem); } .public-detail-grid { grid-template-columns: 1fr; gap: 38px; } .public-detail-aside { order: -1; } }
 @media (max-width: 1000px) { .public-job-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
