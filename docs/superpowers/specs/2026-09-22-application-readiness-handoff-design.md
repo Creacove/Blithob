@@ -108,6 +108,36 @@ Keep the existing transactional outbox. Extend the `application_shortlisted` pay
 
 Do not add a separate “readiness created” email. Existing readiness review/approval and assignment-created events remain unchanged.
 
+## Production email policy
+
+Email is reserved for an external user action, a decision that changes the user's opportunity, or money/work that needs attention. Routine Admin edits, filters, internal notes, and in-app queue changes do not send email.
+
+| Process | Recipient | Email | Rule |
+| --- | --- | --- | --- |
+| Admin invites a Professional | Invited Professional | Supabase Auth invitation | Required. The link must return to `https://blithob.com/login?mode=invite`; creating the password completes the invite. No duplicate welcome email. |
+| New public account with confirmation enabled | New Professional | Supabase Auth confirmation | Required only when Supabase requires confirmation. The redirect must stay on the canonical Blithob domain. |
+| Password reset requested | Account owner | Supabase Auth reset | Required. Use a generic success message so the UI does not disclose whether an account exists. |
+| Application submitted | Applicant | `application_received` | Required once per application. Include Job title and a link back to the application. |
+| Application shortlisted | Applicant | `application_shortlisted` | Required once. Include the readiness next step when approval is still needed; do not send a second “readiness created” email. |
+| Application rejected | Applicant | `application_rejected` | Required once, with the Admin's candidate-facing note only when explicitly provided. |
+| Application under review | Applicant | None | In-app status is sufficient; sending an email for a routine review transition creates noise. |
+| Applicant withdraws or uploads documents | Applicant/Admin | None | The initiating user sees an in-app confirmation; Admin queue refresh is sufficient. |
+| Readiness submitted for review | Assigned reviewer | `readiness_review_requested` | Required because a reviewer must take action. Route to the relevant review queue. |
+| Lead certifies readiness | Admin | `readiness_certified` | Required because final Admin approval is now needed. |
+| Readiness changes requested | Applicant | `readiness_changes_requested` | Required because the Applicant has a concrete next action. Include the review comment. |
+| Readiness approved | Applicant | `readiness_approved` | Required because the Applicant becomes eligible for work. |
+| Assignment created | Professional | `assignment_created` | Required. Include Job title and a link to start the Assignment. |
+| Assignment submitted for review | Lead/Admin reviewer | `work_review_requested` | Required because a reviewer must take action. |
+| Work certified by Lead | Admin | `work_certified` | Required because final Admin approval is now needed. |
+| Work changes requested | Professional | `work_changes_requested` | Required because the Professional has a concrete next action. Include the review comment. |
+| Work approved | Professional | `work_approved` | Required because the Professional can rely on the approval. |
+| Assignment completed | Professional | `assignment_completed` | Required because completion creates a payment record. |
+| Assignment cancelled | Professional | `assignment_cancelled` | Required, with the cancellation reason. |
+| Payment recorded as paid | Professional | `payment_paid` | Required because money has moved to a completed state. |
+| Payment marked as an issue | Professional | `payment_issue` | Required because the Professional must know the payment needs attention. Include the issue note. |
+
+The existing transactional outbox remains the delivery boundary for application, readiness, work, assignment, and payment events. Each event is idempotent on `(recipient, event type, source type, source ID)`, has both text and HTML content, uses `hello@blithob.com` (or the configured verified sender), and links to `https://blithob.com`. Failed sends remain retryable and visible to operators. No marketing, digest, deadline-reminder, or “your profile changed” email is introduced in this production pass.
+
 ## Admin UI design
 
 ### Page structure
