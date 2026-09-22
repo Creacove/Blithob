@@ -219,4 +219,3 @@ $$;
 
 revoke all on function public.list_admin_applications(uuid, text, text, integer, integer) from public, anon;
 grant execute on function public.list_admin_applications(uuid, text, text, integer, integer) to authenticated;
-

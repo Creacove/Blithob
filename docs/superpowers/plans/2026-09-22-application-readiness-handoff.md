@@ -476,4 +476,3 @@ Report the commit, migration ID, test outputs, and the live smoke evidence befor
 - PublicApplication field names are consistent between the SQL return columns, mapper, fixtures, and components.
 - Only readyForAssignment === true reveals assignment pay/drawer; missing optional data is safe during rollout.
 - The server remains authoritative for approval, active Professional, open Job, and idempotent Assignment creation.
-

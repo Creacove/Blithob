@@ -50,4 +50,3 @@ describe("application queue view model", () => {
     expect(applicationStatusLabel("under_review")).toBe("Under review");
   });
 });
-
