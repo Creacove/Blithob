@@ -92,6 +92,13 @@ export interface PublicApplication {
   cvDocumentId?: string;
   cvDisplayName?: string;
   supportingDocumentCount?: number;
+  serviceId?: string;
+  serviceName?: string;
+  readinessEnrolmentId?: string;
+  readinessStatus?: string;
+  readinessCompletedCount?: number;
+  readinessRequirementCount?: number;
+  readyForAssignment?: boolean;
   totalCount?: number;
 }
 
@@ -156,6 +163,10 @@ export interface PublicListingsRepository {
   reviewApplication(input: {
     applicationId: string;
     status: Extract<JobApplicationStatus, "under_review" | "shortlisted" | "rejected">;
+    adminNote?: string;
+  }): Promise<string>;
+  shortlistApplication(input: {
+    applicationId: string;
     adminNote?: string;
   }): Promise<string>;
   convertApplication(input: {
@@ -281,6 +292,15 @@ function mapApplication(row: Record<string, unknown>): PublicApplication {
     cvDocumentId: optionalText(row, "cv_document_id"),
     cvDisplayName: optionalText(row, "cv_display_name"),
     supportingDocumentCount: numberValue(row, "supporting_document_count"),
+    serviceId: optionalText(row, "service_id"),
+    serviceName: optionalText(row, "service_name"),
+    readinessEnrolmentId: optionalText(row, "readiness_enrolment_id"),
+    readinessStatus: optionalText(row, "readiness_status"),
+    readinessCompletedCount: numberValue(row, "readiness_completed_count"),
+    readinessRequirementCount: numberValue(row, "readiness_requirement_count"),
+    ...(typeof row.ready_for_assignment === "boolean"
+      ? { readyForAssignment: row.ready_for_assignment }
+      : {}),
     totalCount: numberValue(row, "total_count")
   };
 }
@@ -395,6 +415,14 @@ export function createPublicListingsRepository(client: PublicListingsClient): Pu
       }));
       return scalar(data) ?? input.applicationId;
     },
+    async shortlistApplication(input) {
+      const data = await resolve<unknown>(client.rpc("shortlist_job_application", {
+        p_application_id: input.applicationId,
+        p_admin_note: input.adminNote?.trim() || null
+      }));
+      const row = rows(data)[0];
+      return text(row, "application_id") || input.applicationId;
+    },
     async convertApplication(input) {
       const data = await resolve<unknown>(client.rpc("convert_job_application_to_assignment", {
         p_application_id: input.applicationId,
@@ -441,6 +469,7 @@ export function createEmptyPublicListingsRepository(): PublicListingsRepository 
     async submitApplication() { throw new Error("Supabase is not configured."); },
     async withdrawApplication() { throw new Error("Supabase is not configured."); },
     async reviewApplication() { throw new Error("Supabase is not configured."); },
+    async shortlistApplication() { throw new Error("Supabase is not configured."); },
     async convertApplication() { throw new Error("Supabase is not configured."); },
     async getApplicationDocumentUrl() { throw new Error("Supabase is not configured."); }
   };

@@ -13,7 +13,7 @@ const submitApplication = vi.fn(async () => "a1");
 const repository: PublicListingsRepository = {
   async listServices() { return []; }, async listCategories() { return []; }, async listJobs() { return { jobs: [], total: 0 }; },
   async getJob() { return { id: "job-1", slug: "product-designer", title: "Product Designer", summary: "Make a useful product feel clear.", companyName: "A client team", serviceSlug: "web", serviceName: "Web", categorySlug: "tech", categoryName: "Tech", employmentType: "Contract", workMode: "Remote", locationLabel: "Lagos", currency: "NGN", ratePeriod: "month", createdAt: "2026-09-02", description: "A calm brief.", deliverables: [], references: [] }; },
-  async listMyApplications() { return []; }, async listAdminApplications() { return []; }, async completeProfessionalProfile() { return "p1"; }, submitApplication, async withdrawApplication(id) { return id; }, async reviewApplication(input) { return input.applicationId; }, async convertApplication() { return "assignment-1"; }
+  async listMyApplications() { return []; }, async listAdminApplications() { return []; }, async completeProfessionalProfile() { return "p1"; }, submitApplication, async withdrawApplication(id) { return id; }, async reviewApplication(input) { return input.applicationId; }, async shortlistApplication(input) { return input.applicationId; }, async convertApplication() { return "assignment-1"; }
 };
 
 const cvFixture: CandidateDocument = {

@@ -55,6 +55,7 @@ function repository(rows: PublicApplication[] = [application]): PublicListingsRe
     async submitApplication() { return "application-1"; },
     async withdrawApplication(id) { return id; },
     async reviewApplication(input) { return input.applicationId; },
+    async shortlistApplication(input) { return input.applicationId; },
     async convertApplication() { return "assignment-1"; },
     async getApplicationDocumentUrl() { return "https://signed.example/cv"; }
   };

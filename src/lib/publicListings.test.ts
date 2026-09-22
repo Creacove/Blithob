@@ -98,6 +98,60 @@ describe("public listings repository", () => {
     });
   });
 
+  it("maps Service readiness fields from the Admin application read model", async () => {
+    const client = fakeClient({
+      data: [{
+        id: "application-1",
+        job_id: "job-1",
+        job_slug: "frontend-developer",
+        job_title: "Frontend Developer",
+        company_name: "A client team",
+        service_id: "service-web",
+        service_name: "Web development",
+        professional_id: "professional-1",
+        status: "shortlisted",
+        cover_note: "A thoughtful application note.",
+        created_at: "2026-09-02T10:00:00.000Z",
+        updated_at: "2026-09-02T10:00:00.000Z",
+        readiness_enrolment_id: "enrolment-1",
+        readiness_status: "in_progress",
+        readiness_completed_count: 1,
+        readiness_requirement_count: 3,
+        ready_for_assignment: false,
+        total_count: 1
+      }],
+      error: null
+    });
+    const repository = createPublicListingsRepository(client);
+
+    const [result] = await repository.listAdminApplications();
+
+    expect(result).toEqual(expect.objectContaining({
+      serviceId: "service-web",
+      serviceName: "Web development",
+      readinessEnrolmentId: "enrolment-1",
+      readinessStatus: "in_progress",
+      readinessCompletedCount: 1,
+      readinessRequirementCount: 3,
+      readyForAssignment: false
+    }));
+  });
+
+  it("shortlists through the atomic readiness handoff RPC", async () => {
+    const client = fakeClient({ data: [{ application_id: "application-1" }], error: null });
+    const repository = createPublicListingsRepository(client);
+
+    await expect(repository.shortlistApplication({
+      applicationId: "application-1",
+      adminNote: "Strong fit for the role."
+    })).resolves.toBe("application-1");
+
+    expect(client.rpc).toHaveBeenCalledWith("shortlist_job_application", {
+      p_application_id: "application-1",
+      p_admin_note: "Strong fit for the role."
+    });
+  });
+
   it("passes bounded discovery filters to the safe jobs RPC", async () => {
     const client = fakeClient({ data: [], error: null });
     const repository = createPublicListingsRepository(client);
