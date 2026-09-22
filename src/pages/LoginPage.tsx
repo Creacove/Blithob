@@ -40,7 +40,7 @@ const personas = [
   }
 ];
 
-function RemoteAuthPage({ next }: { next?: string }) {
+function RemoteAuthPage({ next, isInvitation }: { next?: string; isInvitation: boolean }) {
   const [mode, setMode] = useState<"signIn" | "signUp" | "reset" | "recovery">("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -63,7 +63,8 @@ function RemoteAuthPage({ next }: { next?: string }) {
   const error = useProfessionalStore((state) => state.error);
   const clearError = useProfessionalStore((state) => state.clearError);
 
-  const activeMode = isPasswordRecovery ? "recovery" : mode;
+  const isSettingPassword = isPasswordRecovery || isInvitation;
+  const activeMode = isSettingPassword ? "recovery" : mode;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -127,6 +128,8 @@ function RemoteAuthPage({ next }: { next?: string }) {
           <h1 className="mt-3 text-[clamp(2.25rem,5vw,4rem)] font-semibold leading-[1.05] text-[var(--ink)]">
             {activeMode === "reset"
               ? "Reset your password"
+              : isInvitation
+                ? "Create your password"
               : activeMode === "recovery"
                 ? "Choose a new password"
                 : "Sign in to Blithob"}
@@ -205,7 +208,9 @@ function RemoteAuthPage({ next }: { next?: string }) {
                   ? "Check your email to confirm your account, then come back to sign in."
                   : submittedMode === "reset"
                     ? "If an account exists for that email, a reset link is on its way."
-                    : "Your password has been updated. Sign in to continue."}
+                    : isInvitation
+                      ? "Your password has been created."
+                      : "Your password has been updated. Sign in to continue."}
               </p>
             )}
 
@@ -219,7 +224,7 @@ function RemoteAuthPage({ next }: { next?: string }) {
                 : activeMode === "reset"
                   ? "Send reset link"
                 : activeMode === "recovery"
-                    ? "Update password"
+                    ? isInvitation ? "Create password" : "Update password"
                     : activeMode === "signUp"
                       ? "Create account"
                       : "Sign in"}
@@ -261,11 +266,12 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedNext = searchParams.get("next");
+  const isInvitation = searchParams.get("mode") === "invite";
   const next = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
     ? requestedNext
     : undefined;
 
-  if (session && currentUser) {
+  if (session && currentUser && !isInvitation) {
     const defaultDestination = session.persona === "admin"
       ? "/admin/today"
       : currentProfessional
@@ -279,7 +285,7 @@ export function LoginPage() {
     );
   }
 
-  if (isSupabaseConfigured) return <RemoteAuthPage next={next} />;
+  if (isSupabaseConfigured) return <RemoteAuthPage next={next} isInvitation={isInvitation} />;
 
   if (!isDemoMode) {
     return (

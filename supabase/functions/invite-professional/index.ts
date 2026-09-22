@@ -69,7 +69,10 @@ Deno.serve(async (request) => {
 
   const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
     email,
-    { data: { display_name: name } }
+    {
+      data: { display_name: name },
+      redirectTo: "https://blithob.com/login?mode=invite"
+    }
   );
   if (inviteError || !invited.user) {
     return json({ error: inviteError?.message ?? "Could not invite Professional" }, 400);
