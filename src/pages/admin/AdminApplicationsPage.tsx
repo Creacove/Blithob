@@ -1,6 +1,6 @@
 import { RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { EmptyState, Button } from "../../components/ui";
 import { PageHeader } from "../../components/PageHeader";
 import {
@@ -23,17 +23,17 @@ export function AdminApplicationsPage({
   repository?: PublicListingsRepository;
 }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const jobs = useProfessionalStore((state) => state.jobs);
   const [applications, setApplications] = useState<PublicApplication[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [status, setStatus] = useState<"all" | JobApplicationStatus>("all");
-  const [jobId, setJobId] = useState("all");
+  const [jobId, setJobId] = useState(() => searchParams.get("jobId") || "all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [workingId, setWorkingId] = useState<string | null>(null);
-  const [notes, setNotes] = useState<Record<string, string>>({});
   const [assignmentApplication, setAssignmentApplication] = useState<PublicApplication | null>(null);
 
   const loadFirstPage = useCallback(async () => {
@@ -92,13 +92,13 @@ export function AdminApplicationsPage({
       if (nextStatus === "shortlisted") {
         await repository.shortlistApplication({
           applicationId: application.id,
-          adminNote: notes[application.id]
+          adminNote: application.adminNote
         });
       } else {
         await repository.reviewApplication({
           applicationId: application.id,
           status: nextStatus,
-          adminNote: notes[application.id]
+          adminNote: application.adminNote
         });
       }
       await loadFirstPage();
@@ -110,10 +110,6 @@ export function AdminApplicationsPage({
   };
 
   const handlePrimary = (application: PublicApplication, action: ApplicationAction) => {
-    if (action === "start_review") {
-      void runStatusChange(application, "under_review");
-      return;
-    }
     if (action === "shortlist") {
       void runStatusChange(application, "shortlisted");
       return;
@@ -161,9 +157,9 @@ export function AdminApplicationsPage({
   return (
     <div>
       <PageHeader
-        eyebrow="Candidate pipeline"
+        eyebrow="Job applicants"
         title="Applications"
-        description="Make one clear decision at a time, then let readiness and assignment states guide the next step."
+        description="Shortlist, decline, or hire each person for this job."
         actions={
           <Button type="button" variant="secondary" onClick={() => void loadFirstPage()}>
             <RefreshCw size={15} aria-hidden="true" />
@@ -216,11 +212,7 @@ export function AdminApplicationsPage({
               <ApplicationCard
                 key={application.id}
                 application={application}
-                privateNote={notes[application.id] ?? application.adminNote ?? ""}
                 working={workingId === application.id}
-                onPrivateNoteChange={(value) =>
-                  setNotes((current) => ({ ...current, [application.id]: value }))
-                }
                 onPrimary={(action) => handlePrimary(application, action)}
                 onStatusChange={(nextStatus) => void runStatusChange(application, nextStatus)}
                 onViewCv={() => void viewCv(application)}

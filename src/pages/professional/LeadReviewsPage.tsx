@@ -5,6 +5,7 @@ import {
   RotateCcw
 } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Drawer } from "../../components/Drawer";
 import { PageHeader } from "../../components/PageHeader";
 import { RecordTimeline } from "../../components/RecordTimeline";
@@ -93,11 +94,11 @@ export function LeadReviewsPage() {
       setFeedback("");
       success(
         decision === "certified"
-          ? "Assignment certified for Admin"
+          ? "Work approved for Admin"
           : "Changes requested"
       );
     } catch (caught) {
-      error(caught instanceof Error ? caught.message : "Assignment review could not be saved");
+      error(caught instanceof Error ? caught.message : "Review could not be saved");
     }
   };
 
@@ -108,7 +109,15 @@ export function LeadReviewsPage() {
           routedAssignments.length === 1 ? "" : "s"
         }`}
         title="Reviews"
-        description="Inspect submitted work assigned to you, request precise changes, or certify it for final Admin approval."
+        description="Review submitted work and send a clear decision."
+        actions={
+          <Link
+            to="/professional/team"
+            className="inline-flex min-h-11 items-center rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)]"
+          >
+            Qualification reviews
+          </Link>
+        }
       />
 
       <SummaryBand
@@ -141,7 +150,7 @@ export function LeadReviewsPage() {
         <div className="mt-6">
           <EmptyState
             title="Review queue is clear"
-            description="Submitted Assignments routed to you will appear here."
+            description="Submitted work assigned to you will appear here."
           />
         </div>
       ) : (
@@ -240,7 +249,7 @@ export function LeadReviewsPage() {
                   <span className="truncate text-sm font-semibold text-[var(--muted)]">
                     {assignment.status === "changes_requested_by_lead"
                       ? "Waiting for revision"
-                      : "Certified for Admin"}
+                        : "Approved for Admin"}
                   </span>
                 )}
               </DesktopRecordRow>
@@ -275,7 +284,7 @@ export function LeadReviewsPage() {
                 onClick={() => decide("certified")}
               >
                 <CheckCircle2 size={16} aria-hidden />
-                Certify for Admin
+                Approve and send to Admin
               </Button>
             </>
           ) : undefined

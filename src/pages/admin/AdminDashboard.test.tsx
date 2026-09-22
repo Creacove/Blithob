@@ -34,7 +34,7 @@ describe("Admin Today", () => {
   it("explains when there are no deadlines or activity yet", () => {
     renderPage();
 
-    expect(screen.getByText("No active Assignment deadlines.")).toBeInTheDocument();
+    expect(screen.getByText("No active work deadlines.")).toBeInTheDocument();
     expect(screen.getByText("No recent activity yet.")).toBeInTheDocument();
   });
 

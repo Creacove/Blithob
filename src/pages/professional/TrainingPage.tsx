@@ -28,8 +28,8 @@ export function TrainingPage() {
   return (
     <div>
       <PageHeader
-        title="Training"
-        description="Complete one readiness checklist for each Service you are preparing to deliver."
+        title="Qualifications"
+        description="Complete these steps once, then reuse your qualification for similar jobs."
       />
       <SummaryBand
         className="mt-6"
@@ -52,7 +52,7 @@ export function TrainingPage() {
             ).length
           },
           {
-            label: "Approved Services",
+            label: "Completed",
             value: ownEnrolments.filter((item) => item.status === "approved")
               .length,
             tone: "positive"
@@ -63,13 +63,13 @@ export function TrainingPage() {
       {ownEnrolments.length === 0 ? (
         <div className="mt-6">
           <EmptyState
-            title="No Service training assigned"
-            description="An Admin assigns Service readiness from your Professional record."
+            title="No qualifications needed"
+            description="If a job needs extra steps, they will appear with your application."
           />
         </div>
       ) : (
         isMobile ? (
-          <div className="mt-6 grid gap-3" aria-label="Service training mobile">
+          <div className="mt-6 grid gap-3" aria-label="Qualifications mobile">
             {ownEnrolments.map((enrolment) => {
               const service = services.find(
                 (item) => item.id === enrolment.serviceId
@@ -81,7 +81,7 @@ export function TrainingPage() {
                 <ResponsiveRecord
                   key={enrolment.id}
                   to={`/professional/training/${enrolment.id}`}
-                  ariaLabel={`Open ${service?.name ?? "Service"} training mobile`}
+                  ariaLabel={`Open ${service?.name ?? "job"} qualification mobile`}
                   title={service?.name ?? "Service"}
                   subtitle={service?.description}
                   status={<StatusBadge status={enrolment.status} />}
@@ -103,7 +103,7 @@ export function TrainingPage() {
             })}
           </div>
         ) : (
-          <RecordList className="mt-6" label="Service training">
+          <RecordList className="mt-6" label="Qualifications">
           {ownEnrolments.map((enrolment) => {
             const service = services.find(
               (item) => item.id === enrolment.serviceId
@@ -118,7 +118,7 @@ export function TrainingPage() {
               <DesktopRecordRow
                 key={enrolment.id}
                 to={`/professional/training/${enrolment.id}`}
-                ariaLabel={`Open ${service?.name ?? "Service"} training`}
+                ariaLabel={`Open ${service?.name ?? "job"} qualification`}
                 columns="minmax(15rem,1fr) 9.5rem 10rem minmax(10rem,0.7fr) 1.25rem"
               >
                 <div className="min-w-0">

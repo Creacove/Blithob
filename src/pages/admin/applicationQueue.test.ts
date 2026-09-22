@@ -16,7 +16,7 @@ const base: PublicApplication = {
 
 describe("application queue view model", () => {
   it.each([
-    ["submitted", "start_review"],
+    ["submitted", "shortlist"],
     ["under_review", "shortlist"],
     ["shortlisted", "view_readiness"],
     ["converted", "view_application"],
@@ -26,9 +26,10 @@ describe("application queue view model", () => {
     expect(primaryAction({ ...base, status })).toBe(action);
   });
 
-  it("only exposes assignment creation for an explicitly ready application", () => {
+  it("exposes hiring once the qualification is approved", () => {
     expect(primaryAction({ ...base, readyForAssignment: true, readinessStatus: "approved" })).toBe("create_assignment");
-    expect(primaryAction({ ...base, readyForAssignment: undefined, readinessStatus: "approved" })).toBe("view_readiness");
+    expect(primaryAction({ ...base, readyForAssignment: undefined, readinessStatus: "approved" })).toBe("create_assignment");
+    expect(primaryAction({ ...base, readyForAssignment: false, readinessStatus: "in_progress" })).toBe("view_readiness");
   });
 
   it("describes readiness progress without exposing internal database terms", () => {
@@ -38,15 +39,15 @@ describe("application queue view model", () => {
       readinessCompletedCount: 1,
       readinessRequirementCount: 3
     })).toEqual({
-      label: "Readiness in progress",
+      label: "Qualification in progress",
       tone: "attention",
-      detail: "1 of 3 readiness requirements complete."
+      detail: "1 of 3 qualification steps complete."
     });
-    expect(readinessCopy({ ...base, readinessStatus: "approved" }).label).toBe("Ready to assign");
+    expect(readinessCopy({ ...base, readinessStatus: "approved" }).label).toBe("Ready to hire");
   });
 
   it("keeps application status labels human-readable", () => {
-    expect(applicationStatusLabel("converted")).toBe("Assigned");
-    expect(applicationStatusLabel("under_review")).toBe("Under review");
+    expect(applicationStatusLabel("converted")).toBe("Hired");
+    expect(applicationStatusLabel("under_review")).toBe("Applied");
   });
 });

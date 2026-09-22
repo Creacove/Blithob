@@ -1,7 +1,6 @@
 import type { JobApplicationStatus, PublicApplication } from "../../lib/publicListings";
 
 export type ApplicationAction =
-  | "start_review"
   | "shortlist"
   | "view_readiness"
   | "create_assignment"
@@ -9,12 +8,12 @@ export type ApplicationAction =
   | "view_application";
 
 const statusLabels: Record<JobApplicationStatus, string> = {
-  submitted: "Submitted",
-  under_review: "Under review",
+  submitted: "Applied",
+  under_review: "Applied",
   shortlisted: "Shortlisted",
   rejected: "Not selected",
   withdrawn: "Withdrawn",
-  converted: "Assigned"
+  converted: "Hired"
 };
 
 export function applicationStatusLabel(status: JobApplicationStatus) {
@@ -24,11 +23,11 @@ export function applicationStatusLabel(status: JobApplicationStatus) {
 export function primaryAction(application: PublicApplication): ApplicationAction {
   switch (application.status) {
     case "submitted":
-      return "start_review";
+      return "shortlist";
     case "under_review":
       return "shortlist";
     case "shortlisted":
-      return application.readyForAssignment === true
+      return application.readyForAssignment === true || application.readinessStatus === "approved"
         ? "create_assignment"
         : "view_readiness";
     case "converted":
@@ -42,9 +41,9 @@ function progressDetail(application: PublicApplication) {
   const completed = application.readinessCompletedCount;
   const total = application.readinessRequirementCount;
   if (typeof completed === "number" && typeof total === "number" && total > 0) {
-    return `${completed} of ${total} readiness requirements complete.`;
+    return `${completed} of ${total} qualification steps complete.`;
   }
-  return "Candidate is completing readiness.";
+  return "Candidate is completing the qualification steps.";
 }
 
 export function readinessCopy(application: PublicApplication): {
@@ -55,47 +54,47 @@ export function readinessCopy(application: PublicApplication): {
   switch (application.readinessStatus) {
     case "approved":
       return {
-        label: "Ready to assign",
+        label: "Ready to hire",
         tone: "success",
-        detail: "Service readiness is approved."
+        detail: "Qualification is complete."
       };
     case "in_progress":
       return {
-        label: "Readiness in progress",
+        label: "Qualification in progress",
         tone: "attention",
         detail: progressDetail(application)
       };
     case "waiting_for_lead":
     case "waiting_for_admin":
       return {
-        label: "Readiness submitted",
+        label: "Qualification submitted",
         tone: "attention",
-        detail: "Readiness is waiting for review."
+        detail: "Qualification is waiting for review."
       };
     case "changes_requested_by_lead":
     case "changes_requested_by_admin":
       return {
         label: "Changes requested",
         tone: "attention",
-        detail: "Candidate needs to update readiness."
+        detail: "Candidate needs to update their evidence."
       };
     case "paused":
       return {
-        label: "Readiness paused",
+        label: "Qualification paused",
         tone: "neutral",
-        detail: "Readiness must be resumed before assignment."
+        detail: "Qualification must be resumed before hiring."
       };
     case "not_started":
       return {
-        label: "Readiness not started",
+        label: "Qualification not started",
         tone: "attention",
-        detail: "Candidate has not started readiness."
+        detail: "Candidate has not started the required steps."
       };
     default:
       return {
-        label: "Readiness unavailable",
+        label: "Qualification unavailable",
         tone: "neutral",
-        detail: "Refresh to check readiness."
+        detail: "Refresh to check the qualification."
       };
   }
 }

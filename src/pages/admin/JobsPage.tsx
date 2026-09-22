@@ -49,7 +49,7 @@ export function JobsPage() {
     <div>
       <PageHeader
         title="Jobs"
-        description="Create complete work briefs and track each Professional through an independent Assignment."
+        description="Create jobs, review applicants, and track every person you hire."
         actions={
           <Link
             to="/admin/jobs/new"
@@ -71,7 +71,7 @@ export function JobsPage() {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search Jobs"
+            placeholder="Search jobs"
             className="pl-10"
           />
         </label>

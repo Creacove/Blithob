@@ -3,12 +3,12 @@ import { Button, Field, Input, Select } from "../../components/ui";
 import type { JobApplicationStatus } from "../../lib/publicListings";
 
 const statusLabel: Record<JobApplicationStatus, string> = {
-  submitted: "Submitted",
-  under_review: "Under review",
+  submitted: "Applied",
+  under_review: "Waiting for decision",
   shortlisted: "Shortlisted",
   rejected: "Not selected",
   withdrawn: "Withdrawn",
-  converted: "Assigned"
+  converted: "Hired"
 };
 
 export function ApplicationFilters({
@@ -40,7 +40,7 @@ export function ApplicationFilters({
             aria-label="Search applications"
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Candidate, email, job, or Service"
+            placeholder="Candidate, email, or job"
             className="w-full"
           />
         </Field>

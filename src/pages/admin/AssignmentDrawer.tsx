@@ -64,8 +64,8 @@ export function AssignmentDrawer({
   return (
     <Drawer
       open={open}
-      title="Create assignment"
-      description="Confirm the agreed terms. The Professional will be notified after the Assignment is created."
+      title="Hire candidate"
+      description="Confirm the pay and deadline. The candidate will see the work immediately."
       onClose={onClose}
       footer={
         <>
@@ -73,7 +73,7 @@ export function AssignmentDrawer({
             Cancel
           </Button>
           <Button type="submit" form="assignment-form" disabled={isSubmitting}>
-            {isSubmitting ? "Creating…" : "Create assignment"}
+            {isSubmitting ? "Hiring…" : "Hire candidate"}
           </Button>
         </>
       }
@@ -87,7 +87,7 @@ export function AssignmentDrawer({
             {application.jobTitle}
           </p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            {application.applicantName || "Applicant"} · {application.serviceName || "Service readiness approved"}
+            {application.applicantName || "Applicant"} · {application.serviceName || "Qualification complete"}
           </p>
         </div>
 
@@ -118,7 +118,7 @@ export function AssignmentDrawer({
         </Field>
 
         <p className="text-sm leading-6 text-[var(--muted)]">
-          This creates the Assignment and sends the Professional one notification.
+          This creates their work record and sends one notification.
         </p>
       </form>
     </Drawer>

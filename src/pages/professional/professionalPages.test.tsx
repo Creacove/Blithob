@@ -11,6 +11,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { App } from "../../App";
 import { ToastProvider } from "../../components/ToastProvider";
 import { useProfessionalStore } from "../../store/professionalStore";
+import type { PublicApplication, PublicListingsRepository } from "../../lib/publicListings";
+import { JobsPage as ProfessionalJobsPage } from "./JobsPage";
 
 function renderAppAt(path: string) {
   return render(
@@ -28,6 +30,54 @@ describe("professional workspace", () => {
   beforeEach(() => {
     useProfessionalStore.getState().resetDemo();
     useProfessionalStore.getState().signIn("professional");
+  });
+
+  it("keeps applications inside Jobs and shows one clear qualification action", async () => {
+    const application: PublicApplication = {
+      id: "application-1",
+      jobId: "job-1",
+      jobSlug: "social-media-manager",
+      jobTitle: "Social Media Manager",
+      companyName: "Brightwave",
+      status: "shortlisted",
+      coverNote: "Relevant experience",
+      readinessEnrolmentId: "qualification-1",
+      readinessStatus: "in_progress",
+      readinessCompletedCount: 1,
+      readinessRequirementCount: 3,
+      createdAt: "2026-09-22T10:00:00Z",
+      updatedAt: "2026-09-22T10:00:00Z"
+    };
+    const repository: PublicListingsRepository = {
+      async listServices() { return []; },
+      async listCategories() { return []; },
+      async listJobs() { return { jobs: [], total: 0 }; },
+      async getJob() { return null; },
+      async listMyApplications() { return [application]; },
+      async listAdminApplications() { return []; },
+      async completeProfessionalProfile() { return "professional-1"; },
+      async submitApplication() { return "application-1"; },
+      async withdrawApplication(id) { return id; },
+      async reviewApplication(input) { return input.applicationId; },
+      async shortlistApplication(input) { return input.applicationId; },
+      async convertApplication() { return "assignment-1"; }
+    };
+
+    render(
+      <MemoryRouter>
+        <ProfessionalJobsPage repository={repository} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole("heading", { name: "Jobs" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Browse jobs" })).toHaveAttribute("href", "/jobs");
+    expect(await screen.findByText("Social Media Manager")).toBeInTheDocument();
+    expect(screen.getByText("Action required")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Complete qualification" })).toHaveAttribute(
+      "href",
+      "/professional/training/qualification-1"
+    );
+    expect(screen.queryByText("Shortlisted")).not.toBeInTheDocument();
   });
 
   it("shows Amara only her independent Assignments", () => {
@@ -54,7 +104,7 @@ describe("professional workspace", () => {
     renderAppAt("/professional/work/assignment-amara-campaign");
 
     await user.click(
-      screen.getByRole("button", { name: "Start assignment" })
+      screen.getByRole("button", { name: "Start work" })
     );
 
     expect(
@@ -151,6 +201,14 @@ describe("professional workspace", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("presents reusable job requirements as Qualifications, not Training", () => {
+    renderAppAt("/professional/training");
+
+    expect(screen.getByRole("heading", { name: "Qualifications" })).toBeInTheDocument();
+    expect(screen.getByText(/Complete these steps once/i)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Training" })).not.toBeInTheDocument();
+  });
+
   it("uses one editable Email field without a duplicate contact summary", () => {
     renderAppAt("/professional/profile");
 
@@ -238,6 +296,10 @@ describe("professional workspace", () => {
     expect(
       screen.getByRole("heading", { name: "Reviews" })
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Qualification reviews" })).toHaveAttribute(
+      "href",
+      "/professional/team"
+    );
     expect(screen.getByText("David Mensah")).toBeInTheDocument();
     expect(screen.getByText("Campaign Refresh")).toBeInTheDocument();
     expect(screen.queryByText("Lead Newsletter Draft")).not.toBeInTheDocument();
@@ -252,7 +314,7 @@ describe("professional workspace", () => {
     });
     await user.click(
       within(screen.getByRole("dialog")).getByRole("button", {
-        name: "Certify for Admin"
+        name: "Approve and send to Admin"
       })
     );
 

@@ -51,23 +51,32 @@ describe("application routing", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows Services as a first-class Admin destination", () => {
+  it("keeps Admin navigation focused on the four operating areas", async () => {
+    const user = userEvent.setup();
     useProfessionalStore.getState().signIn("admin");
     renderAppAt("/admin/today");
 
-    expect(
-      screen.getByRole("link", { name: "Services" })
-    ).toBeInTheDocument();
+    const navigation = screen.getAllByRole("navigation", { name: "Admin navigation" })[0];
+    expect(within(navigation).getAllByRole("link")).toHaveLength(4);
+    expect(within(navigation).getByRole("link", { name: "Home" })).toBeInTheDocument();
+    expect(within(navigation).getByRole("link", { name: "Jobs" })).toBeInTheDocument();
+    expect(within(navigation).getByRole("link", { name: "People" })).toBeInTheDocument();
+    expect(within(navigation).getByRole("link", { name: "Payments" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Open desktop user menu" }));
+    expect(screen.getByRole("link", { name: "Job qualifications" })).toBeInTheDocument();
   });
 
   it("keeps Lead users inside the Professional workspace", () => {
     useProfessionalStore.getState().signIn("lead");
     renderAppAt("/professional/today");
 
-    expect(screen.getByRole("link", { name: "Work" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Team" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Reviews" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Training" })).toBeInTheDocument();
+    const navigation = screen.getAllByRole("navigation", { name: "Lead navigation" })[0];
+    expect(within(navigation).getByRole("link", { name: "Home" })).toBeInTheDocument();
+    expect(within(navigation).getByRole("link", { name: "Jobs" })).toBeInTheDocument();
+    expect(within(navigation).getByRole("link", { name: "Reviews" })).toBeInTheDocument();
+    expect(within(navigation).queryByRole("link", { name: "Team" })).not.toBeInTheDocument();
+    expect(within(navigation).queryByRole("link", { name: "Training" })).not.toBeInTheDocument();
   });
 
   it("does not expose Lead destinations to a regular Professional", () => {
@@ -78,6 +87,8 @@ describe("application routing", () => {
     expect(
       screen.queryByRole("link", { name: "Reviews" })
     ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Jobs" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Training" })).not.toBeInTheDocument();
   });
 
   it.each([
@@ -134,8 +145,7 @@ describe("application routing", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("keeps Admin phone navigation to four destinations plus More", async () => {
-    const user = userEvent.setup();
+  it("keeps Admin phone navigation to four destinations", async () => {
     useProfessionalStore.getState().signIn("admin");
     renderAppAt("/admin/today");
 
@@ -145,30 +155,10 @@ describe("application routing", () => {
     expect(
       within(mobileNavigation).getAllByRole("link")
     ).toHaveLength(4);
-    expect(
-      within(mobileNavigation).getByRole("button", { name: "More" })
-    ).toBeInTheDocument();
-
-    await user.click(
-      within(mobileNavigation).getByRole("button", { name: "More" })
-    );
-
-    const moreSheet = screen.getByRole("dialog", {
-      name: "More"
-    });
-    expect(
-      within(moreSheet).getByRole("link", { name: "Services" })
-    ).toBeInTheDocument();
-    expect(
-      within(moreSheet).getByRole("link", { name: "Payments" })
-    ).toBeInTheDocument();
-    expect(
-      within(moreSheet).getByRole("link", { name: "Updates" })
-    ).toBeInTheDocument();
+    expect(within(mobileNavigation).queryByRole("button", { name: "More" })).not.toBeInTheDocument();
   });
 
-  it("keeps Lead phone navigation to four destinations plus More", async () => {
-    const user = userEvent.setup();
+  it("keeps Lead phone navigation focused on Home, Jobs, Work, and Reviews", () => {
     useProfessionalStore.getState().signIn("lead");
     renderAppAt("/professional/today");
 
@@ -179,22 +169,10 @@ describe("application routing", () => {
       within(mobileNavigation).getAllByRole("link")
     ).toHaveLength(4);
 
-    await user.click(
-      within(mobileNavigation).getByRole("button", { name: "More" })
-    );
-
-    const moreSheet = screen.getByRole("dialog", {
-      name: "More"
-    });
-    expect(
-      within(moreSheet).getByRole("link", { name: "Training" })
-    ).toBeInTheDocument();
-    expect(
-      within(moreSheet).getByRole("link", { name: "Payments" })
-    ).toBeInTheDocument();
-    expect(
-      within(moreSheet).getByRole("link", { name: "Profile" })
-    ).toBeInTheDocument();
+    expect(within(mobileNavigation).getByRole("link", { name: "Home mobile" })).toBeInTheDocument();
+    expect(within(mobileNavigation).getByRole("link", { name: "Jobs mobile" })).toBeInTheDocument();
+    expect(within(mobileNavigation).getByRole("link", { name: "Work mobile" })).toBeInTheDocument();
+    expect(within(mobileNavigation).getByRole("link", { name: "Reviews mobile" })).toBeInTheDocument();
   });
 
   it("recovers from a persisted session whose user no longer exists", () => {
@@ -295,6 +273,10 @@ describe("application routing", () => {
     expect(
       screen.getByRole("heading", { name: "Acceptance criteria" })
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View applicants" })).toHaveAttribute(
+      "href",
+      "/admin/applications?jobId=job-open-social"
+    );
   });
 
   it("opens eligible Professionals in the Job assignment drawer", async () => {
@@ -303,11 +285,11 @@ describe("application routing", () => {
     renderAppAt("/admin/jobs/job-open-social");
 
     await user.click(
-      screen.getByRole("button", { name: "Add professionals" })
+      screen.getByRole("button", { name: "Hire qualified people" })
     );
 
     expect(
-      screen.getByRole("dialog", { name: "Add professionals" })
+      screen.getByRole("dialog", { name: "Hire qualified people" })
     ).toBeInTheDocument();
     expect(screen.getByText("Amara Okafor")).toBeInTheDocument();
     expect(

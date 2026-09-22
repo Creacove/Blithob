@@ -27,14 +27,14 @@ const personas = [
     title: "Lead",
     name: "Nneka Eze",
     description: "Deliver your own work while supervising other Professionals.",
-    detail: "Includes Team and Reviews inside the Professional workspace.",
+    detail: "Includes qualification and work reviews inside the Professional workspace.",
     icon: Users
   },
   {
     persona: "professional" as const,
     title: "Professional",
     name: "Amara Okafor",
-    description: "Complete readiness, deliver Assignments, and track payments.",
+    description: "Complete qualifications, deliver work, and track payments.",
     detail: "Shows the focused individual delivery experience.",
     icon: BriefcaseBusiness
   }

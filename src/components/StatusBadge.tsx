@@ -61,7 +61,7 @@ const labels: Record<Status, string> = {
   scheduled: "Payment scheduled",
   paid: "Paid",
   issue: "Payment issue",
-  awaiting_review: "Training review needed",
+  awaiting_review: "Qualification review needed",
   lead_approved: "Lead approved",
   forwarded: "Forwarded"
 };

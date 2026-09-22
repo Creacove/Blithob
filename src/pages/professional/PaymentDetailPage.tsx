@@ -42,7 +42,7 @@ export function PaymentDetailPage() {
     <div>
       <PageHeader
         title={job.title}
-        description="Read-only payment evidence for this completed Assignment."
+        description="Payment details for completed work."
         actions={
           <Link
             to="/professional/payments"
@@ -71,13 +71,13 @@ export function PaymentDetailPage() {
                   : "Not paid"
               },
               {
-                label: "Assignment",
+                label: "Work",
                 value: (
                   <Link
                     to={`/professional/work/${assignment.id}`}
                     className="text-[var(--blue)]"
                   >
-                    Open Assignment
+                    Open work
                   </Link>
                 )
               }

@@ -447,7 +447,7 @@ export function JobEditorPage() {
     <div>
       <PageHeader
         title={existingJob ? "Edit job" : "Create job"}
-        description="Write one precise brief, then create independent Assignments for the Professionals delivering it."
+        description="Write one precise brief, then create independent work records for the Professionals delivering it."
         actions={
           <Link
             to="/admin/jobs"

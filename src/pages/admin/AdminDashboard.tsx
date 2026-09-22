@@ -95,7 +95,7 @@ export function AdminDashboard() {
                   (service) => service.id === readinessApprovals[0].serviceId
                 )?.name
               }{" "}
-              readiness
+              qualification
             </p>
             <p className="mt-1 text-sm text-[var(--muted)]">
               {
@@ -111,7 +111,7 @@ export function AdminDashboard() {
       ) : (
         <EmptyState
           title="No Admin decision is waiting"
-          description="New work and readiness submissions will appear here."
+          description="New work and qualification submissions will appear here."
         />
       )}
     </Section>
@@ -137,7 +137,7 @@ export function AdminDashboard() {
             mobilePriority: "primary"
           },
           {
-            label: "Readiness approvals",
+            label: "Qualifications",
             value: readinessApprovals.length,
             tone: readinessApprovals.length ? "attention" : "default",
             mobilePriority: "primary"
@@ -171,8 +171,8 @@ export function AdminDashboard() {
           {!isMobile && nearestActionSection}
 
           <Section
-            title="Assignment deadlines"
-            description="Nearest active deadlines across individual Assignments."
+            title="Work deadlines"
+            description="Nearest deadlines across everyone hired."
             mobileDisclosure="expanded"
             action={
               <Link
@@ -185,7 +185,7 @@ export function AdminDashboard() {
           >
             {activeDeadlines.length === 0 ? (
               <p className="text-base text-[var(--muted)]">
-                No active Assignment deadlines.
+                No active work deadlines.
               </p>
             ) : (
               <RecordList>
@@ -255,7 +255,7 @@ export function AdminDashboard() {
           {activity.length === 0 ? (
             <EmptyState
               title="No recent activity yet."
-              description="Jobs, assignments, reviews, and payments will appear here as the workspace moves forward."
+              description="Jobs, reviews, work, and payments will appear here."
             />
           ) : (
             <div className="divide-y divide-[var(--border)]">

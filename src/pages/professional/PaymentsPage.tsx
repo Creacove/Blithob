@@ -29,7 +29,7 @@ export function PaymentsPage() {
     <div>
       <PageHeader
         title="Payments"
-        description="Track the manual payment record created for each completed Assignment."
+        description="See what has been paid and what is still due."
       />
       <SummaryBand
         className="mt-6"
@@ -67,7 +67,7 @@ export function PaymentsPage() {
         <div className="mt-6">
           <EmptyState
             title="No payment records"
-            description="A Payment is created when Admin completes one of your Assignments."
+            description="Payments appear here after completed work."
           />
         </div>
       ) : (
@@ -82,8 +82,8 @@ export function PaymentsPage() {
                 <ResponsiveRecord
                   key={payment.id}
                   to={`/professional/payments/${payment.id}`}
-                  ariaLabel={`Open ${job?.title ?? "Assignment payment"} payment mobile`}
-                  title={job?.title ?? "Assignment payment"}
+                  ariaLabel={`Open ${job?.title ?? "Work payment"} payment mobile`}
+                  title={job?.title ?? "Work payment"}
                   subtitle={`Due ${formatDate(payment.dueDate)}`}
                   status={<StatusBadge status={payment.status} />}
                   facts={[
@@ -110,13 +110,13 @@ export function PaymentsPage() {
               <DesktopRecordRow
                 key={payment.id}
                 to={`/professional/payments/${payment.id}`}
-                ariaLabel={`Open ${job?.title ?? "Assignment payment"} payment`}
+                ariaLabel={`Open ${job?.title ?? "Work payment"} payment`}
                 columns="minmax(15rem,1.15fr) 8rem 9.5rem minmax(12rem,0.8fr) 1.25rem"
                 className="gap-3"
               >
                 <div className="min-w-0">
                   <p className="truncate font-semibold text-[var(--ink)]">
-                    {job?.title ?? "Assignment payment"}
+                    {job?.title ?? "Work payment"}
                   </p>
                   <p className="mt-1 truncate text-sm text-[var(--muted)]">
                     Due {formatDate(payment.dueDate)}

@@ -1,5 +1,6 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import type { PublicApplication, PublicListingsRepository } from "../../lib/publicListings";
 import { useProfessionalStore } from "../../store/professionalStore";
@@ -91,6 +92,22 @@ describe("AdminApplicationsPage", () => {
     expect(screen.getByText(/2 supporting document/)).toBeInTheDocument();
   });
 
+  it("lets Admin shortlist a new application directly without a Start review step", async () => {
+    const user = userEvent.setup();
+    const shortlistApplication = vi.fn(async (input: { applicationId: string }) => input.applicationId);
+    const customRepository = { ...repository(), shortlistApplication };
+    render(
+      <MemoryRouter>
+        <AdminApplicationsPage repository={customRepository} />
+      </MemoryRouter>
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Shortlist" }));
+    expect(shortlistApplication).toHaveBeenCalledWith({ applicationId: "application-1", adminNote: undefined });
+    expect(screen.queryByRole("button", { name: /start review/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/change status/i)).not.toBeInTheDocument();
+  });
+
   it("does not expose assignment pay before Service readiness is approved", async () => {
     render(
       <MemoryRouter>
@@ -99,9 +116,9 @@ describe("AdminApplicationsPage", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Product Designer")).toBeInTheDocument());
-    expect(screen.getByText("Readiness in progress")).toBeInTheDocument();
+    expect(screen.getByText("Qualification in progress")).toBeInTheDocument();
     expect(screen.queryByText(/Agreed pay/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /create assignment/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^hire$/i })).not.toBeInTheDocument();
   });
 
   it("reveals the assignment action only for an approved Service-ready candidate", async () => {
@@ -112,6 +129,7 @@ describe("AdminApplicationsPage", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Product Designer")).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: /create assignment/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^hire$/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /create assignment/i })).not.toBeInTheDocument();
   });
 });

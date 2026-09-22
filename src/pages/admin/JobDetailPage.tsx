@@ -109,7 +109,7 @@ export function JobDetailPage() {
       inputs.length === 0 ||
       inputs.some((input) => !input.agreedPay || !input.deadline)
     ) {
-      error("Set pay and deadline for every selected Professional");
+      error("Set pay and deadline for every selected person");
       return;
     }
     try {
@@ -117,10 +117,10 @@ export function JobDetailPage() {
       setDrawerOpen(false);
       setDrafts({});
       success(
-        `${inputs.length} Assignment${inputs.length === 1 ? "" : "s"} created`
+        `${inputs.length} ${inputs.length === 1 ? "person" : "people"} hired`
       );
     } catch (caught) {
-      error(caught instanceof Error ? caught.message : "Assignments could not be created");
+      error(caught instanceof Error ? caught.message : "People could not be hired");
     }
   };
 
@@ -147,6 +147,13 @@ export function JobDetailPage() {
             >
               <ArrowLeft size={16} aria-hidden />
               Back to Jobs
+            </Link>
+            <Link
+              to={`/admin/applications?jobId=${job.id}`}
+              className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--blue)] px-4 text-sm font-semibold text-white hover:bg-[var(--blue-hover)]"
+            >
+              <Users size={16} aria-hidden />
+              View applicants
             </Link>
             {job.publicationState !== "archived" && (
               <Link
@@ -269,27 +276,27 @@ export function JobDetailPage() {
         </Section>
 
         <Section
-          title="Assignments"
-          description="Every Professional has separate pay, deadline, reviewer, submissions, and completion."
+          title="Hired people"
+          description="Each person has separate pay, deadline, feedback, and completion."
           action={
             <Button
               onClick={() => setDrawerOpen(true)}
               disabled={job.publicationState !== "open"}
               title={
                 job.publicationState === "draft"
-                  ? "Publish the Job before assigning Professionals"
+                  ? "Publish the job before hiring people"
                   : undefined
               }
             >
               <Plus size={16} aria-hidden />
-              Add professionals
+              Hire qualified people
             </Button>
           }
         >
           {jobAssignments.length === 0 ? (
             <EmptyState
-              title="No Professionals assigned"
-              description="Add approved Professionals when this brief is ready to distribute."
+              title="No one hired yet"
+              description="Review applicants or hire someone who is already qualified."
             />
           ) : (
             <RecordList>
@@ -350,8 +357,8 @@ export function JobDetailPage() {
       <Drawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        title="Add professionals"
-        description="Choose eligible people, then set each Assignment independently."
+        title="Hire qualified people"
+        description="Choose people, then confirm each person’s pay and deadline."
         width="wide"
         footer={
           <>
@@ -360,7 +367,7 @@ export function JobDetailPage() {
             </Button>
             <Button onClick={submitAssignments} disabled={selectedCount === 0}>
               <Users size={16} aria-hidden />
-              Create {selectedCount || ""} Assignment
+              Hire {selectedCount || ""}
               {selectedCount === 1 ? "" : "s"}
             </Button>
           </>
@@ -368,8 +375,8 @@ export function JobDetailPage() {
       >
         {eligible.length === 0 ? (
           <EmptyState
-            title="No eligible Professionals"
-            description="Approve Service readiness or remove existing Assignments before trying again."
+            title="No qualified people available"
+            description="Review applicants or approve a qualification first."
           />
         ) : (
           <div className="space-y-4">
@@ -435,7 +442,7 @@ export function JobDetailPage() {
                           }
                         />
                       </Field>
-                      <Field label="Assignment deadline">
+                      <Field label="Work deadline">
                         <Input
                           type="datetime-local"
                           value={draft.deadline}
@@ -494,7 +501,7 @@ export function JobDetailPage() {
         onClose={() => setArchiveOpen(false)}
         onConfirm={confirmArchive}
         title="Archive Job?"
-        description="The brief remains visible, but no new Assignments can be added."
+        description="The brief remains visible, but no one new can be hired."
         confirmLabel="Archive Job"
         tone="danger"
       />

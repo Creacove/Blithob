@@ -52,7 +52,7 @@ export function WorkPage() {
     <div>
       <PageHeader
         title="Work"
-        description="Every Assignment has its own brief, deadline, reviewer, submission history, and pay."
+        description="Jobs you have been hired for, with the brief, deadline, pay, and feedback."
       />
       <SummaryBand
         className="mt-6"
@@ -72,7 +72,7 @@ export function WorkPage() {
       <div className="mt-5 md:hidden">
         <label>
           <span className="mb-2 block text-sm font-medium text-[var(--ink)]">
-            Show assignments
+            Show work
           </span>
           <Select
             aria-label="Work filter"
@@ -115,8 +115,8 @@ export function WorkPage() {
           <EmptyState
             title={`No ${filters
               .find((item) => item.id === filter)
-              ?.label.toLowerCase()} Assignments`}
-            description="Assignments will move between these views as you work and receive feedback."
+              ?.label.toLowerCase()} work`}
+            description="Hired jobs will move between these views as you work and receive feedback."
           />
         </div>
       ) : (

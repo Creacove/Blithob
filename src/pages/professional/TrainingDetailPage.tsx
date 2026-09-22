@@ -64,8 +64,8 @@ export function TrainingDetailPage() {
   ) {
     return (
       <RouteShell
-        title="Training not found"
-        description="This Service readiness record does not exist or does not belong to your account."
+        title="Qualification not found"
+        description="This qualification does not exist or does not belong to your account."
       />
     );
   }
@@ -106,7 +106,7 @@ export function TrainingDetailPage() {
         evidenceFileName: draft.evidenceFileName
       });
     } catch (caught) {
-      error(caught instanceof Error ? caught.message : "Readiness progress could not be saved");
+      error(caught instanceof Error ? caught.message : "Progress could not be saved");
     }
   };
 
@@ -116,18 +116,18 @@ export function TrainingDetailPage() {
       await submitServiceEnrolment(enrolment.id);
       success(
         enrolment.leadId && enrolment.leadId !== professional.id
-          ? "Readiness sent to your Lead"
-          : "Readiness sent to Admin"
+          ? "Qualification sent to your reviewer"
+          : "Qualification sent to Admin"
       );
     } catch (caught) {
-      error(caught instanceof Error ? caught.message : "Readiness could not be sent for review");
+      error(caught instanceof Error ? caught.message : "Qualification could not be sent for review");
     }
   };
 
   return (
     <div>
       <PageHeader
-        eyebrow="Service readiness"
+        eyebrow="Job qualification"
         title={service.name}
         description={service.description}
         actions={
@@ -137,7 +137,7 @@ export function TrainingDetailPage() {
               className="mobile-header-back inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-subtle)]"
             >
               <ArrowLeft size={16} aria-hidden />
-              Back to Training
+              Back to Qualifications
             </Link>
             {editable && (
               <Button disabled={!canSubmit} onClick={sendForReview}>
@@ -152,7 +152,7 @@ export function TrainingDetailPage() {
         <div className="mt-6 flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
           <CheckCircle2 className="mt-0.5 shrink-0" size={20} aria-hidden />
           <div>
-            <p className="font-semibold">Approved for future Jobs</p>
+            <p className="font-semibold">Qualification complete</p>
             <p className="mt-1 text-base leading-6">
               You are eligible to be matched to {service.name} opportunities.
             </p>
@@ -171,8 +171,8 @@ export function TrainingDetailPage() {
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(19rem,0.75fr)]">
         <Section
-          title="Readiness checklist"
-          description="Complete every ordered requirement and include evidence where requested."
+          title="Qualification steps"
+          description="Complete each step and include evidence where requested."
         >
           <div className="mb-5">
             <div className="mb-2 flex items-center justify-between gap-4">
@@ -184,7 +184,7 @@ export function TrainingDetailPage() {
             <ProgressBar
               value={completedCount}
               max={service.requirements.length}
-              label={`${service.name} readiness progress`}
+              label={`${service.name} qualification progress`}
             />
           </div>
 
@@ -303,7 +303,7 @@ export function TrainingDetailPage() {
         </Section>
 
         <div className="space-y-5">
-          <Section title="Review route" mobileDisclosure="collapsed">
+          <Section title="Reviewer" mobileDisclosure="collapsed">
             <p className="text-sm font-medium text-[var(--muted)]">
               Assigned reviewer
             </p>
@@ -312,8 +312,8 @@ export function TrainingDetailPage() {
             </p>
             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
               {lead
-                ? "Your Lead reviews first, then sends certified readiness to Admin."
-                : "Admin handles the readiness decision directly."}
+                ? "Your reviewer checks this first, then sends it to Admin."
+                : "Admin makes the final decision."}
             </p>
           </Section>
 

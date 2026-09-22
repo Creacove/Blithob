@@ -81,8 +81,8 @@ export function TodayPage() {
         ? {
             title:
               services.find((item) => item.id === trainingRevision.serviceId)
-                ?.name ?? "Service readiness",
-            description: "Update the requested readiness evidence.",
+                ?.name ?? "Qualification",
+            description: "Update the requested qualification evidence.",
             to: `/professional/training/${trainingRevision.id}`,
             status: trainingRevision.status
           }
@@ -91,8 +91,8 @@ export function TodayPage() {
               title:
                 services.find(
                   (item) => item.id === trainingIncomplete.serviceId
-                )?.name ?? "Service readiness",
-              description: "Complete the next readiness requirement.",
+                )?.name ?? "Qualification",
+              description: "Complete the next qualification step.",
               to: `/professional/training/${trainingIncomplete.id}`,
               status: trainingIncomplete.status
             }
@@ -136,7 +136,7 @@ export function TodayPage() {
       ) : (
         <EmptyState
           title="Nothing needs action"
-          description="New work, readiness feedback, and payment issues will appear here."
+          description="New applications, qualification feedback, work, and payment issues will appear here."
           action={
             <Link
               to="/professional/work"
@@ -155,22 +155,22 @@ export function TodayPage() {
     <div>
       <PageHeader
         eyebrow={`${professional.name}'s workspace`}
-        title="Today"
-        description="One clear next action across your work, readiness, and payments."
+        title="Home"
+        description="Your most important next step."
       />
       {isMobile && <div className="mt-6">{nextActionSection}</div>}
       <SummaryBand
         className="mt-6"
         items={[
           {
-            label: "Active Assignments",
+            label: "Active work",
             value: ownAssignments.filter(
               (item) => !["completed", "cancelled"].includes(item.status)
             ).length,
             mobilePriority: "primary"
           },
           {
-            label: "Approved Services",
+            label: "Qualifications",
             value: ownEnrolments.filter((item) => item.status === "approved")
               .length,
             tone: "positive",
@@ -192,7 +192,7 @@ export function TodayPage() {
           {ownNotifications.length === 0 ? (
             <EmptyState
               title="No recent notifications"
-              description="Review decisions and new assignments will appear here."
+              description="Application decisions and new work will appear here."
             />
           ) : (
             <RecordList label="Recent notifications">

@@ -1,11 +1,9 @@
 import {
   ArrowLeft,
   Bell,
-  BookOpenCheck,
   BriefcaseBusiness,
   ChevronDown,
   ClipboardCheck,
-  FileText,
   Gauge,
   Layers3,
   LogOut,
@@ -31,76 +29,51 @@ interface NavigationItem {
 }
 
 const adminNav: NavigationItem[] = [
-  { to: "/admin/today", label: "Today", icon: Gauge },
-  { to: "/admin/people", label: "People", icon: Users },
-  { to: "/admin/services", label: "Services", icon: Layers3 },
+  { to: "/admin/today", label: "Home", icon: Gauge },
   { to: "/admin/jobs", label: "Jobs", icon: BriefcaseBusiness },
-  { to: "/admin/applications", label: "Applications", icon: FileText },
-  { to: "/admin/reviews", label: "Reviews", icon: ClipboardCheck },
+  { to: "/admin/people", label: "People", icon: Users },
   { to: "/admin/payments", label: "Payments", icon: WalletCards }
 ];
 
-const professionalBase: NavigationItem[] = [
-  { to: "/professional/today", label: "Today", icon: Gauge },
-  { to: "/professional/work", label: "Work", icon: BriefcaseBusiness }
-];
-
-const professionalTail: NavigationItem[] = [
-  { to: "/professional/training", label: "Training", icon: BookOpenCheck },
+const professionalNav: NavigationItem[] = [
+  { to: "/professional/today", label: "Home", icon: Gauge },
+  { to: "/professional/jobs", label: "Jobs", icon: BriefcaseBusiness },
+  { to: "/professional/work", label: "Work", icon: ClipboardCheck },
   { to: "/professional/payments", label: "Payments", icon: WalletCards },
   { to: "/professional/profile", label: "Profile", icon: Settings2 }
 ];
 
 function desktopItems(role: AccountRole, isLead: boolean) {
   if (role === "admin") return adminNav;
+  if (!isLead) return professionalNav;
   return [
-    ...professionalBase,
-    ...(isLead
-      ? [
-          { to: "/professional/team", label: "Team", icon: Users },
-          {
-            to: "/professional/reviews",
-            label: "Reviews",
-            icon: ClipboardCheck
-          }
-        ]
-      : []),
-    ...professionalTail
+    professionalNav[0],
+    professionalNav[1],
+    { to: "/professional/reviews", label: "Reviews", icon: ClipboardCheck },
+    ...professionalNav.slice(2)
   ];
 }
 
 function phoneItems(role: AccountRole, isLead: boolean) {
   if (role === "admin") {
-    return {
-      primary: adminNav.filter((item) =>
-        ["Today", "People", "Jobs", "Reviews"].includes(item.label)
-      ),
-      more: [
-        adminNav.find((item) => item.label === "Services"),
-        adminNav.find((item) => item.label === "Applications"),
-        adminNav.find((item) => item.label === "Payments")
-      ].filter(Boolean) as NavigationItem[]
-    };
+    return { primary: adminNav, more: [] as NavigationItem[] };
   }
 
   if (isLead) {
     return {
       primary: [
-        ...professionalBase,
-        { to: "/professional/team", label: "Team", icon: Users },
-        {
-          to: "/professional/reviews",
-          label: "Reviews",
-          icon: ClipboardCheck
-        }
+        professionalNav[0],
+        professionalNav[1],
+        professionalNav[2],
+        { to: "/professional/reviews", label: "Reviews", icon: ClipboardCheck }
       ],
-      more: professionalTail
+      more: professionalNav.slice(3)
     };
   }
 
   return {
-    primary: [...professionalBase, ...professionalTail],
-    more: [] as NavigationItem[]
+    primary: professionalNav.slice(0, 4),
+    more: professionalNav.slice(4)
   };
 }
 
@@ -126,6 +99,7 @@ function detailBack(pathname: string, role: AccountRole) {
 }
 
 function AccountMenu({
+  role,
   compact,
   userName,
   workspaceLabel,
@@ -133,6 +107,7 @@ function AccountMenu({
   onReset,
   onSignOut
 }: {
+  role: AccountRole;
   compact: boolean;
   userName: string;
   workspaceLabel: string;
@@ -194,6 +169,15 @@ function AccountMenu({
                 : "bottom-[calc(100%+8px)] left-0 right-0 w-auto"
             }`}
           >
+            {role === "admin" && (
+              <NavLink
+                to="/admin/services"
+                className="flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--ink)]"
+              >
+                <Layers3 size={15} aria-hidden />
+                Job qualifications
+              </NavLink>
+            )}
             {showReset && (
               <button
                 type="button"
@@ -222,6 +206,7 @@ function AccountMenu({
 function SideNavigation({
   items,
   role,
+  navigationLabel,
   compact = false,
   userName,
   workspaceLabel,
@@ -231,6 +216,7 @@ function SideNavigation({
 }: {
   items: NavigationItem[];
   role: AccountRole;
+  navigationLabel: string;
   compact?: boolean;
   userName: string;
   workspaceLabel: string;
@@ -251,7 +237,7 @@ function SideNavigation({
         className={`flex-1 overflow-y-auto ${
           compact ? "space-y-2 p-2" : "space-y-1 p-3"
         }`}
-        aria-label={`${role === "admin" ? "Admin" : "Professional"} navigation`}
+        aria-label={`${navigationLabel} navigation`}
       >
         {items.map(({ to, label, icon: Icon }) => (
           <NavLink
@@ -276,6 +262,7 @@ function SideNavigation({
         ))}
       </nav>
       <AccountMenu
+        role={role}
         compact={compact}
         userName={userName}
         workspaceLabel={workspaceLabel}
@@ -311,6 +298,10 @@ export function AppShell({ role }: { role: AccountRole }) {
   );
   const title = location.pathname.startsWith("/admin/assignments/")
     ? "Jobs"
+    : location.pathname.startsWith("/professional/training")
+      ? "Qualifications"
+      : location.pathname.startsWith("/professional/team")
+        ? "Reviews"
     : (allItems.find((item) => location.pathname.startsWith(item.to))?.label ??
       (location.pathname.includes("notifications") ? "Updates" : "Workspace"));
   const isDetail = detailBack(location.pathname, role) !==
@@ -350,6 +341,7 @@ export function AppShell({ role }: { role: AccountRole }) {
         <SideNavigation
           items={allItems}
           role={role}
+          navigationLabel={mobileLabel}
           userName={currentUser?.name ?? mobileLabel}
           workspaceLabel={workspaceLabel}
           showReset={showReset}
@@ -362,6 +354,7 @@ export function AppShell({ role }: { role: AccountRole }) {
         <SideNavigation
           items={allItems}
           role={role}
+          navigationLabel={mobileLabel}
           compact
           userName={currentUser?.name ?? mobileLabel}
           workspaceLabel={workspaceLabel}

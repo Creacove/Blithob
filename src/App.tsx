@@ -8,7 +8,6 @@ import { NotificationsPage } from "./pages/NotificationsPage";
 import { PublicJobsPage } from "./pages/public/PublicJobsPage";
 import { PublicJobDetailPage } from "./pages/public/PublicJobDetailPage";
 import { PublicApplyPage } from "./pages/public/PublicApplyPage";
-import { PublicApplicationsPage } from "./pages/public/PublicApplicationsPage";
 import { PrivacyPage } from "./pages/public/PrivacyPage";
 import { OnboardingPage } from "./pages/public/OnboardingPage";
 import { AdminApplicationsPage } from "./pages/admin/AdminApplicationsPage";
@@ -35,6 +34,7 @@ import { TodayPage } from "./pages/professional/TodayPage";
 import { TrainingDetailPage } from "./pages/professional/TrainingDetailPage";
 import { TrainingPage } from "./pages/professional/TrainingPage";
 import { WorkPage } from "./pages/professional/WorkPage";
+import { JobsPage as ProfessionalJobsPage } from "./pages/professional/JobsPage";
 import { useProfessionalStore } from "./store/professionalStore";
 
 function ProtectedAccount({ role }: { role: AccountRole }) {
@@ -92,7 +92,6 @@ export function App() {
       <Route path="/jobs/:slug" element={<PublicJobDetailPage />} />
       <Route path="/jobs/:slug/apply" element={<PublicApplyPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
-      <Route path="/professional/applications" element={<PublicApplicationsPage />} />
 
       <Route element={<ProtectedAccount role="admin" />}>
         <Route element={<AppShell role="admin" />}>
@@ -168,6 +167,14 @@ export function App() {
           <Route
             path="/professional/today"
             element={<TodayPage />}
+          />
+          <Route
+            path="/professional/jobs"
+            element={<ProfessionalJobsPage />}
+          />
+          <Route
+            path="/professional/applications"
+            element={<Navigate to="/professional/jobs" replace />}
           />
           <Route
             path="/professional/work"

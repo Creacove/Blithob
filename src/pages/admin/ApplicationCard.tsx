@@ -8,7 +8,7 @@ import {
   UserRound
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button, Field, Select, Textarea } from "../../components/ui";
+import { Button } from "../../components/ui";
 import type { JobApplicationStatus, PublicApplication } from "../../lib/publicListings";
 import {
   applicationStatusLabel,
@@ -31,27 +31,22 @@ const toneClasses = {
 } as const;
 
 const actionLabels: Record<ApplicationAction, string> = {
-  start_review: "Start review",
   shortlist: "Shortlist",
-  view_readiness: "View readiness",
-  create_assignment: "Create assignment",
-  open_assignment: "Open assignment",
+  view_readiness: "View qualification",
+  create_assignment: "Hire",
+  open_assignment: "Open work",
   view_application: "View application"
 };
 
 export function ApplicationCard({
   application,
-  privateNote,
   working,
-  onPrivateNoteChange,
   onPrimary,
   onStatusChange,
   onViewCv
 }: {
   application: PublicApplication;
-  privateNote: string;
   working: boolean;
-  onPrivateNoteChange: (value: string) => void;
   onPrimary: (action: ApplicationAction) => void;
   onStatusChange: (
     status: Extract<JobApplicationStatus, "under_review" | "shortlisted" | "rejected">
@@ -86,7 +81,7 @@ export function ApplicationCard({
 
       <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-y border-[var(--border)] py-3 text-sm">
         <span>
-          <span className="text-[var(--muted)]">Service </span>
+          <span className="text-[var(--muted)]">Job type </span>
           <span className="font-semibold text-[var(--ink)]">
             {application.serviceName || "Refreshing"}
           </span>
@@ -159,15 +154,13 @@ export function ApplicationCard({
           </div>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
             {action === "view_readiness"
-              ? "Readiness must be approved before this candidate can receive an Assignment."
+              ? "The candidate must complete the required steps before they can be hired."
               : action === "create_assignment"
-                ? "This candidate is ready. Confirm pay and deadline to create the Assignment."
+                ? "This candidate is ready. Confirm pay and deadline to hire them."
                 : action === "shortlist"
-                  ? "Shortlisting starts the candidate’s Service-readiness path automatically."
-                  : action === "start_review"
-                    ? "Move this application into review when you are ready to assess it."
+                  ? "Shortlist this candidate or close the application."
                     : action === "open_assignment"
-                      ? "This application is connected to an Assignment."
+                      ? "This candidate has been hired for the job."
                       : "This application is closed."}
           </p>
 
@@ -176,7 +169,7 @@ export function ApplicationCard({
               to={application.professionalId ? `/admin/people/${application.professionalId}` : "/admin/people"}
               className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--blue)]"
             >
-              Open readiness
+              Open qualification
               <ArrowRight size={15} aria-hidden="true" />
             </Link>
           ) : null}
@@ -192,33 +185,16 @@ export function ApplicationCard({
             {!working && <ArrowRight size={15} aria-hidden="true" />}
           </Button>
 
-          {canChangeStatus ? (
-            <Field label="Change status" className="mt-4">
-              <Select
-                aria-label={`Change status for ${application.applicantName || "applicant"}`}
-                value=""
-                onChange={(event) => {
-                  const next = event.target.value as Extract<JobApplicationStatus, "under_review" | "shortlisted" | "rejected">;
-                  if (next) onStatusChange(next);
-                }}
-              >
-                <option value="">Choose a status…</option>
-                <option value="under_review">Under review</option>
-                <option value="shortlisted">Shortlist</option>
-                <option value="rejected">Not selected</option>
-              </Select>
-            </Field>
-          ) : null}
-
-          {application.status !== "converted" ? (
-            <Field label="Private Admin note" hint="Saved with the next status change.">
-              <Textarea
-                value={privateNote}
-                onChange={(event) => onPrivateNoteChange(event.target.value)}
-                placeholder="Keep an internal decision note."
-                className="mt-3 min-h-24 bg-white"
-              />
-            </Field>
+          {canChangeStatus && !["rejected"].includes(application.status) ? (
+            <Button
+              type="button"
+              className="mt-2 w-full"
+              variant="secondary"
+              disabled={working}
+              onClick={() => onStatusChange("rejected")}
+            >
+              Not selected
+            </Button>
           ) : null}
         </aside>
       </div>

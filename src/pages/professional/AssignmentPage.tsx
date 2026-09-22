@@ -69,8 +69,8 @@ export function AssignmentPage() {
   ) {
     return (
       <RouteShell
-        title="Assignment not found"
-        description="This Assignment does not exist or does not belong to your account."
+        title="Work not found"
+        description="This work does not exist or does not belong to your account."
       />
     );
   }
@@ -94,9 +94,9 @@ export function AssignmentPage() {
   const start = async () => {
     try {
       await startAssignment(assignment.id);
-      success("Assignment started");
+      success("Work started");
     } catch (caught) {
-      error(caught instanceof Error ? caught.message : "Assignment could not be started");
+      error(caught instanceof Error ? caught.message : "Work could not be started");
     }
   };
 
@@ -119,7 +119,7 @@ export function AssignmentPage() {
       <PageHeader
         eyebrow={service.name}
         title={job.title}
-        description="Use this brief as the source of truth for your independent Assignment."
+        description="Everything you need to complete this job."
         actions={
           <>
             <Link
@@ -130,7 +130,7 @@ export function AssignmentPage() {
               Back to Work
             </Link>
             {assignment.status === "assigned" && (
-              <Button onClick={start}>Start assignment</Button>
+              <Button onClick={start}>Start work</Button>
             )}
             {canSubmitAssignment(assignment.status) && (
               <Button onClick={() => setDrawerOpen(true)}>
@@ -156,7 +156,7 @@ export function AssignmentPage() {
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,0.65fr)]">
         <div className="space-y-5">
-          <Section title="Assignment overview">
+          <Section title="Work overview">
             <MetaList
               items={[
                 {
@@ -277,7 +277,7 @@ export function AssignmentPage() {
                 description="Everything required is included in the brief."
               />
             ) : (
-              <RecordList label="Assignment references">
+              <RecordList label="Work references">
                 {job.references.map((reference) => (
                   <div
                     key={reference.id}
@@ -313,7 +313,7 @@ export function AssignmentPage() {
 
         <Section
           title="Submission timeline"
-          description="Every version and review stays attached to this Assignment."
+          description="Every version and review stays attached to this job."
           mobileDisclosure="collapsed"
         >
           {submissions.length === 0 ? (
