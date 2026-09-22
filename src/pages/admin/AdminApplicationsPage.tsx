@@ -1,82 +1,135 @@
-import { Check, ExternalLink, FileText, RefreshCw, UserRound } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Button, EmptyState, Field, Input, Select, Textarea } from "../../components/ui";
+import { RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { EmptyState, Button } from "../../components/ui";
 import { PageHeader } from "../../components/PageHeader";
-import { publicListingsRepository, type JobApplicationStatus, type PublicApplication, type PublicListingsRepository } from "../../lib/publicListings";
+import {
+  publicListingsRepository,
+  type JobApplicationStatus,
+  type PublicApplication,
+  type PublicListingsRepository
+} from "../../lib/publicListings";
 import { useProfessionalStore } from "../../store/professionalStore";
+import { ApplicationCard } from "./ApplicationCard";
+import { ApplicationFilters } from "./ApplicationFilters";
+import { AssignmentDrawer } from "./AssignmentDrawer";
+import type { ApplicationAction } from "./applicationQueue";
 
-const reviewStatuses: Array<Extract<JobApplicationStatus, "under_review" | "shortlisted" | "rejected">> = ["under_review", "shortlisted", "rejected"];
-const statusLabel: Record<JobApplicationStatus, string> = { submitted: "Submitted", under_review: "Under review", shortlisted: "Shortlisted", rejected: "Not selected", withdrawn: "Withdrawn", converted: "Moved forward" };
+const pageSize = 25;
 
-export function AdminApplicationsPage({ repository = publicListingsRepository }: { repository?: PublicListingsRepository }) {
-  const pageSize = 25;
+export function AdminApplicationsPage({
+  repository = publicListingsRepository
+}: {
+  repository?: PublicListingsRepository;
+}) {
+  const navigate = useNavigate();
+  const jobs = useProfessionalStore((state) => state.jobs);
   const [applications, setApplications] = useState<PublicApplication[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [status, setStatus] = useState<"all" | JobApplicationStatus>("all");
   const [jobId, setJobId] = useState("all");
   const [search, setSearch] = useState("");
-  const jobs = useProfessionalStore((state) => state.jobs);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [workingId, setWorkingId] = useState<string | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [notes, setNotes] = useState<Record<string, string>>({});
-  const [pay, setPay] = useState<Record<string, string>>({});
+  const [assignmentApplication, setAssignmentApplication] = useState<PublicApplication | null>(null);
 
-  const load = () => {
-    setLoading(true); setError(null);
-    repository.listAdminApplications({ status: status === "all" ? undefined : status, jobId: jobId === "all" ? undefined : jobId, search, limit: pageSize, offset: 0 })
-      .then((rows) => { setApplications(rows); setTotalCount(rows[0]?.totalCount ?? rows.length); })
-      .catch((caught: unknown) => setError(caught instanceof Error ? caught.message : "Applications could not be loaded."))
-      .finally(() => setLoading(false));
-  };
-  useEffect(() => {
-    let active = true;
-    repository
-      .listAdminApplications({ status: status === "all" ? undefined : status, jobId: jobId === "all" ? undefined : jobId, search, limit: pageSize, offset: 0 })
-      .then((rows) => {
-        if (active) {
-          setApplications(rows);
-          setTotalCount(rows[0]?.totalCount ?? rows.length);
-          setError(null);
-        }
-      })
-      .catch((caught: unknown) => {
-        if (active) {
-          setError(caught instanceof Error ? caught.message : "Applications could not be loaded.");
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+  const loadFirstPage = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const rows = await repository.listAdminApplications({
+        status: status === "all" ? undefined : status,
+        jobId: jobId === "all" ? undefined : jobId,
+        search,
+        limit: pageSize,
+        offset: 0
       });
-    return () => {
-      active = false;
-    };
-  }, [repository, status, jobId, search]);
+      setApplications(rows);
+      setTotalCount(rows[0]?.totalCount ?? rows.length);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Applications could not be loaded.");
+    } finally {
+      setLoading(false);
+    }
+  }, [jobId, repository, search, status]);
 
-  const loadMore = () => {
+  useEffect(() => {
+    void loadFirstPage();
+  }, [loadFirstPage]);
+
+  const loadMore = async () => {
     if (loadingMore || applications.length >= totalCount) return;
-    setLoadingMore(true); setError(null);
-    repository
-      .listAdminApplications({ status: status === "all" ? undefined : status, jobId: jobId === "all" ? undefined : jobId, search, limit: pageSize, offset: applications.length })
-      .then((rows) => {
-        setApplications((current) => [...current, ...rows]);
-        setTotalCount((current) => rows[0]?.totalCount ?? current);
-      })
-      .catch((caught: unknown) => setError(caught instanceof Error ? caught.message : "More applications could not be loaded."))
-      .finally(() => setLoadingMore(false));
+    setLoadingMore(true);
+    setError(null);
+    try {
+      const rows = await repository.listAdminApplications({
+        status: status === "all" ? undefined : status,
+        jobId: jobId === "all" ? undefined : jobId,
+        search,
+        limit: pageSize,
+        offset: applications.length
+      });
+      setApplications((current) => [...current, ...rows]);
+      setTotalCount((current) => rows[0]?.totalCount ?? current);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "More applications could not be loaded.");
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
-  const review = async (application: PublicApplication, nextStatus: Extract<JobApplicationStatus, "under_review" | "shortlisted" | "rejected">) => {
-    setWorkingId(application.id); setError(null);
-    try { await repository.reviewApplication({ applicationId: application.id, status: nextStatus, adminNote: notes[application.id] }); load(); } catch (caught) { setError(caught instanceof Error ? caught.message : "Review could not be saved."); } finally { setWorkingId(null); }
+  const runStatusChange = async (
+    application: PublicApplication,
+    nextStatus: Extract<JobApplicationStatus, "under_review" | "shortlisted" | "rejected">
+  ) => {
+    setWorkingId(application.id);
+    setError(null);
+    try {
+      if (nextStatus === "shortlisted") {
+        await repository.shortlistApplication({
+          applicationId: application.id,
+          adminNote: notes[application.id]
+        });
+      } else {
+        await repository.reviewApplication({
+          applicationId: application.id,
+          status: nextStatus,
+          adminNote: notes[application.id]
+        });
+      }
+      await loadFirstPage();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Application status could not be saved.");
+    } finally {
+      setWorkingId(null);
+    }
   };
-  const convert = async (application: PublicApplication) => {
-    const amount = Number(pay[application.id]);
-    if (!amount || amount <= 0) { setError("Enter an agreed pay amount in naira before converting."); return; }
-    setWorkingId(application.id); setError(null);
-    try { await repository.convertApplication({ applicationId: application.id, agreedPay: Math.round(amount) }); load(); } catch (caught) { setError(caught instanceof Error ? caught.message : "Assignment could not be created."); } finally { setWorkingId(null); }
+
+  const handlePrimary = (application: PublicApplication, action: ApplicationAction) => {
+    if (action === "start_review") {
+      void runStatusChange(application, "under_review");
+      return;
+    }
+    if (action === "shortlist") {
+      void runStatusChange(application, "shortlisted");
+      return;
+    }
+    if (action === "view_readiness") {
+      navigate(application.professionalId ? `/admin/people/${application.professionalId}` : "/admin/people");
+      return;
+    }
+    if (action === "create_assignment") {
+      setAssignmentApplication(application);
+      return;
+    }
+    if (action === "open_assignment" && application.assignmentId) {
+      navigate(`/admin/assignments/${application.assignmentId}`);
+    }
   };
+
   const viewCv = async (application: PublicApplication) => {
     if (!application.cvDocumentId || !repository.getApplicationDocumentUrl) {
       setError("The submitted CV is not available for this application.");
@@ -87,15 +140,115 @@ export function AdminApplicationsPage({ repository = publicListingsRepository }:
       setError("Allow pop-ups to view the submitted CV.");
       return;
     }
-    setWorkingId(application.id); setError(null);
+    setWorkingId(application.id);
+    setError(null);
     try {
-      const url = await repository.getApplicationDocumentUrl(application.id);
-      popup.location.href = url;
+      popup.location.href = await repository.getApplicationDocumentUrl(application.id);
     } catch (caught) {
       popup.close();
       setError(caught instanceof Error ? caught.message : "The submitted CV could not be opened.");
-    } finally { setWorkingId(null); }
+    } finally {
+      setWorkingId(null);
+    }
   };
 
-  return <div><PageHeader eyebrow="Candidate pipeline" title="Applications" description="Review real candidate interest, keep the next step visible, and convert the right fit into the existing Assignment workflow" actions={<Button type="button" variant="secondary" onClick={load}><RefreshCw size={15} aria-hidden /> Refresh</Button>} /><div className="mt-6 flex flex-wrap items-center gap-3"><p className="mr-auto text-sm text-[var(--muted)]">{loading ? "Loading…" : `${applications.length}${totalCount > applications.length ? ` of ${totalCount}` : ""} application${applications.length === 1 ? "" : "s"}`}</p><Input aria-label="Search applications" value={search} onChange={(event) => { setLoading(true); setSearch(event.target.value); }} placeholder="Candidate, email, or job" className="w-64" /><Select aria-label="Filter applications by job" value={jobId} onChange={(event) => { setLoading(true); setJobId(event.target.value); }} className="w-auto min-w-44"><option value="all">All jobs</option>{jobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}</Select><Select aria-label="Filter applications by status" value={status} onChange={(event) => { setLoading(true); setStatus(event.target.value as typeof status); }} className="w-auto min-w-44"><option value="all">All statuses</option>{Object.keys(statusLabel).map((item) => <option key={item} value={item}>{statusLabel[item as JobApplicationStatus]}</option>)}</Select></div>{error && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{error}</p>}{loading ? <div className="mt-4 rounded-xl border border-dashed border-[var(--border)] px-5 py-10 text-center text-sm text-[var(--muted)]">Loading application queue…</div> : applications.length === 0 ? <div className="mt-4"><EmptyState title="No applications in this view" description="Published roles will send candidate interest here as people apply." /></div> : <><div className="mt-4 grid gap-4">{applications.map((application) => <article key={application.id} className="rounded-2xl border border-[var(--border)] bg-white p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.13em] text-[var(--blue)]">{application.companyName}</p><h2 className="mt-2 text-xl font-semibold text-[var(--ink)]">{application.jobTitle}</h2><p className="mt-1 flex items-center gap-2 text-sm text-[var(--muted)]"><UserRound size={14} aria-hidden />{application.applicantName || "Applicant"} · {application.applicantEmail || "No email"}</p></div><span className="rounded-full bg-[var(--surface-subtle)] px-3 py-1.5 text-xs font-bold text-[var(--ink)]">{statusLabel[application.status]}</span></div><div className="mt-5 grid gap-4 border-t border-[var(--border)] pt-5 lg:grid-cols-[minmax(0,1fr)_minmax(250px,.7fr)]"><div><div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><FileText size={15} aria-hidden /> Cover note</div><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--muted)]">{application.coverNote}</p>{application.cvDisplayName && <div className="mt-3 flex flex-wrap items-center gap-3"><p className="text-sm font-semibold text-[var(--ink)]">CV: {application.cvDisplayName}</p><Button type="button" variant="secondary" disabled={workingId === application.id} onClick={() => void viewCv(application)}><ExternalLink size={14} aria-hidden /> View CV</Button></div>}{application.supportingDocumentCount ? <p className="mt-1 text-xs text-[var(--muted)]">{application.supportingDocumentCount} supporting document(s) available</p> : null}{application.portfolioUrl && <a href={application.portfolioUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-semibold text-[var(--blue)]">Open portfolio</a>}</div>{application.status === "converted" ? <div className="rounded-xl bg-emerald-50 p-4 text-sm leading-6 text-emerald-800">This application is connected to an Assignment.</div> : <div className="grid gap-3"><Field label="Admin note"><Textarea value={notes[application.id] ?? application.adminNote ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [application.id]: event.target.value }))} placeholder="What should the candidate know next?" className="min-h-20" /></Field><div className="flex flex-wrap gap-2">{reviewStatuses.map((nextStatus) => <Button key={nextStatus} type="button" variant={nextStatus === "rejected" ? "danger" : nextStatus === "shortlisted" ? "primary" : "secondary"} disabled={workingId === application.id} onClick={() => review(application, nextStatus)}><Check size={14} aria-hidden />{statusLabel[nextStatus]}</Button>)}</div>{application.status === "shortlisted" && <div className="grid gap-2 border-t border-[var(--border)] pt-3"><Field label="Agreed pay (₦)"><Input type="number" min="1" value={pay[application.id] ?? ""} onChange={(event) => setPay((current) => ({ ...current, [application.id]: event.target.value }))} placeholder="450000" /></Field><Button type="button" disabled={workingId === application.id} onClick={() => convert(application)}>Create Assignment</Button></div>}</div>}</div></article>)}</div>{applications.length < totalCount && <div className="mt-6 flex justify-center"><Button type="button" variant="secondary" disabled={loadingMore} onClick={loadMore}>{loadingMore ? "Loading…" : "Load more applications"}</Button></div>}</>}</div>;
+  const hasFilters = Boolean(search.trim()) || jobId !== "all" || status !== "all";
+  const countLabel = loading
+    ? "Loading applications…"
+    : `${applications.length}${totalCount > applications.length ? ` of ${totalCount}` : ""} application${applications.length === 1 ? "" : "s"}`;
+
+  return (
+    <div>
+      <PageHeader
+        eyebrow="Candidate pipeline"
+        title="Applications"
+        description="Make one clear decision at a time, then let readiness and assignment states guide the next step."
+        actions={
+          <Button type="button" variant="secondary" onClick={() => void loadFirstPage()}>
+            <RefreshCw size={15} aria-hidden="true" />
+            Refresh
+          </Button>
+        }
+      />
+
+      <div className="mt-6">
+        <ApplicationFilters
+          search={search}
+          jobId={jobId}
+          status={status}
+          jobs={jobs}
+          hasFilters={hasFilters}
+          onSearchChange={setSearch}
+          onJobChange={setJobId}
+          onStatusChange={setStatus}
+          onClear={() => {
+            setSearch("");
+            setJobId("all");
+            setStatus("all");
+          }}
+        />
+      </div>
+
+      <p className="mt-4 text-sm text-[var(--muted)]">{countLabel}</p>
+
+      {error ? (
+        <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+          {error}
+        </p>
+      ) : null}
+
+      {loading ? (
+        <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] px-5 py-12 text-center text-sm text-[var(--muted)]">
+          Loading the candidate queue…
+        </div>
+      ) : applications.length === 0 ? (
+        <div className="mt-4">
+          <EmptyState
+            title="No applications in this view"
+            description="Published roles will send candidate interest here as people apply."
+          />
+        </div>
+      ) : (
+        <>
+          <div className="mt-4 grid gap-4">
+            {applications.map((application) => (
+              <ApplicationCard
+                key={application.id}
+                application={application}
+                privateNote={notes[application.id] ?? application.adminNote ?? ""}
+                working={workingId === application.id}
+                onPrivateNoteChange={(value) =>
+                  setNotes((current) => ({ ...current, [application.id]: value }))
+                }
+                onPrimary={(action) => handlePrimary(application, action)}
+                onStatusChange={(nextStatus) => void runStatusChange(application, nextStatus)}
+                onViewCv={() => void viewCv(application)}
+              />
+            ))}
+          </div>
+          {applications.length < totalCount ? (
+            <div className="mt-6 flex justify-center">
+              <Button type="button" variant="secondary" disabled={loadingMore} onClick={() => void loadMore()}>
+                {loadingMore ? "Loading…" : "Load more applications"}
+              </Button>
+            </div>
+          ) : null}
+        </>
+      )}
+
+      <AssignmentDrawer
+        application={assignmentApplication}
+        job={jobs.find((job) => job.id === assignmentApplication?.jobId)}
+        repository={repository}
+        open={Boolean(assignmentApplication)}
+        onClose={() => setAssignmentApplication(null)}
+        onComplete={() => void loadFirstPage()}
+        onStaleRecord={() => {
+          setError("This application is no longer ready to assign. The queue has been refreshed.");
+          void loadFirstPage();
+        }}
+      />
+    </div>
+  );
 }
+

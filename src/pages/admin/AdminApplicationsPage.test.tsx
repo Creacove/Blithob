@@ -99,7 +99,7 @@ describe("AdminApplicationsPage", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Product Designer")).toBeInTheDocument());
-    expect(screen.getByText(/readiness/i)).toBeInTheDocument();
+    expect(screen.getByText("Readiness in progress")).toBeInTheDocument();
     expect(screen.queryByText(/Agreed pay/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /create assignment/i })).not.toBeInTheDocument();
   });
