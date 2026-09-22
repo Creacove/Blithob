@@ -1,8 +1,7 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { BrandMark } from "../../components/BrandMark";
-import { CandidateDocumentManager } from "../../components/public/CandidateDocumentManager";
 import { Button, Field, Input } from "../../components/ui";
 import { useProfessionalStore } from "../../store/professionalStore";
 import "./public.css";
@@ -15,12 +14,6 @@ export function OnboardingPage() {
   const isLoading = useProfessionalStore((state) => state.isLoading);
   const error = useProfessionalStore((state) => state.error);
   const clearError = useProfessionalStore((state) => state.clearError);
-  const backendMode = useProfessionalStore((state) => state.backendMode);
-  const candidateDocuments = useProfessionalStore((state) => state.candidateDocuments);
-  const loadCandidateDocuments = useProfessionalStore((state) => state.loadCandidateDocuments);
-  const uploadCandidateDocument = useProfessionalStore((state) => state.uploadCandidateDocument);
-  const archiveCandidateDocument = useProfessionalStore((state) => state.archiveCandidateDocument);
-  const downloadCandidateDocument = useProfessionalStore((state) => state.downloadCandidateDocument);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const requestedNext = searchParams.get("next");
@@ -28,10 +21,6 @@ export function OnboardingPage() {
   const [displayName, setDisplayName] = useState(currentUser?.name ?? "");
   const [phone, setPhone] = useState(currentProfessional?.phone ?? "");
   const [location, setLocation] = useState(currentProfessional?.location ?? "");
-  useEffect(() => {
-    void loadCandidateDocuments();
-  }, [loadCandidateDocuments]);
-
   if (!session || !currentUser) return <Navigate to={`/login${next ? `?next=${encodeURIComponent(next)}` : ""}`} replace />;
 
   const submit = async (event: FormEvent) => {
@@ -50,15 +39,9 @@ export function OnboardingPage() {
       <div className="public-shell public-onboarding-page">
         <div className="public-onboarding-top"><BrandMark /><Link to="/jobs" className="public-back-link"><ArrowLeft size={16} aria-hidden /> Browse jobs</Link></div>
         <section className="public-onboarding-card">
-          <p className="public-eyebrow">One last step</p>
-          <h1>Make your profile <em>real.</em></h1>
-          <p className="public-lede">A little context helps the right opportunity find you. You can refine this anytime. A CV is only required when you apply for a Job.</p>
-          <CandidateDocumentManager
-            documents={candidateDocuments}
-            onUpload={uploadCandidateDocument}
-            onArchive={archiveCandidateDocument}
-            onDownload={backendMode === "remote" ? (document) => downloadCandidateDocument(document.id) : undefined}
-          />
+          <p className="public-eyebrow">Profile setup</p>
+          <h1>Tell us about <em>yourself.</em></h1>
+          <p className="public-lede">Save your contact details first. You’ll add your CV on the application page.</p>
           <form onSubmit={submit} className="public-onboarding-form">
             <Field label="Name"><Input autoComplete="name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} required minLength={2} /></Field>
             <Field label="Phone (optional)"><Input autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+234 800 000 0000" /></Field>

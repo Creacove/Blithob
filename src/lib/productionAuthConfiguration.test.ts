@@ -12,8 +12,10 @@ describe("production invitation configuration", () => {
       "utf8"
     );
     const loginPage = readFileSync(resolve(projectRoot, "src/pages/LoginPage.tsx"), "utf8");
+    const emailAuthConfig = config.split("[auth.email]")[1]?.split("[auth.sms]")[0] ?? "";
 
     expect(config).toContain('site_url = "https://blithob.com"');
+    expect(emailAuthConfig).toContain("enable_confirmations = false");
     expect(config).toContain('additional_redirect_urls = ["https://blithob.com/login?mode=invite"]');
     expect(inviteFunction).toContain('redirectTo: "https://blithob.com/login?mode=invite"');
     expect(loginPage).toContain('searchParams.get("mode") === "invite"');
