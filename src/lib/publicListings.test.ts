@@ -49,6 +49,10 @@ describe("public listings repository", () => {
       p_category_slug: null,
       p_work_mode: null,
       p_location: null,
+      p_country_code: null,
+      p_employment_type: null,
+      p_min_rate_minor: null,
+      p_max_rate_minor: null,
       p_featured_only: true,
       p_limit: 5,
       p_offset: 0
@@ -74,5 +78,50 @@ describe("public listings repository", () => {
     const repository = createPublicListingsRepository(client);
 
     await expect(repository.listCategories()).rejects.toThrow("network down");
+  });
+
+  it("submits applications with the completed CV document reference", async () => {
+    const client = fakeClient({ data: ["application-1"], error: null });
+    const repository = createPublicListingsRepository(client);
+
+    await repository.submitApplication({
+      jobId: "job-1",
+      coverNote: "I have shipped similar products and can start next month.",
+      cvDocumentId: "cv-1"
+    });
+
+    expect(client.rpc).toHaveBeenCalledWith("submit_job_application_with_cv", {
+      p_job_id: "job-1",
+      p_cover_note: "I have shipped similar products and can start next month.",
+      p_portfolio_url: null,
+      p_cv_document_id: "cv-1"
+    });
+  });
+
+  it("passes bounded discovery filters to the safe jobs RPC", async () => {
+    const client = fakeClient({ data: [], error: null });
+    const repository = createPublicListingsRepository(client);
+
+    await repository.listJobs({
+      countryCode: "NG",
+      location: "Lagos",
+      categorySlug: "design",
+      minRateMinor: 100000,
+      maxRateMinor: 500000,
+      workMode: "Remote",
+      employmentType: "Full-time",
+      limit: 12,
+      offset: 0
+    });
+
+    expect(client.rpc).toHaveBeenCalledWith("list_public_jobs", expect.objectContaining({
+      p_country_code: "NG",
+      p_location: "Lagos",
+      p_category_slug: "design",
+      p_min_rate_minor: 100000,
+      p_max_rate_minor: 500000,
+      p_work_mode: "Remote",
+      p_employment_type: "Full-time"
+    }));
   });
 });

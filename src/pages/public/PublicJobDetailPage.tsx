@@ -36,6 +36,40 @@ export function PublicJobDetailPage({ repository = publicListingsRepository }: {
     return () => { active = false; };
   }, [repository, slug]);
 
+  useEffect(() => {
+    if (!job) return;
+    document.title = `${job.title} at ${job.companyName} | Blithob`;
+    const description = document.querySelector('meta[name="description"]');
+    description?.setAttribute("content", job.summary);
+    const setMeta = (property: string, content: string) => {
+      let meta = document.querySelector<HTMLMetaElement>(`meta[property="${property}"]`);
+      if (!meta) { meta = document.createElement("meta"); meta.setAttribute("property", property); document.head.appendChild(meta); }
+      meta.content = content;
+    };
+    setMeta("og:title", `${job.title} at ${job.companyName}`);
+    setMeta("og:description", job.summary);
+    setMeta("og:url", `${window.location.origin}/jobs/${job.slug}`);
+    const structured = document.createElement("script");
+    structured.type = "application/ld+json";
+    structured.id = "job-posting-jsonld";
+    structured.textContent = JSON.stringify({ "@context": "https://schema.org", "@type": "JobPosting", title: job.title, description: job.description || job.summary, hiringOrganization: { "@type": "Organization", name: job.companyName }, jobLocation: { "@type": "Place", address: job.locationLabel }, employmentType: job.employmentType || undefined, url: `${window.location.origin}/jobs/${job.slug}` });
+    document.getElementById("job-posting-jsonld")?.remove();
+    document.head.appendChild(structured);
+    let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.rel = "canonical";
+      document.head.appendChild(canonical);
+    }
+    canonical.href = `${window.location.origin}/jobs/${job.slug}`;
+    return () => {
+      document.title = "Blithob | Open jobs and clearer applications";
+      description?.setAttribute("content", "Find clear, public job opportunities and apply with a private candidate profile.");
+      canonical?.setAttribute("href", `${window.location.origin}/`);
+      document.getElementById("job-posting-jsonld")?.remove();
+    };
+  }, [job]);
+
   return (
     <main className="public-page">
       <PublicHeader />

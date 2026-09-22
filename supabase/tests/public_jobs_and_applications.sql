@@ -39,7 +39,8 @@ declare
     array['job_applications', 'professional_id'],
     array['job_applications', 'status'],
     array['job_applications', 'cover_note'],
-    array['job_applications', 'assignment_id']
+    array['job_applications', 'assignment_id'],
+    array['job_applications', 'cv_document_id']
   ];
   item text[];
 begin
@@ -64,12 +65,12 @@ begin
   foreach function_signature in array array[
     'public.list_public_services()',
     'public.list_public_categories()',
-    'public.list_public_jobs(text,text,text,text,text,boolean,integer,integer)',
+     'public.list_public_jobs(text,text,text,text,text,text,text,bigint,bigint,boolean,integer,integer)',
     'public.get_public_job(text)',
     'public.list_my_applications(text)',
-    'public.list_admin_applications(uuid,text)',
+     'public.list_admin_applications(uuid,text,text,integer,integer)',
     'public.complete_my_professional_profile(text,text,text)',
-    'public.submit_job_application(uuid,text,text)',
+    'public.submit_job_application_with_cv(uuid,uuid,text,text)',
     'public.withdraw_job_application(uuid)',
     'public.review_job_application(uuid,public.job_application_status,text)',
     'public.convert_job_application_to_assignment(uuid,bigint,timestamptz,uuid)'
@@ -88,7 +89,7 @@ begin
   foreach function_signature in array array[
     'public.list_public_services()',
     'public.list_public_categories()',
-    'public.list_public_jobs(text,text,text,text,text,boolean,integer,integer)',
+    'public.list_public_jobs(text,text,text,text,text,text,text,bigint,bigint,boolean,integer,integer)',
     'public.get_public_job(text)'
   ] loop
     if not has_function_privilege('anon', function_signature, 'execute') then
@@ -101,9 +102,9 @@ begin
 
   foreach function_signature in array array[
     'public.list_my_applications(text)',
-    'public.list_admin_applications(uuid,text)',
+    'public.list_admin_applications(uuid,text,text,integer,integer)',
     'public.complete_my_professional_profile(text,text,text)',
-    'public.submit_job_application(uuid,text,text)',
+    'public.submit_job_application_with_cv(uuid,uuid,text,text)',
     'public.withdraw_job_application(uuid)',
     'public.review_job_application(uuid,public.job_application_status,text)',
     'public.convert_job_application_to_assignment(uuid,bigint,timestamptz,uuid)'
@@ -115,6 +116,10 @@ begin
       raise exception 'Anonymous execute privilege must be denied for %', function_signature;
     end if;
   end loop;
+
+  if has_function_privilege('authenticated', 'public.submit_job_application(uuid,text,text)', 'execute') then
+    raise exception 'Legacy application submission must be denied for authenticated users';
+  end if;
 end;
 $$;
 

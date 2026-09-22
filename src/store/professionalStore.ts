@@ -3,6 +3,12 @@ import { persist } from "zustand/middleware";
 import { migrateLegacyState } from "../domain/migrate";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { SupabaseRepository } from "../lib/supabaseRepository";
+import {
+  MAX_CANDIDATE_DOCUMENT_BYTES,
+  type CandidateDocument,
+  type CandidateDocumentType,
+  validateCandidateDocumentFile
+} from "../lib/candidateDocuments";
 import { publicListingsRepository } from "../lib/publicListings";
 import type {
   DemoPersona,
@@ -105,6 +111,14 @@ interface ProfessionalActions {
   currentUser: () => DemoState["users"][number] | undefined;
   currentProfessional: () => Professional | undefined;
   resetDemo: () => void;
+  candidateDocuments: CandidateDocument[];
+  loadCandidateDocuments: () => Promise<void>;
+  uploadCandidateDocument: (input: {
+    type: CandidateDocumentType;
+    file: File;
+  }) => Promise<CandidateDocument>;
+  archiveCandidateDocument: (documentId: string) => Promise<void>;
+  downloadCandidateDocument: (documentId: string) => Promise<string>;
 
   createProfessional: (input: CreateProfessionalInput) => AsyncValue<string>;
   updateProfessional: (
@@ -267,6 +281,7 @@ export const useProfessionalStore = create<ProfessionalStore>()(
       isLoading: false,
       isPasswordRecovery: false,
       error: null,
+      candidateDocuments: [],
 
       signIn: (persona) =>
         set((state) => {
@@ -298,7 +313,68 @@ export const useProfessionalStore = create<ProfessionalStore>()(
             )
           : undefined;
       },
-      resetDemo: () => set({ ...createDemoState(), session: null }),
+      resetDemo: () => set({ ...createDemoState(), session: null, candidateDocuments: [] }),
+      loadCandidateDocuments: async () => undefined,
+      uploadCandidateDocument: async (input) => {
+        const state = get();
+        const professional = state.currentProfessional();
+        if (!professional) throw new Error("Sign in before uploading a document.");
+        validateCandidateDocumentFile(input.file);
+        if (
+          input.type === "supporting" &&
+          state.candidateDocuments.filter(
+            (document) =>
+              document.documentType === "supporting" &&
+              document.isActive &&
+              document.uploadComplete
+          ).length >= 5
+        ) {
+          throw new Error("You can upload up to five supporting documents.");
+        }
+        const id = makeId("candidate-document");
+        const extension = input.file.name.toLowerCase().endsWith(".docx")
+          ? "docx"
+          : "pdf";
+        const timestamp = now();
+        const document: CandidateDocument = {
+          id,
+          professionalId: professional.id,
+          documentType: input.type,
+          displayName: input.file.name.trim(),
+          storagePath: `${professional.id}/${id}.${extension}`,
+          mimeType: input.file.type as CandidateDocument["mimeType"],
+          sizeBytes: input.file.size,
+          isActive: true,
+          uploadComplete: true,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          uploadedAt: timestamp
+        };
+        set((current) => ({
+          candidateDocuments: [
+            ...(input.type === "cv"
+              ? current.candidateDocuments.filter(
+                  (item) => item.documentType !== "cv"
+                )
+              : current.candidateDocuments),
+            document
+          ]
+        }));
+        return document;
+      },
+      archiveCandidateDocument: async (documentId) => {
+        set((state) => ({
+          candidateDocuments: state.candidateDocuments.filter(
+            (document) => document.id !== documentId
+          )
+        }));
+      },
+      downloadCandidateDocument: async (documentId) => {
+        if (!get().candidateDocuments.some((document) => document.id === documentId)) {
+          throw new Error("Document is not available.");
+        }
+        throw new Error("Downloads are available when the document is stored securely.");
+      },
 
       createProfessional: (input) => {
         const professionalId = makeId("professional");
@@ -822,8 +898,13 @@ async function hydrateRemote(
         : professional?.isLead
           ? "lead"
           : "professional";
+    const candidateDocuments = professional
+      ? await remoteRepository.candidateDocuments().list()
+      : [];
+    if (!isCurrentRemoteSession(userId, generation)) return;
     useProfessionalStore.setState({
       ...remoteState,
+      candidateDocuments,
       backendMode: "remote",
       session: { userId, persona },
       isPasswordRecovery: false,
@@ -864,6 +945,7 @@ async function initializeBackend() {
             invalidateRemoteSession();
             useProfessionalStore.setState({
               ...emptyRemoteState(),
+              candidateDocuments: [],
               session: null,
               isPasswordRecovery: false,
               isBootstrapping: false,
@@ -910,6 +992,7 @@ async function initializeBackend() {
       invalidateRemoteSession();
       useProfessionalStore.setState({
         ...emptyRemoteState(),
+        candidateDocuments: [],
         session: null,
         isPasswordRecovery: false,
         isBootstrapping: false,
@@ -1095,6 +1178,106 @@ useProfessionalStore.setState({
       return;
     }
     baseActions.resetDemo();
+  },
+  loadCandidateDocuments: async () => {
+    const state = useProfessionalStore.getState();
+    if (
+      !remoteRepository ||
+      state.backendMode !== "remote" ||
+      !state.session ||
+      state.session.persona === "admin"
+    ) {
+      return;
+    }
+    useProfessionalStore.setState({ isLoading: true, error: null });
+    try {
+      const documents = await remoteRepository.candidateDocuments().list();
+      useProfessionalStore.setState({ candidateDocuments: documents });
+    } catch (error) {
+      useProfessionalStore.setState({ error: errorMessage(error) });
+      throw error;
+    } finally {
+      useProfessionalStore.setState({ isLoading: false });
+    }
+  },
+  uploadCandidateDocument: async (input) => {
+    const state = useProfessionalStore.getState();
+    if (
+      !remoteRepository ||
+      state.backendMode !== "remote" ||
+      !state.session
+    ) {
+      return baseActions.uploadCandidateDocument(input);
+    }
+    if (input.file.size > MAX_CANDIDATE_DOCUMENT_BYTES) {
+      throw new Error("Files must be no larger than 10 MiB");
+    }
+    useProfessionalStore.setState({ isLoading: true, error: null });
+    try {
+      const document = await remoteRepository.candidateDocuments().upload(input);
+      useProfessionalStore.setState((current) => ({
+        candidateDocuments:
+          input.type === "cv"
+            ? [
+                ...current.candidateDocuments.filter(
+                  (item) => item.documentType !== "cv"
+                ),
+                document
+              ]
+            : [...current.candidateDocuments, document]
+      }));
+      return document;
+    } catch (error) {
+      useProfessionalStore.setState({ error: errorMessage(error) });
+      throw error;
+    } finally {
+      useProfessionalStore.setState({ isLoading: false });
+    }
+  },
+  archiveCandidateDocument: async (documentId) => {
+    const state = useProfessionalStore.getState();
+    if (
+      !remoteRepository ||
+      state.backendMode !== "remote" ||
+      !state.session
+    ) {
+      return baseActions.archiveCandidateDocument(documentId);
+    }
+    useProfessionalStore.setState({ isLoading: true, error: null });
+    try {
+      await remoteRepository.candidateDocuments().archive(documentId);
+      useProfessionalStore.setState((current) => ({
+        candidateDocuments: current.candidateDocuments.filter(
+          (document) => document.id !== documentId
+        )
+      }));
+    } catch (error) {
+      useProfessionalStore.setState({ error: errorMessage(error) });
+      throw error;
+    } finally {
+      useProfessionalStore.setState({ isLoading: false });
+    }
+  },
+  downloadCandidateDocument: async (documentId) => {
+    const state = useProfessionalStore.getState();
+    const document = state.candidateDocuments.find((item) => item.id === documentId);
+    if (!document) throw new Error("Document is not available.");
+    if (
+      !remoteRepository ||
+      state.backendMode !== "remote" ||
+      !state.session
+    ) {
+      return baseActions.downloadCandidateDocument(documentId);
+    }
+    useProfessionalStore.setState({ isLoading: true, error: null });
+    try {
+      return await remoteRepository.candidateDocuments().getDownloadUrl(document);
+    } catch (error) {
+      useProfessionalStore.setState({ error: errorMessage(error) });
+      throw error;
+    } finally {
+      useProfessionalStore.setState({ isLoading: false });
+    }
   },
   createProfessional: (input) => {
     const id = baseActions.createProfessional(input) as string;

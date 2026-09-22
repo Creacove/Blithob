@@ -1,4 +1,5 @@
 import { ArrowRight, Clock3 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
@@ -10,6 +11,7 @@ import {
 } from "../../components/ui";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { formatDate, formatDateTime } from "../../lib/format";
+import { publicListingsRepository, type AdminApplicationMetrics } from "../../lib/publicListings";
 import type { ActivityEvent } from "../../domain/model";
 import { useProfessionalStore } from "../../store/professionalStore";
 
@@ -22,6 +24,32 @@ export function AdminDashboard() {
   const payments = useProfessionalStore((state) => state.payments);
   const activity = useProfessionalStore((state) => state.activity);
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const [applicationMetrics, setApplicationMetrics] = useState<AdminApplicationMetrics>({
+    openPublicJobs: 0,
+    totalApplications: 0,
+    awaitingReview: 0,
+    submitted: 0,
+    underReview: 0,
+    shortlisted: 0,
+    rejected: 0,
+    withdrawn: 0,
+    converted: 0
+  });
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const metrics = await publicListingsRepository.getAdminApplicationMetrics?.();
+        if (active && metrics) setApplicationMetrics(metrics);
+      } catch {
+        // The existing operational dashboard remains usable when the optional
+        // public-application metrics endpoint is not yet deployed.
+      }
+    };
+    void load();
+    return () => { active = false; };
+  }, []);
 
   const workReviews = assignments.filter((assignment) =>
     ["waiting_for_admin", "approved"].includes(assignment.status)
@@ -125,6 +153,16 @@ export function AdminDashboard() {
             tone: paymentIssues.length ? "attention" : "default",
             mobilePriority: "secondary"
           }
+        ]}
+      />
+
+      <SummaryBand
+        className="mt-4"
+        items={[
+          { label: "Open public Jobs", value: applicationMetrics.openPublicJobs, mobilePriority: "primary" },
+          { label: "Total applications", value: applicationMetrics.totalApplications, mobilePriority: "primary" },
+          { label: "Awaiting review", value: applicationMetrics.awaitingReview, tone: applicationMetrics.awaitingReview ? "attention" : "default", mobilePriority: "secondary" },
+          { label: "Shortlisted", value: applicationMetrics.shortlisted, mobilePriority: "secondary" }
         ]}
       />
 

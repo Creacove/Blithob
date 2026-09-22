@@ -1,4 +1,5 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { useProfessionalStore } from "../../store/professionalStore";
@@ -19,6 +20,37 @@ describe("PublicApplicationsPage", () => {
     render(<MemoryRouter><PublicApplicationsPage repository={repository} /></MemoryRouter>);
     await waitFor(() => expect(screen.getByRole("heading", { name: /My applications/ })).toBeInTheDocument());
     expect(screen.getByText("Product Designer")).toBeInTheDocument();
-    expect(screen.getByText("Submitted")).toBeInTheDocument();
+    expect(screen.getByText("Applied")).toBeInTheDocument();
+    expect(screen.getByText("A thoughtful note.")).toBeInTheDocument();
+    expect(screen.queryByText(/Interview|Offer|Hired/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the reviewing and shortlisted phase labels without introducing later-stage statuses", async () => {
+    const phaseRepository: PublicListingsRepository = {
+      ...repository,
+      async listMyApplications() {
+        return [
+          { id: "a2", jobId: "j2", jobSlug: "writer", jobTitle: "Content Writer", companyName: "A client team", status: "under_review", coverNote: "Review note", createdAt: "2026-09-03", updatedAt: "2026-09-04" },
+          { id: "a3", jobId: "j3", jobSlug: "designer", jobTitle: "Product Designer", companyName: "Another team", status: "shortlisted", coverNote: "Shortlist note", createdAt: "2026-09-01", updatedAt: "2026-09-02" }
+        ];
+      }
+    };
+    useProfessionalStore.getState().signIn("professional");
+    render(<MemoryRouter><PublicApplicationsPage repository={phaseRepository} /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByText("Reviewing")).toBeInTheDocument());
+    expect(screen.getByText("Shortlisted")).toBeInTheDocument();
+    expect(screen.queryByText(/Interview|Offer|Hired/i)).not.toBeInTheDocument();
+  });
+
+  it("surfaces a safe withdrawal error instead of silently changing the application", async () => {
+    const withdrawRepository: PublicListingsRepository = {
+      ...repository,
+      async withdrawApplication() { throw new Error("Application cannot be withdrawn"); }
+    };
+    useProfessionalStore.getState().signIn("professional");
+    render(<MemoryRouter><PublicApplicationsPage repository={withdrawRepository} /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Withdraw/i })).toBeInTheDocument());
+    await userEvent.setup().click(screen.getByRole("button", { name: /Withdraw/i }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Application cannot be withdrawn"));
   });
 });

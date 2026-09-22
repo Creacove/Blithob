@@ -1,7 +1,8 @@
 import { CheckCircle2, LogOut, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
+import { CandidateDocumentManager } from "../../components/public/CandidateDocumentManager";
 import { useToast } from "../../components/ToastProvider";
 import { Button, Field, Input, Section } from "../../components/ui";
 import { initials } from "../../lib/format";
@@ -21,6 +22,11 @@ export function ProfilePage() {
   const signOut = useProfessionalStore((state) => state.signOut);
   const resetDemo = useProfessionalStore((state) => state.resetDemo);
   const backendMode = useProfessionalStore((state) => state.backendMode);
+  const candidateDocuments = useProfessionalStore((state) => state.candidateDocuments);
+  const loadCandidateDocuments = useProfessionalStore((state) => state.loadCandidateDocuments);
+  const uploadCandidateDocument = useProfessionalStore((state) => state.uploadCandidateDocument);
+  const archiveCandidateDocument = useProfessionalStore((state) => state.archiveCandidateDocument);
+  const downloadCandidateDocument = useProfessionalStore((state) => state.downloadCandidateDocument);
   const [form, setForm] = useState(() => ({
     name: professional?.name ?? "",
     email: professional?.email ?? "",
@@ -30,6 +36,10 @@ export function ProfilePage() {
   const { success, error } = useToast();
   const navigate = useNavigate();
   const showReset = backendMode === "demo";
+
+  useEffect(() => {
+    if (professional) void loadCandidateDocuments();
+  }, [loadCandidateDocuments, professional]);
 
   if (!professional) return null;
 
@@ -176,6 +186,14 @@ export function ProfilePage() {
             </Button>
           </div>
         </Section>
+      </div>
+      <div className="mt-5">
+        <CandidateDocumentManager
+          documents={candidateDocuments}
+          onUpload={uploadCandidateDocument}
+          onArchive={archiveCandidateDocument}
+          onDownload={backendMode === "remote" ? (document) => downloadCandidateDocument(document.id) : undefined}
+        />
       </div>
       {!professional.isLead && (
         <Section

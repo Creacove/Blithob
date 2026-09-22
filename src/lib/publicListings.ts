@@ -5,6 +5,9 @@ export interface PublicListingsClient {
     functionName: string,
     args?: Record<string, unknown>
   ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+  storage?: {
+    from(bucket: string): { createSignedUrl(path: string, expiresIn: number): Promise<{ data: { signedUrl?: string } | null; error: { message: string } | null }> };
+  };
 }
 
 export interface PublicService {
@@ -31,6 +34,7 @@ export interface PublicJobSummary {
   title: string;
   summary: string;
   companyName: string;
+  countryCode?: string;
   serviceSlug: string;
   serviceName: string;
   categorySlug?: string;
@@ -85,6 +89,10 @@ export interface PublicApplication {
   applicantEmail?: string;
   reviewedBy?: string;
   reviewedAt?: string;
+  cvDocumentId?: string;
+  cvDisplayName?: string;
+  supportingDocumentCount?: number;
+  totalCount?: number;
 }
 
 export interface PublicJobFilters {
@@ -93,6 +101,10 @@ export interface PublicJobFilters {
   categorySlug?: string;
   workMode?: string;
   location?: string;
+  countryCode?: string;
+  employmentType?: string;
+  minRateMinor?: number;
+  maxRateMinor?: number;
   featuredOnly?: boolean;
   limit?: number;
   offset?: number;
@@ -101,6 +113,18 @@ export interface PublicJobFilters {
 export interface PublicJobsResult {
   jobs: PublicJobSummary[];
   total: number;
+}
+
+export interface AdminApplicationMetrics {
+  openPublicJobs: number;
+  totalApplications: number;
+  awaitingReview: number;
+  submitted: number;
+  underReview: number;
+  shortlisted: number;
+  rejected: number;
+  withdrawn: number;
+  converted: number;
 }
 
 export interface PublicListingsRepository {
@@ -112,7 +136,11 @@ export interface PublicListingsRepository {
   listAdminApplications(options?: {
     jobId?: string;
     status?: JobApplicationStatus;
+    search?: string;
+    limit?: number;
+    offset?: number;
   }): Promise<PublicApplication[]>;
+  getAdminApplicationMetrics?(): Promise<AdminApplicationMetrics>;
   completeProfessionalProfile(input: {
     displayName: string;
     phone: string;
@@ -121,6 +149,7 @@ export interface PublicListingsRepository {
   submitApplication(input: {
     jobId: string;
     coverNote: string;
+    cvDocumentId: string;
     portfolioUrl?: string;
   }): Promise<string>;
   withdrawApplication(applicationId: string): Promise<string>;
@@ -135,6 +164,7 @@ export interface PublicListingsRepository {
     deadline?: string;
     leadReviewerId?: string;
   }): Promise<string>;
+  getApplicationDocumentUrl?(applicationId: string): Promise<string>;
 }
 
 function rowObject(value: unknown): Record<string, unknown> {
@@ -190,6 +220,7 @@ function mapJob(row: Record<string, unknown>): PublicJobSummary {
     title: text(row, "title"),
     summary: text(row, "public_summary"),
     companyName: text(row, "public_company_name"),
+    countryCode: optionalText(row, "country_code"),
     serviceSlug: text(row, "service_slug"),
     serviceName: text(row, "service_name"),
     categorySlug: optionalText(row, "category_slug"),
@@ -246,7 +277,25 @@ function mapApplication(row: Record<string, unknown>): PublicApplication {
     applicantName: optionalText(row, "applicant_name"),
     applicantEmail: optionalText(row, "applicant_email"),
     reviewedBy: optionalText(row, "reviewed_by"),
-    reviewedAt: optionalText(row, "reviewed_at")
+    reviewedAt: optionalText(row, "reviewed_at"),
+    cvDocumentId: optionalText(row, "cv_document_id"),
+    cvDisplayName: optionalText(row, "cv_display_name"),
+    supportingDocumentCount: numberValue(row, "supporting_document_count"),
+    totalCount: numberValue(row, "total_count")
+  };
+}
+
+function mapAdminApplicationMetrics(row: Record<string, unknown>): AdminApplicationMetrics {
+  return {
+    openPublicJobs: numberValue(row, "open_public_jobs") ?? 0,
+    totalApplications: numberValue(row, "total_applications") ?? 0,
+    awaitingReview: numberValue(row, "awaiting_review") ?? 0,
+    submitted: numberValue(row, "submitted") ?? 0,
+    underReview: numberValue(row, "under_review") ?? 0,
+    shortlisted: numberValue(row, "shortlisted") ?? 0,
+    rejected: numberValue(row, "rejected") ?? 0,
+    withdrawn: numberValue(row, "withdrawn") ?? 0,
+    converted: numberValue(row, "converted") ?? 0
   };
 }
 
@@ -278,6 +327,10 @@ export function createPublicListingsRepository(client: PublicListingsClient): Pu
         p_category_slug: filters.categorySlug?.trim() || null,
         p_work_mode: filters.workMode?.trim() || null,
         p_location: filters.location?.trim() || null,
+        p_country_code: filters.countryCode?.trim().toUpperCase() || null,
+        p_employment_type: filters.employmentType?.trim() || null,
+        p_min_rate_minor: filters.minRateMinor ?? null,
+        p_max_rate_minor: filters.maxRateMinor ?? null,
         p_featured_only: filters.featuredOnly ?? false,
         p_limit: filters.limit ?? 12,
         p_offset: filters.offset ?? 0
@@ -300,9 +353,16 @@ export function createPublicListingsRepository(client: PublicListingsClient): Pu
     async listAdminApplications(options = {}) {
       const data = await resolve<unknown>(client.rpc("list_admin_applications", {
         p_job_id: options.jobId ?? null,
-        p_status: options.status ?? null
+        p_status: options.status ?? null,
+        p_search: options.search?.trim() || null,
+        p_limit: options.limit ?? 25,
+        p_offset: options.offset ?? 0
       }));
       return rows(data).map(mapApplication);
+    },
+    async getAdminApplicationMetrics() {
+      const data = await resolve<unknown>(client.rpc("get_admin_application_metrics"));
+      return mapAdminApplicationMetrics(rows(data)[0] ?? {});
     },
     async completeProfessionalProfile(input) {
       const data = await resolve<unknown>(client.rpc("complete_my_professional_profile", {
@@ -313,10 +373,11 @@ export function createPublicListingsRepository(client: PublicListingsClient): Pu
       return scalar(data) ?? "";
     },
     async submitApplication(input) {
-      const data = await resolve<unknown>(client.rpc("submit_job_application", {
+      const data = await resolve<unknown>(client.rpc("submit_job_application_with_cv", {
         p_job_id: input.jobId,
         p_cover_note: input.coverNote.trim(),
-        p_portfolio_url: input.portfolioUrl?.trim() || null
+        p_portfolio_url: input.portfolioUrl?.trim() || null,
+        p_cv_document_id: input.cvDocumentId
       }));
       return scalar(data) ?? "";
     },
@@ -342,6 +403,15 @@ export function createPublicListingsRepository(client: PublicListingsClient): Pu
         p_lead_reviewer_id: input.leadReviewerId ?? null
       }));
       return scalar(data) ?? "";
+    },
+    async getApplicationDocumentUrl(applicationId) {
+      const data = await resolve<unknown>(client.rpc("list_application_documents", { p_application_id: applicationId }));
+      const document = rows(data)[0];
+      if (!document || !client.storage) throw new Error("Document access is unavailable.");
+      const storagePath = text(document, "storage_path");
+      const signed = await client.storage.from("candidate-documents").createSignedUrl(storagePath, 300);
+      if (signed.error || !signed.data?.signedUrl) throw new Error(signed.error?.message ?? "Document link is unavailable.");
+      return signed.data.signedUrl;
     }
   };
 }
@@ -354,11 +424,25 @@ export function createEmptyPublicListingsRepository(): PublicListingsRepository 
     async getJob() { return null; },
     async listMyApplications() { return []; },
     async listAdminApplications() { return []; },
+    async getAdminApplicationMetrics() {
+      return {
+        openPublicJobs: 0,
+        totalApplications: 0,
+        awaitingReview: 0,
+        submitted: 0,
+        underReview: 0,
+        shortlisted: 0,
+        rejected: 0,
+        withdrawn: 0,
+        converted: 0
+      };
+    },
     async completeProfessionalProfile() { throw new Error("Supabase is not configured."); },
     async submitApplication() { throw new Error("Supabase is not configured."); },
     async withdrawApplication() { throw new Error("Supabase is not configured."); },
     async reviewApplication() { throw new Error("Supabase is not configured."); },
-    async convertApplication() { throw new Error("Supabase is not configured."); }
+    async convertApplication() { throw new Error("Supabase is not configured."); },
+    async getApplicationDocumentUrl() { throw new Error("Supabase is not configured."); }
   };
 }
 
@@ -378,6 +462,7 @@ const demoJobs: PublicJobSummary[] = [
     title: "Frontend Developer",
     summary: "Build accessible, responsive product experiences used by growing teams around the world.",
     companyName: "Skyline Labs",
+    countryCode: "NG",
     serviceSlug: "web-development",
     serviceName: "Web development",
     categorySlug: "tech",
@@ -398,6 +483,7 @@ const demoJobs: PublicJobSummary[] = [
     title: "Social Media Manager",
     summary: "Shape social campaigns, grow engaged communities, and turn insights into measurable momentum.",
     companyName: "Brightwave",
+    countryCode: "NG",
     serviceSlug: "social-media",
     serviceName: "Social media",
     categorySlug: "marketing",
@@ -418,6 +504,7 @@ const demoJobs: PublicJobSummary[] = [
     title: "Customer Support Rep",
     summary: "Help customers solve meaningful problems with clear communication and thoughtful support.",
     companyName: "Codeflow Systems",
+    countryCode: "NG",
     serviceSlug: "customer-support",
     serviceName: "Customer support",
     categorySlug: "support",
@@ -438,6 +525,7 @@ const demoJobs: PublicJobSummary[] = [
     title: "Operations Manager",
     summary: "Improve systems, coordinate teams, and keep important work moving with clarity.",
     companyName: "Flowstead",
+    countryCode: "NG",
     serviceSlug: "operations",
     serviceName: "Operations",
     categorySlug: "operations",
@@ -458,6 +546,7 @@ const demoJobs: PublicJobSummary[] = [
     title: "Product Designer",
     summary: "Turn complex product ideas into simple, useful experiences for people everywhere.",
     companyName: "Northstar Studio",
+    countryCode: "NG",
     serviceSlug: "product-design",
     serviceName: "Product design",
     categorySlug: "design",
@@ -489,6 +578,10 @@ export function createDemoPublicListingsRepository(): PublicListingsRepository {
         if (filters.serviceSlug && job.serviceSlug !== filters.serviceSlug) return false;
         if (filters.workMode && job.workMode.toLowerCase() !== filters.workMode.toLowerCase()) return false;
         if (filters.location && !job.locationLabel.toLowerCase().includes(filters.location.toLowerCase())) return false;
+        if (filters.countryCode && job.countryCode?.toLowerCase() !== filters.countryCode.toLowerCase()) return false;
+        if (filters.employmentType && job.employmentType.toLowerCase() !== filters.employmentType.toLowerCase()) return false;
+        if (filters.minRateMinor !== undefined && (job.rateMaxMinor === undefined || job.rateMaxMinor < filters.minRateMinor)) return false;
+        if (filters.maxRateMinor !== undefined && (job.rateMinMinor === undefined || job.rateMinMinor > filters.maxRateMinor)) return false;
         return !query || `${job.title} ${job.summary} ${job.companyName}`.toLowerCase().includes(query);
       });
       const offset = filters.offset ?? 0;

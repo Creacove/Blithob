@@ -81,3 +81,27 @@ role.
 
 Never commit `.env.local`, the database password, or a service-role/secret API
 key. The browser only needs `VITE_SUPABASE_URL` and the public anon key.
+
+## Phase 1 production-readiness additions
+
+The additive migrations `20260922130000` through `20260922130300` preserve the
+private candidate-document contract, connect CV-backed applications to the
+existing transactional email outbox, add bounded public country/rate/type
+filters, and add an Admin-only bounded application queue with submitted-CV
+metadata. Apply them in order with `supabase db push --linked`; never reset the
+linked database. The legacy application RPC is revoked only after the new
+frontend has been verified in production.
+
+Transactional email is delivered by `send-transactional-email`. Configure the
+existing `RESEND_API_KEY`, `EMAIL_FROM`, and internal invocation secret as
+Supabase Edge Function secrets, then invoke the function from a private
+Supabase Cron job. The frontend never receives these values. Missing provider
+configuration leaves applications usable while the outbox records a safe
+delivery failure for retry/inspection.
+
+The public `/privacy`, `/robots.txt`, and `/sitemap.xml` routes are included in
+the frontend. The privacy copy is draft operational copy and does not claim
+GDPR certification; the site owner must provide the final retention/deletion
+contact and legal review before launch. Review seeded Job facts and configure
+Auth site URL, redirect allow-list, SMTP, CAPTCHA, and rate limits in the
+Supabase dashboard before production release.

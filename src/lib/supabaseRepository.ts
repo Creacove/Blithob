@@ -33,6 +33,7 @@ import type {
   JobDraftInput,
   ServiceRequirementInput
 } from "../store/professionalStore";
+import { CandidateDocumentsRepository } from "./candidateDocuments";
 
 export type DbRow = Record<string, unknown>;
 
@@ -681,6 +682,10 @@ type ResponseLike<T> = {
 
 export class SupabaseRepository {
   constructor(private readonly client: SupabaseClient) {}
+
+  candidateDocuments() {
+    return new CandidateDocumentsRepository(this.client);
+  }
 
   private async resolve<T>(request: PromiseLike<ResponseLike<T>>) {
     const response = await request;
