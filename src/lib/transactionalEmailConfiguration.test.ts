@@ -53,6 +53,9 @@ describe("transactional email configuration", () => {
     expect(sender).toContain("async function rest");
     expect(sender).toContain("readiness_required");
     expect(sender).toContain("service_name");
+    expect(sender).toContain("Complete the readiness steps in Blithob");
+    expect(sender).toContain("escapeHtml");
+    expect(sender).not.toContain('text(payload, "admin_note")');
     expect(sender).toContain("https://blithob.com");
     expect(webhookMigrationName).toBeDefined();
     const webhookMigration = readFileSync(

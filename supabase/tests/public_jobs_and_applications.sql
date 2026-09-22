@@ -85,6 +85,7 @@ $$;
 do $$
 declare
   shortlist_definition text;
+  review_definition text;
   application_result text;
 begin
   if to_regprocedure('public.shortlist_job_application(uuid,text)') is null then
@@ -107,6 +108,12 @@ begin
   end if;
   if shortlist_definition not like '%status in (''withdrawn'', ''converted'')%' then
     raise exception 'Shortlist RPC must protect closed applications';
+  end if;
+
+  select pg_get_functiondef('public.review_job_application(uuid,public.job_application_status,text)'::regprocedure)
+    into review_definition;
+  if review_definition not like '%shortlist_job_application%' then
+    raise exception 'Legacy review RPC must use readiness-aware shortlisting';
   end if;
 
   select pg_get_function_result('public.list_admin_applications(uuid,text,text,integer,integer)'::regprocedure)

@@ -45,14 +45,32 @@ function text(payload: Record<string, unknown>, key: string) {
   return typeof payload[key] === "string" ? payload[key].trim() : "";
 }
 
+function escapeHtml(value: string) {
+  const entities: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  };
+  return value.replace(/[&<>"']/g, (character) => entities[character] ?? character);
+}
+
 function template(eventType: string, payload: Record<string, unknown>) {
   const jobTitle = text(payload, "job_title");
+  const serviceName = text(payload, "service_name");
+  const readinessRequired = payload.readiness_required === true;
   const comment = text(payload, "comment");
   const issueNote = text(payload, "issue_note");
   const reason = text(payload, "reason");
   const messages: Record<string, { subject: string; body: string }> = {
     application_received: { subject: "Application received", body: `We received your application${jobTitle ? ` for ${jobTitle}` : ""}. We will be in touch if there is a next step.` },
-    application_shortlisted: { subject: "Your application has been shortlisted", body: `Your application${jobTitle ? ` for ${jobTitle}` : ""} has been shortlisted.${comment ? ` ${comment}` : ""}` },
+    application_shortlisted: {
+      subject: "Your application has been shortlisted",
+      body: readinessRequired
+        ? `Your application${jobTitle ? ` for ${jobTitle}` : ""} has been shortlisted${serviceName ? ` for ${serviceName}` : ""}. Complete the readiness steps in Blithob so the team can review you for an Assignment.${comment ? ` ${comment}` : ""}`
+        : `Your application${jobTitle ? ` for ${jobTitle}` : ""} has been shortlisted. The team will share the Assignment here when the next step is ready.${comment ? ` ${comment}` : ""}`
+    },
     application_rejected: { subject: "Update on your application", body: `Thank you for applying${jobTitle ? ` for ${jobTitle}` : ""}. We are unable to move forward on this occasion.${comment ? ` ${comment}` : ""}` },
     readiness_review_requested: { subject: "Readiness review needed", body: "A Professional’s readiness submission is ready for your review." },
     readiness_certified: { subject: "Readiness certified", body: "A Lead has certified readiness for your final approval." },
@@ -140,7 +158,7 @@ Deno.serve(async (request) => {
       to: recipient.email,
       subject: message.subject,
       text: `${recipient.display_name ? `Hi ${recipient.display_name},\n\n` : ""}${message.body}\n\nOpen Blithob: https://blithob.com`,
-      html: `<p>${recipient.display_name ? `Hi ${recipient.display_name},` : "Hello,"}</p><p>${message.body}</p><p><a href="https://blithob.com">Open Blithob</a></p>`
+      html: `<p>${recipient.display_name ? `Hi ${escapeHtml(recipient.display_name)},` : "Hello,"}</p><p>${escapeHtml(message.body)}</p><p><a href="https://blithob.com">Open Blithob</a></p>`
     })
   });
   const result = await response.json().catch(() => ({})) as { id?: string; message?: string };
