@@ -114,7 +114,14 @@ export class CandidateDocumentsRepository {
     try {
       const upload = await this.client.storage
         .from("candidate-documents")
-        .upload(registered.storagePath, input.file, { upsert: false });
+        .upload(registered.storagePath, input.file, {
+          upsert: false,
+          contentType: input.file.type,
+          metadata: {
+            mimetype: input.file.type,
+            size: input.file.size
+          }
+        });
       if (upload.error) throw new Error(upload.error.message);
 
       const completion = await this.client.rpc("complete_candidate_document", {

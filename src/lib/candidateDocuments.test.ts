@@ -57,7 +57,11 @@ describe("CandidateDocumentsRepository", () => {
     expect(fake._upload).toHaveBeenCalledWith(
       expect.stringMatching(/^professional-1\/[0-9a-f-]+\.pdf$/),
       pdfFile,
-      expect.objectContaining({ upsert: false })
+      expect.objectContaining({
+        upsert: false,
+        contentType: "application/pdf",
+        metadata: { mimetype: "application/pdf", size: pdfFile.size }
+      })
     );
     expect(fake._rpc).toHaveBeenCalledWith("complete_candidate_document", expect.anything());
     expect(fake._rpc).toHaveBeenLastCalledWith("list_my_candidate_documents");
